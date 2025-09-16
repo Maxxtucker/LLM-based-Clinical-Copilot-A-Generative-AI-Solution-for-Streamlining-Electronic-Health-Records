@@ -300,7 +300,7 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                 />
               </div>
               <div>
-                <Label htmlFor="heart_rate" className="text-sm font-medium text-neutral-700">Heart Rate</Label>
+                <Label htmlFor="heart_rate" className="text-sm font-medium text-neutral-700">Heart Rate (bpm)</Label>
                 <Input
                   id="heart_rate"
                   value={formData.vital_signs.heart_rate}
@@ -310,33 +310,33 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                 />
               </div>
               <div>
-                <Label htmlFor="temperature" className="text-sm font-medium text-neutral-700">Temperature</Label>
+                <Label htmlFor="temperature" className="text-sm font-medium text-neutral-700">Temperature (°C)</Label>
                 <Input
                   id="temperature"
                   value={formData.vital_signs.temperature}
                   onChange={(e) => handleChange('vital_signs.temperature', e.target.value)}
                   className="mt-1"
-                  placeholder="98.6°F"
+                  placeholder="36.8 °C"
                 />
               </div>
               <div>
-                <Label htmlFor="weight" className="text-sm font-medium text-neutral-700">Weight</Label>
+                <Label htmlFor="weight" className="text-sm font-medium text-neutral-700">Weight (kg)</Label>
                 <Input
                   id="weight"
                   value={formData.vital_signs.weight}
                   onChange={(e) => handleChange('vital_signs.weight', e.target.value)}
                   className="mt-1"
-                  placeholder="150 lbs"
+                  placeholder="60 kg"
                 />
               </div>
               <div>
-                <Label htmlFor="height" className="text-sm font-medium text-neutral-700">Height</Label>
+                <Label htmlFor="height" className="text-sm font-medium text-neutral-700">Height (cm)</Label>
                 <Input
                   id="height"
                   value={formData.vital_signs.height}
                   onChange={(e) => handleChange('vital_signs.height', e.target.value)}
                   className="mt-1"
-                  placeholder="5'8"
+                  placeholder="165 cm"
                 />
               </div>
             </div>
