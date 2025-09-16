@@ -5,7 +5,12 @@ import { Routes, Route, Navigate, Link } from "react-router-dom";
 import PatientCard from "./components/dashboard/PatientCard";
 import StatsCard from "./components/dashboard/StatsCards";
 import PatientForm from "./components/forms/PatientForm";
-import { Users, Activity, ClipboardList, Home, User } from "lucide-react";
+import { Users, Activity, ClipboardList, Home, User, FileText } from "lucide-react";
+
+// Report components
+import DischargeReport from "./components/reports/DischargeReport";
+import HandoverReport from "./components/reports/HandoverReport";
+import ReferralReport from "./components/reports/ReferralReport";
 
 // Sidebar imports
 import {
@@ -88,6 +93,14 @@ function App() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link to="/reports">
+                    <FileText className="mr-2 h-4 w-4" />
+                    Reports
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter>
@@ -166,6 +179,45 @@ function App() {
                 </section>
               }
             />
+
+            {/* Reports hub */}
+            <Route
+              path="/reports"
+              element={
+                <section className="p-6">
+                  <h2 className="text-xl font-bold text-neutral-800 mb-4">
+                    Reports
+                  </h2>
+                  <ul className="list-disc pl-6 space-y-2">
+                    <li>
+                      <Link to="/reports/discharge" className="text-blue-600 hover:underline">
+                        Discharge Report
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to="/reports/handover" className="text-blue-600 hover:underline">
+                        Handover Report
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to="/reports/referral" className="text-blue-600 hover:underline">
+                        Referral Report
+                      </Link>
+                    </li>
+                  </ul>
+                </section>
+              }
+            />
+
+            {/* Sub-report routes */}
+            
+            <Route
+              path="/reports/discharge"
+              element={<DischargeReport patients={patients} isLoading={isLoading} />}
+            />
+
+            <Route path="/reports/handover" element={<HandoverReport />} />
+            <Route path="/reports/referral" element={<ReferralReport />} />
           </Routes>
         </div>
       </div>
