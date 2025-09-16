@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "../ui/button";
+import { Textarea } from "../ui/textarea";
 import { Send, Loader2 } from "lucide-react";
 
 export default function ChatInput({ onSendMessage, isLoading }) {

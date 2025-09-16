@@ -1,14 +1,14 @@
 
 import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Textarea } from "../ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { FileText, Loader2, Download, Wand2 } from "lucide-react";
 import { motion } from "framer-motion";
-import { InvokeLLM } from "@/integrations/Core";
+//import { InvokeLLM } from "@/integrations/Core";
 
 export default function DischargeReport({ patients, isLoading }) {
   const [selectedPatient, setSelectedPatient] = useState('');
@@ -100,8 +100,8 @@ export default function DischargeReport({ patients, isLoading }) {
         Return only the HTML content without any markdown formatting, code blocks, or additional text. Ensure the HTML is well-formed.
       `;
 
-      const response = await InvokeLLM({ prompt });
-      setGeneratedReport(response);
+      //const response = await InvokeLLM({ prompt });
+      //setGeneratedReport(response);
     } catch (error) {
       console.error('Error generating discharge report:', error);
       alert('Error generating report. Please try again.');
