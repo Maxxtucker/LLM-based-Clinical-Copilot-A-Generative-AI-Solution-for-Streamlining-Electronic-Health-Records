@@ -44,6 +44,18 @@ function App() {
       chief_complaint: "Chest pain when exercising",
       ai_summary: false,
     },
+      {
+      id: 3,
+      first_name: "James",
+      last_name: "Tan",
+      gender: "male",
+      date_of_birth: "1975-09-23",
+      phone: "+65 9876 5432",
+      status: "inactive",
+      medical_record_number: "MRN002",
+      chief_complaint: "Chest pain when exercising",
+      ai_summary: false,
+    },
   ];
 
   return (
