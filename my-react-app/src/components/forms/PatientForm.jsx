@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Textarea } from "../ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Save, Loader2, User, FileText, Activity } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -106,9 +106,16 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
               </div>
               <div>
                 <Label htmlFor="gender" className="text-sm font-medium text-neutral-700">Gender</Label>
-                <Select value={formData.gender} onValueChange={(value) => handleChange('gender', value)}>
+                <Select
+                  value={formData.gender}
+                  onValueChange={(value) => handleChange('gender', value)}
+                >
                   <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select gender" />
+                    {formData.gender ? (
+                      <span>{formData.gender.charAt(0).toUpperCase() + formData.gender.slice(1)}</span>
+                    ) : (
+                      <span className="text-neutral-500">Select gender</span>
+                    )}
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="male">Male</SelectItem>
@@ -117,6 +124,7 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                   </SelectContent>
                 </Select>
               </div>
+
               <div>
                 <Label htmlFor="phone" className="text-sm font-medium text-neutral-700">Phone</Label>
                 <Input
@@ -156,18 +164,29 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                 />
               </div>
               <div>
-                <Label htmlFor="status" className="text-sm font-medium text-neutral-700">Status</Label>
-                <Select value={formData.status} onValueChange={(value) => handleChange('status', value)}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="discharged">Discharged</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <Label htmlFor="status" className="text-sm font-medium text-neutral-700">
+                    Status
+                  </Label>
+                  <Select
+                    value={formData.status}
+                    onValueChange={(value) => handleChange("status", value)}
+                  >
+                    <SelectTrigger className="w-full mt-1">
+                      {formData.status ? (
+                        <span>
+                          {formData.status.charAt(0).toUpperCase() + formData.status.slice(1)}
+                        </span>
+                      ) : (
+                        <span className="text-neutral-500">Select status</span>
+                      )}
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                      <SelectItem value="discharged">Discharged</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
             </div>
           </CardContent>
         </Card>
