@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect } from "react";
-import { Patient } from "@/entities/Patient";
+// import { Patient } from "../entities/Patient";
 import { FileText, Download, Users } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { motion } from "framer-motion";
 
 import DischargeReport from "../components/reports/DischargeReport";
@@ -20,16 +20,51 @@ export default function Reports() {
     loadPatients();
   }, []);
 
+  // const loadPatients = async () => {
+  //   setIsLoading(true);
+  //   try {
+  //     const data = await Patient.list('-created_date');
+  //     setPatients(data);
+  //   } catch (error) {
+  //     console.error('Error loading patients:', error);
+  //   }
+  //   setIsLoading(false);
+  // };
+
   const loadPatients = async () => {
-    setIsLoading(true);
-    try {
-      const data = await Patient.list('-created_date');
-      setPatients(data);
-    } catch (error) {
-      console.error('Error loading patients:', error);
-    }
-    setIsLoading(false);
-  };
+  setIsLoading(true);
+
+  // Dummy static data (replace with actual fetch later)
+  const data = [
+    {
+      id: 1,
+      first_name: "Alice",
+      last_name: "Tan",
+      gender: "female",
+      date_of_birth: "1988-05-12",
+      phone: "+65 9123 4567",
+      status: "active",
+      medical_record_number: "MRN001",
+      chief_complaint: "Frequent headaches for the past 2 weeks",
+      ai_summary: true,
+    },
+    {
+      id: 2,
+      first_name: "John",
+      last_name: "Lim",
+      gender: "male",
+      date_of_birth: "1975-09-23",
+      phone: "+65 9876 5432",
+      status: "inactive",
+      medical_record_number: "MRN002",
+      chief_complaint: "Chest pain when exercising",
+      ai_summary: false,
+    },
+  ];
+
+  setPatients(data);
+  setIsLoading(false);
+};
 
   const reportTypes = [
     {
@@ -199,34 +234,18 @@ export default function Reports() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.2 }}
         >
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6 no-print">
-              <TabsTrigger value="discharge" className="gap-2">
-                <FileText className="w-4 h-4" />
-                Discharge Summary
-              </TabsTrigger>
-              <TabsTrigger value="referral" className="gap-2">
-                <Users className="w-4 h-4" />
-                Referral Letter
-              </TabsTrigger>
-              <TabsTrigger value="handover" className="gap-2">
-                <Download className="w-4 h-4" />
-                Handover Notes
-              </TabsTrigger>
-            </TabsList>
+        <div className="w-full printable-area">
+          {activeTab === "discharge" && (
+            <DischargeReport patients={patients} isLoading={isLoading} />
+          )}
+          {activeTab === "referral" && (
+            <ReferralReport patients={patients} isLoading={isLoading} />
+          )}
+          {activeTab === "handover" && (
+            <HandoverReport patients={patients} isLoading={isLoading} />
+          )}
+        </div>
 
-            <TabsContent value="discharge" className="printable-area">
-              <DischargeReport patients={patients} isLoading={isLoading} />
-            </TabsContent>
-
-            <TabsContent value="referral" className="printable-area">
-              <ReferralReport patients={patients} isLoading={isLoading} />
-            </TabsContent>
-
-            <TabsContent value="handover" className="printable-area">
-              <HandoverReport patients={patients} isLoading={isLoading} />
-            </TabsContent>
-          </Tabs>
         </motion.div>
       </div>
     </div>

@@ -8,9 +8,7 @@ import PatientForm from "./components/forms/PatientForm";
 import { Users, Activity, ClipboardList, Home, User, FileText } from "lucide-react";
 
 // Report components
-import DischargeReport from "./components/reports/DischargeReport";
-import HandoverReport from "./components/reports/HandoverReport";
-import ReferralReport from "./components/reports/ReferralReport";
+import Reports from "./pages/Reports"; 
 
 // Sidebar imports
 import {
@@ -113,7 +111,7 @@ function App() {
           <header className="bg-white shadow p-4 flex items-center justify-between">
             <SidebarTrigger />
             <h1 className="text-2xl font-bold text-blue-600">
-              MediSynth AI
+              Clincial Copilot
             </h1>
           </header>
 
@@ -181,7 +179,7 @@ function App() {
             />
 
             {/* Reports hub */}
-            <Route
+            {/* <Route
               path="/reports"
               element={
                 <section className="p-6">
@@ -207,17 +205,18 @@ function App() {
                   </ul>
                 </section>
               }
-            />
+            /> */}
 
             {/* Sub-report routes */}
             
-            <Route
+            {/* <Route
               path="/reports/discharge"
               element={<DischargeReport patients={patients} isLoading={isLoading} />}
             />
 
             <Route path="/reports/handover" element={<HandoverReport />} />
-            <Route path="/reports/referral" element={<ReferralReport />} />
+            <Route path="/reports/referral" element={<ReferralReport />} /> */}
+            <Route path="/reports" element={<Reports />} />
           </Routes>
         </div>
       </div>

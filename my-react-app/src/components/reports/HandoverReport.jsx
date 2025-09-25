@@ -139,13 +139,19 @@ export default function HandoverReport({ patients, isLoading }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label className="text-sm font-medium text-neutral-700">Select Patient *</Label>
-              <Select value={selectedPatient} onValueChange={setSelectedPatient}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Choose a patient" />
-                </SelectTrigger>
+            <Select value={selectedPatient} onValueChange={setSelectedPatient}>
+                <SelectTrigger
+                  className="mt-1"
+                  renderValue={(val) => {
+                    const patient = patients.find(p => p.id.toString() === val);
+                    return patient
+                      ? `${patient.first_name} ${patient.last_name} (${patient.medical_record_number})`
+                      : "Choose a patient";
+                  }}
+                />
                 <SelectContent>
                   {patients.map(patient => (
-                    <SelectItem key={patient.id} value={patient.id}>
+                    <SelectItem key={patient.id} value={patient.id.toString()}>
                       {patient.first_name} {patient.last_name} - {patient.medical_record_number}
                     </SelectItem>
                   ))}
