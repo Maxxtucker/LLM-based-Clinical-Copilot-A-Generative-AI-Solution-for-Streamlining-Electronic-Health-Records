@@ -137,12 +137,18 @@ export default function ReferralReport({ patients, isLoading }) {
             <div>
               <Label className="text-sm font-medium text-neutral-700">Select Patient *</Label>
               <Select value={selectedPatient} onValueChange={setSelectedPatient}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Choose a patient" />
-                </SelectTrigger>
+                <SelectTrigger
+                  className="mt-1"
+                  renderValue={(val) => {
+                    const patient = patients.find(p => p.id.toString() === val);
+                    return patient
+                      ? `${patient.first_name} ${patient.last_name} (${patient.medical_record_number})`
+                      : "Choose a patient";
+                  }}
+                />
                 <SelectContent>
                   {patients.map(patient => (
-                    <SelectItem key={patient.id} value={patient.id}>
+                    <SelectItem key={patient.id} value={patient.id.toString()}>
                       {patient.first_name} {patient.last_name} - {patient.medical_record_number}
                     </SelectItem>
                   ))}
@@ -166,7 +172,7 @@ export default function ReferralReport({ patients, isLoading }) {
                 <Input
                   value={formData.referring_physician}
                   onChange={(e) => handleChange('referring_physician', e.target.value)}
-                  placeholder="Dr. John Smith"
+                  placeholder="Dr. Samuel Lee"
                   className="mt-1"
                 />
               </div>
@@ -175,7 +181,7 @@ export default function ReferralReport({ patients, isLoading }) {
                 <Input
                   value={formData.referring_physician_contact}
                   onChange={(e) => handleChange('referring_physician_contact', e.target.value)}
-                  placeholder="Phone: (555) 123-4567"
+                  placeholder="6123 4567"
                   className="mt-1"
                 />
               </div>
@@ -184,7 +190,7 @@ export default function ReferralReport({ patients, isLoading }) {
                 <Input
                   value={formData.specialist_name}
                   onChange={(e) => handleChange('specialist_name', e.target.value)}
-                  placeholder="Dr. Jane Doe (if known)"
+                  placeholder="Dr. Jane Tan (if known)"
                   className="mt-1"
                 />
               </div>

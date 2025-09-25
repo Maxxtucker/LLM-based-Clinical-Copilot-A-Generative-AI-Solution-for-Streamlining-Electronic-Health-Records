@@ -1,6 +1,6 @@
 import * as React from "react"
 import { ChevronDown, Check } from "lucide-react"
-import { cn } from "../utils" // assuming you have a classnames util
+import { cn } from "../utils" // your classnames utility
 
 const SelectContext = React.createContext()
 
@@ -19,7 +19,7 @@ const Select = ({ children, value, onValueChange, ...props }) => {
   )
 }
 
-const SelectTrigger = React.forwardRef(({ className }, ref) => {
+const SelectTrigger = React.forwardRef(({ className, renderValue }, ref) => {
   const { isOpen, toggleOpen, value } = React.useContext(SelectContext)
 
   return (
@@ -33,7 +33,11 @@ const SelectTrigger = React.forwardRef(({ className }, ref) => {
       )}
     >
       <span className="truncate">
-        {value ? value.charAt(0).toUpperCase() + value.slice(1) : <SelectValue />}
+        {value
+          ? renderValue
+            ? renderValue(value)
+            : value.toString()
+          : <SelectValue />}
       </span>
       <ChevronDown className="h-4 w-4 opacity-50 ml-2" />
     </button>
