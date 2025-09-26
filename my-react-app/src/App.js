@@ -1,17 +1,12 @@
 // src/App.js
-import React, { useState } from "react";
+import React from "react";
 import { Routes, Route, Navigate, Link } from "react-router-dom";
 
-import PatientCard from "./components/dashboard/PatientCard";
-import StatsCard from "./components/dashboard/StatsCards";
-import PatientForm from "./components/forms/PatientForm";
-import { Users, Activity, ClipboardList, Home, User, FileText, Brain } from "lucide-react";
-
-// Report components
+import Dashboard from "./pages/Dashboard";
 import Reports from "./pages/Reports"; 
-
-// AI Assistant components
 import AIAssistant from "./pages/AIAssistant";
+import PatientForm from "./components/forms/PatientForm";
+import { Home, User, FileText, Brain } from "lucide-react";
 
 // Sidebar imports
 import {
@@ -27,47 +22,6 @@ import {
 } from "./components/ui/sidebar";
 
 function App() {
-  const [patients, setPatients] = useState([
-    {
-      id: 1,
-      first_name: "Alice",
-      last_name: "Tan",
-      gender: "female",
-      date_of_birth: "1988-05-12",
-      phone: "+65 9123 4567",
-      status: "active",
-      medical_record_number: "MRN001",
-      chief_complaint: "Frequent headaches for the past 2 weeks",
-      ai_summary: true,
-    },
-    {
-      id: 2,
-      first_name: "John",
-      last_name: "Lim",
-      gender: "male",
-      date_of_birth: "1975-09-23",
-      phone: "+65 9876 5432",
-      status: "inactive",
-      medical_record_number: "MRN002",
-      chief_complaint: "Chest pain when exercising",
-      ai_summary: false,
-    },
-  ]);
-
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleFormSubmit = (newPatient) => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setPatients((prev) => [
-        ...prev,
-        { id: prev.length + 1, ...newPatient },
-      ]);
-      setIsLoading(false);
-      alert("Patient saved successfully!");
-    }, 1000);
-  };
-
   return (
     <SidebarProvider>
       <div className="flex min-h-screen bg-gray-50">
@@ -102,7 +56,6 @@ function App() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link to="/reports">
@@ -120,61 +73,15 @@ function App() {
 
         {/* Main content */}
         <div className="flex-1 flex flex-col">
-          <header className="bg-white shadow p-4 flex items-center justify-between">
-            <SidebarTrigger />
-            <h1 className="text-2xl font-bold text-blue-600">
-              Clincial Copilot
-            </h1>
-          </header>
 
           <Routes>
-            {/* Redirect root to /dashboard */}
+            {/* Redirect root to dashboard */}
             <Route path="/" element={<Navigate to="/dashboard" />} />
 
-            {/* Dashboard route = StatsCards + PatientCards */}
-            <Route
-              path="/dashboard"
-              element={
-                <>
-                  <section className="p-6 grid gap-6 md:grid-cols-3">
-                    <StatsCard
-                      title="Total Patients"
-                      value={patients.length.toString()}
-                      description="Active in system"
-                      icon={Users}
-                      gradient="bg-gradient-to-br from-blue-500 to-blue-700"
-                    />
-                    <StatsCard
-                      title="Active Cases"
-                      value="48"
-                      description="Ongoing treatments"
-                      icon={Activity}
-                      gradient="bg-gradient-to-br from-emerald-500 to-teal-600"
-                    />
-                    <StatsCard
-                      title="Reports Generated"
-                      value="1,024"
-                      description="AI-powered summaries"
-                      icon={ClipboardList}
-                      gradient="bg-gradient-to-br from-purple-500 to-pink-600"
-                    />
-                  </section>
+            {/* Dashboard now fully handled in Dashboard.jsx */}
+            <Route path="/dashboard" element={<Dashboard />} />
 
-                  <section className="p-6">
-                    <h2 className="text-xl font-bold text-neutral-800 mb-4">
-                      Recent Patients
-                    </h2>
-                    <div className="grid gap-6 md:grid-cols-2">
-                      {patients.map((p) => (
-                        <PatientCard key={p.id} patient={p} />
-                      ))}
-                    </div>
-                  </section>
-                </>
-              }
-            />
-
-            {/* Patients route = PatientForm */}
+            {/* Patients form */}
             <Route
               path="/patients"
               element={
@@ -182,13 +89,12 @@ function App() {
                   <h2 className="text-xl font-bold text-neutral-800 mb-4">
                     Add New Patient
                   </h2>
-                  <PatientForm
-                    onSubmit={handleFormSubmit}
-                    isLoading={isLoading}
-                  />
+                  <PatientForm />
                 </section>
               }
             />
+
+            {/* Other routes */}
             <Route path="/reports" element={<Reports />} />
             <Route path="/ai" element={<AIAssistant />} />
           </Routes>
