@@ -73,7 +73,7 @@ function App() {
         {/* Sidebar */}
         <Sidebar>
           <SidebarHeader>
-            <h2 className="text-xl font-bold text-blue-600">MediSynth AI</h2>
+            <h2 className="text-xl font-bold text-blue-600">BT4103 Grp 10</h2>
           </SidebarHeader>
           <SidebarContent>
             <SidebarMenu>
@@ -136,7 +136,7 @@ function App() {
             <Route path="/ai" element={<AIAssistant />} />
             <Route path="/profile" element={<Profile />} />
           </Routes>
-          
+
           <ConfirmDialog
             open={showLogoutConfirm}
             title="Confirm Logout"
