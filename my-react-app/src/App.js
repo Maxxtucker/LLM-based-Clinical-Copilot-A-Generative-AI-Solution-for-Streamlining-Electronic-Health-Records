@@ -1,12 +1,16 @@
 // src/App.js
-import React from "react";
+import React, { useState } from "react";
 import { Routes, Route, Navigate, Link } from "react-router-dom";
 
 import Dashboard from "./pages/Dashboard";
 import Reports from "./pages/Reports"; 
 import AIAssistant from "./pages/AIAssistant";
 import PatientForm from "./components/forms/PatientForm";
-import { Home, User, FileText, Brain } from "lucide-react";
+import Profile from "./pages/Profile";
+import { Home, User, FileText, Brain, UserCog, LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import ConfirmDialog from "./components/ui/confirmdialog";
+
 
 // Sidebar imports
 import {
@@ -21,7 +25,48 @@ import {
   SidebarTrigger,
 } from "./components/ui/sidebar";
 
+function SidebarFooterContent({ onLogoutClick }) {
+  return (
+    <SidebarFooter>
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton asChild>
+            <Link to="/profile">
+              <UserCog className="mr-2 h-4 w-4" />
+              Profile
+            </Link>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+          <SidebarMenuButton onClick={onLogoutClick}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Logout
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    </SidebarFooter>
+  );
+}
+
 function App() {
+  const navigate = useNavigate();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const handleLogoutClick = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const handleLogoutConfirm = () => {
+    setShowLogoutConfirm(false);
+    console.log("User confirmed logout");
+    // Clear auth tokens here if needed
+    navigate("/");
+  };
+
+  const handleLogoutCancel = () => {
+    setShowLogoutConfirm(false);
+  };
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen bg-gray-50">
@@ -32,6 +77,7 @@ function App() {
           </SidebarHeader>
           <SidebarContent>
             <SidebarMenu>
+              {/* Your existing nav items */}
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link to="/dashboard">
@@ -66,22 +112,15 @@ function App() {
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarContent>
-          <SidebarFooter>
-            <p className="text-sm text-gray-500">© 2025 MediSynth</p>
-          </SidebarFooter>
+
+          <SidebarFooterContent onLogoutClick={handleLogoutClick} />
         </Sidebar>
 
         {/* Main content */}
         <div className="flex-1 flex flex-col">
-
           <Routes>
-            {/* Redirect root to dashboard */}
             <Route path="/" element={<Navigate to="/dashboard" />} />
-
-            {/* Dashboard now fully handled in Dashboard.jsx */}
             <Route path="/dashboard" element={<Dashboard />} />
-
-            {/* Patients form */}
             <Route
               path="/patients"
               element={
@@ -93,15 +132,23 @@ function App() {
                 </section>
               }
             />
-
-            {/* Other routes */}
             <Route path="/reports" element={<Reports />} />
             <Route path="/ai" element={<AIAssistant />} />
+            <Route path="/profile" element={<Profile />} />
           </Routes>
+          
+          <ConfirmDialog
+            open={showLogoutConfirm}
+            title="Confirm Logout"
+            description="Are you sure you want to logout?"
+            onConfirm={handleLogoutConfirm}
+            onCancel={handleLogoutCancel}
+          />
         </div>
       </div>
     </SidebarProvider>
   );
 }
+
 
 export default App;
