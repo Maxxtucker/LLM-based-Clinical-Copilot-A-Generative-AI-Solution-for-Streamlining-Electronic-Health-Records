@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Patient } from "@/entities/Patient";
-import { InvokeLLM } from "@/integrations/Core";
+// import { Patient } from "./entities/Patient";
+// import { InvokeLLM } from "@/integrations/Core";
 import { Brain, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -33,8 +33,54 @@ export default function AIAssistant() {
 
     try {
       // Get all patient data to provide context
-      const patients = await Patient.list();
-      
+      // TEMP MOCK: replace Patient.list() with static mock data
+      const patients = [
+        {
+          id: 1,
+          first_name: "Alice",
+          last_name: "Tan",
+          gender: "female",
+          date_of_birth: "1988-05-12",
+          phone: "+65 9123 4567",
+          status: "active",
+          medical_record_number: "MRN001",
+          chief_complaint: "Frequent headaches for the past 2 weeks",
+          medical_history: "Hypertension",
+          current_medications: "Paracetamol",
+          allergies: "Penicillin",
+          vital_signs: {
+            blood_pressure: "120/80",
+            heart_rate: "75",
+            temperature: "36.8°C"
+          },
+          diagnosis: "Migraine",
+          treatment_plan: "Lifestyle modification, pain management",
+          ai_summary: true,
+        },
+        {
+          id: 2,
+          first_name: "John",
+          last_name: "Lim",
+          gender: "male",
+          date_of_birth: "1975-09-23",
+          phone: "+65 9876 5432",
+          status: "inactive",
+          medical_record_number: "MRN002",
+          chief_complaint: "Chest pain when exercising",
+          medical_history: "Hyperlipidemia",
+          current_medications: "Atorvastatin",
+          allergies: "None",
+          vital_signs: {
+            blood_pressure: "135/85",
+            heart_rate: "88",
+            temperature: "37.1°C"
+          },
+          diagnosis: "Angina",
+          treatment_plan: "Further cardiac evaluation",
+          ai_summary: false,
+        }
+      ];
+
       const prompt = `
         You are an AI medical assistant helping healthcare professionals analyze patient data and provide insights.
         
@@ -62,9 +108,17 @@ export default function AIAssistant() {
         Format your response in a clear, professional manner using markdown when appropriate for better readability.
       `;
 
-      const response = await InvokeLLM({ prompt });
+      // const response = await InvokeLLM({ prompt });
       
       // Add AI response to chat
+          // TEMP: Mock LLM response for front-end preview
+      const response = `
+      ### AI Summary:
+      Here is a placeholder response from the AI assistant. Your LLM will eventually generate detailed medical insights here based on patient data and the user's query.
+
+      This mock allows you to work on the front-end without wiring up a backend or LLM service.
+      `;
+
       setMessages(prev => [...prev, { text: response, isUser: false }]);
       
     } catch (error) {
