@@ -1,49 +1,59 @@
-// pages/Dashboard.tsx
-import React, { useState, useEffect } from "react";
-import { Patient } from "./entities/Patient";
-import { Input } from "./components/ui/input";
-import { Button } from "./components/ui/button";
+// pages/Dashboard.jsx
+import React, { useState } from "react";
+import { Input } from "../components/ui/input";
+import { Button } from "../components/ui/button";
 import { Search, Plus, Users, Brain, TrendingUp, Activity } from "lucide-react";
 import { Link } from "react-router-dom";
-import { createPageUrl } from "../utils";
 import { motion } from "framer-motion";
-
-import StatsCards from "./components/dashboard/StatsCards";
-import PatientCard from "./components/dashboard/PatientCard";
-import { listPatients } from "../services/PatientService";
+import StatsCards from "../components/dashboard/StatsCards";
+import PatientCard from "../components/dashboard/PatientCard";
 
 export default function Dashboard() {
-  const [patients, setPatients] = useState<Patient[]>([]);
+  // ✅ Dummy patient data
+  const [patients, setPatients] = useState([
+    {
+      id: 1,
+      first_name: "Alice",
+      last_name: "Tan",
+      gender: "female",
+      date_of_birth: "1988-05-12",
+      phone: "+65 9123 4567",
+      status: "active",
+      medical_record_number: "MRN001",
+      chief_complaint: "Frequent headaches for the past 2 weeks",
+      ai_summary: true,
+    },
+    {
+      id: 2,
+      first_name: "John",
+      last_name: "Lim",
+      gender: "male",
+      date_of_birth: "1975-09-23",
+      phone: "+65 9876 5432",
+      status: "inactive",
+      medical_record_number: "MRN002",
+      chief_complaint: "Chest pain when exercising",
+      ai_summary: false,
+    },
+  ]);
+
   const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    loadPatients();
-  }, []);
-
-  const loadPatients = async () => {
-    setIsLoading(true);
-    try {
-      const data = await listPatients('-created_date');
-      setPatients(data);
-    } catch (error) {
-      console.error('Error loading patients:', error);
-    }
-    setIsLoading(false);
-  };
-
+  // ✅ Filtered list by name or MRN
   const filteredPatients = patients.filter(patient =>
     `${patient.first_name} ${patient.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
     patient.medical_record_number.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // ✅ Dummy stats
+  const totalPatients = patients.length;
   const activePatients = patients.filter(p => p.status === 'active').length;
-  const patientsWithSummary = patients.filter(p => p.ai_summary).length;
+  const aiSummaries = patients.filter(p => p.ai_summary).length;
+  const summaryRate = totalPatients > 0 ? `${Math.round((aiSummaries / totalPatients) * 100)}%` : '0%';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 p-6">
       <div className="max-w-7xl mx-auto">
-
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -55,7 +65,7 @@ export default function Dashboard() {
             <h1 className="text-3xl font-bold text-neutral-900 mb-2">Patient Dashboard</h1>
             <p className="text-neutral-600">Manage and monitor patient care with AI-powered insights</p>
           </div>
-          <Link to={createPageUrl("NewPatient")}>
+          <Link to="/patients">
             <Button className="bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all duration-200 px-6 py-3">
               <Plus className="w-5 h-5 mr-2" />
               New Patient
@@ -63,11 +73,11 @@ export default function Dashboard() {
           </Link>
         </motion.div>
 
-        {/* Stats Cards */}
+        {/* ✅ Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatsCards 
             title="Total Patients" 
-            value={patients.length}
+            value={totalPatients}
             icon={Users}
             gradient="bg-gradient-to-r from-blue-500 to-blue-600"
             description="All registered patients"
@@ -81,21 +91,21 @@ export default function Dashboard() {
           />
           <StatsCards 
             title="AI Summaries" 
-            value={patientsWithSummary}
+            value={aiSummaries}
             icon={Brain}
             gradient="bg-gradient-to-r from-purple-500 to-purple-600"
             description="Generated summaries"
           />
           <StatsCards 
             title="Summary Rate" 
-            value={patients.length > 0 ? `${Math.round((patientsWithSummary / patients.length) * 100)}%` : '0%'}
+            value={summaryRate}
             icon={TrendingUp}
             gradient="bg-gradient-to-r from-orange-500 to-orange-600"
             description="Completion percentage"
           />
         </div>
 
-        {/* Search */}
+        {/* ✅ Search Box */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -113,21 +123,13 @@ export default function Dashboard() {
           </div>
         </motion.div>
 
-        {/* Patients Grid */}
+        {/* ✅ Patient Cards */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.4, delay: 0.3 }}
         >
-          {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="bg-white rounded-lg shadow-sm h-64"></div>
-                </div>
-              ))}
-            </div>
-          ) : filteredPatients.length > 0 ? (
+          {filteredPatients.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredPatients.map((patient, index) => (
                 <motion.div
@@ -152,7 +154,7 @@ export default function Dashboard() {
                 {searchTerm ? 'Try adjusting your search terms.' : 'Get started by adding your first patient.'}
               </p>
               {!searchTerm && (
-                <Link to={createPageUrl("NewPatient")}>
+                <Link to="/patients">
                   <Button className="bg-blue-600 hover:bg-blue-700">
                     <Plus className="w-5 h-5 mr-2" />
                     Add First Patient
