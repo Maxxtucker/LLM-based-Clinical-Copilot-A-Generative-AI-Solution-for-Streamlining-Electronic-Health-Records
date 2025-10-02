@@ -48,7 +48,7 @@ export default function Login({ setIsAuthenticated }) {
               </div>
             </div>
             
-            <CardTitle className="text-3xl font-bold text-neutral-900">MediSynth AI</CardTitle>
+            <CardTitle className="text-3xl font-bold text-neutral-900">BT4103 Grp 10</CardTitle>
             <CardDescription className="text-neutral-600 text-base">
               Intelligent Healthcare Management System
             </CardDescription>
