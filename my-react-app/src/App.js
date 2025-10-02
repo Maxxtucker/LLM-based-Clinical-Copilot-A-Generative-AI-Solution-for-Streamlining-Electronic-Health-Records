@@ -195,7 +195,6 @@ function App() {
                     onCancel={handleLogoutCancel}
                   />
                 </div>
-              </div>
             </SidebarProvider>
           ) : (
             <Navigate to="/" replace />
