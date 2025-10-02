@@ -57,3 +57,7 @@ export default function NewPatient() {
     </div>
   );
 }
+
+
+
+

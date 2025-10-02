@@ -1,22 +1,34 @@
 import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Stethoscope, Mail, Lock, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
-import { createPageUrl } from "@/utils";
 import { useNavigate } from "react-router-dom";
 
-export default function Welcome() {
+// Pass `setIsAuthenticated` down from App.js
+export default function Login({ setIsAuthenticated }) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // For demo purposes, redirect to dashboard
-    navigate(createPageUrl("Dashboard"));
+
+    // Mock credentials
+    const mockUser = {
+      email: "bt4103@hospital.com",
+      password: "bt4103",
+    };
+
+    if (email === mockUser.email && password === mockUser.password) {
+      setIsAuthenticated(true); // ✅ tell App.js the user is logged in
+      navigate("/dashboard");   // ✅ redirect to dashboard
+    } else {
+      setError("Invalid email or password");
+    }
   };
 
   return (
@@ -44,6 +56,11 @@ export default function Welcome() {
           
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Error Message */}
+              {error && (
+                <p className="text-red-500 text-sm text-center">{error}</p>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-neutral-700 font-medium">Email Address</Label>
                 <div className="relative">
@@ -105,16 +122,11 @@ export default function Welcome() {
             {/* Demo Notice */}
             <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
               <p className="text-xs text-amber-800 text-center">
-                <strong>Demo Mode:</strong> This is a visual mockup. Click "Sign In" to view the dashboard.
+                <strong>Demo Mode:</strong> Use email (<code>bt4103@hospital.com</code>) / password(<code>bt4103</code>) to login.
               </p>
             </div>
           </CardContent>
         </Card>
-
-        {/* Footer */}
-        <p className="text-center text-sm text-neutral-500 mt-6">
-          © 2024 MediSynth AI. All rights reserved.
-        </p>
       </motion.div>
     </div>
   );
