@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Patient } from "@/entities/Patient";
 import { ArrowLeft, Edit3, User, Calendar, Phone, Mail, MapPin } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { createPageUrl } from "@/utils";
+import { createPageUrl } from "../utils";
 import { motion } from "framer-motion";
-import { format } from "date-fns";
 
 import SummaryGenerator from "../components/ai/SummaryGenerator";
 
@@ -28,11 +26,13 @@ export default function PatientDetail() {
   const loadPatient = useCallback(async () => {
     setIsLoading(true);
     try {
-      const patients = await Patient.list();
-      const foundPatient = patients.find(p => p.id === patientId);
-      setPatient(foundPatient);
+      const res = await fetch(`/api/patients/${patientId}`);
+      if (!res.ok) throw new Error(`Failed to load patient (${res.status})`);
+      const data = await res.json();
+      setPatient({ ...data, id: data._id });
     } catch (error) {
       console.error('Error loading patient:', error);
+      setPatient(null);
     }
     setIsLoading(false);
   }, [patientId]);
@@ -44,8 +44,23 @@ export default function PatientDetail() {
   }, [patientId, loadPatient]);
 
   const handleSummaryGenerated = async (summary) => {
-    await Patient.update(patient.id, { ai_summary: summary });
-    setPatient(prev => ({ ...prev, ai_summary: summary }));
+    try {
+      await fetch(`/api/patients/${patient.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          ai_summary: true,
+          ai_summary_content: summary 
+        })
+      });
+      setPatient(prev => ({ 
+        ...prev, 
+        ai_summary: true,
+        ai_summary_content: summary 
+      }));
+    } catch (e) {
+      console.error('Failed updating summary', e);
+    }
   };
 
   if (isLoading) {

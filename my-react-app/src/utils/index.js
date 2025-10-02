@@ -8,6 +8,7 @@ const pageRoutes = {
   Reports: '/reports',
   Profile: '/profile',
   Login: '/login',
+  PatientDetail: '/patient',
 };
 
 /**

@@ -11,7 +11,6 @@ import {
   ArrowRight,
   Activity
 } from "lucide-react";
-import { format } from "date-fns";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../../utils/index";
 
@@ -96,7 +95,7 @@ export default function PatientCard({ patient }) {
               )}
             </div>
             
-            <Link to={createPageUrl(`PatientDetail?id=${patient.id}`)}>
+            <Link to={`${createPageUrl('PatientDetail')}?id=${patient.id}` }>
               <Button size="sm" variant="ghost" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 gap-1">
                 View Details
                 <ArrowRight className="w-4 h-4" />
