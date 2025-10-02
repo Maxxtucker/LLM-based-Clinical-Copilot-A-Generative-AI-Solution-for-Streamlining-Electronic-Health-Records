@@ -34,10 +34,7 @@ export async function generateAIResponse(prompt, systemMessage = null) {
       model: 'gpt-5-mini', // Using GPT-5-mini for enhanced performance and capabilities
       messages: messages,
       max_completion_tokens: 2000,
-      temperature: 0.7,
-      top_p: 1,
-      frequency_penalty: 0,
-      presence_penalty: 0
+      // Note: GPT-5-mini only supports default temperature (1) and doesn't support other parameters
     });
 
     return completion.choices[0].message.content;
