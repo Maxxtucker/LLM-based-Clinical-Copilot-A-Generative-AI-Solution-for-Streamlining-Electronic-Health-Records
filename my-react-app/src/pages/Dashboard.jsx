@@ -1,5 +1,5 @@
 // pages/Dashboard.jsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { Search, Plus, Users, Brain, TrendingUp, Activity } from "lucide-react";
@@ -9,33 +9,53 @@ import StatsCards from "../components/dashboard/StatsCards";
 import PatientCard from "../components/dashboard/PatientCard";
 
 export default function Dashboard() {
-  // ✅ Dummy patient data
-  const [patients, setPatients] = useState([
-    {
-      id: 1,
-      first_name: "Alice",
-      last_name: "Tan",
-      gender: "female",
-      date_of_birth: "1988-05-12",
-      phone: "+65 9123 4567",
-      status: "active",
-      medical_record_number: "MRN001",
-      chief_complaint: "Frequent headaches for the past 2 weeks",
-      ai_summary: true,
-    },
-    {
-      id: 2,
-      first_name: "John",
-      last_name: "Lim",
-      gender: "male",
-      date_of_birth: "1975-09-23",
-      phone: "+65 9876 5432",
-      status: "inactive",
-      medical_record_number: "MRN002",
-      chief_complaint: "Chest pain when exercising",
-      ai_summary: false,
-    },
-  ]);
+  // Patients loaded from API; falls back to demo if fetch fails
+  const [patients, setPatients] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const res = await fetch('/api/patients');
+        if (!res.ok) throw new Error('Failed to fetch patients');
+        const data = await res.json();
+        const mapped = (Array.isArray(data) ? data : []).map(p => ({ ...p, id: p._id }));
+        if (isMounted) setPatients(mapped);
+      } catch (e) {
+        console.warn('Falling back to demo patients:', e);
+        if (isMounted) setPatients([
+          {
+            id: 'demo-1',
+            first_name: "Alice",
+            last_name: "Tan",
+            gender: "female",
+            date_of_birth: "1988-05-12",
+            phone: "+65 9123 4567",
+            status: "active",
+            medical_record_number: "MRN001",
+            chief_complaint: "Frequent headaches for the past 2 weeks",
+            ai_summary: true,
+          },
+          {
+            id: 'demo-2',
+            first_name: "John",
+            last_name: "Lim",
+            gender: "male",
+            date_of_birth: "1975-09-23",
+            phone: "+65 9876 5432",
+            status: "inactive",
+            medical_record_number: "MRN002",
+            chief_complaint: "Chest pain when exercising",
+            ai_summary: false,
+          },
+        ]);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    })();
+    return () => { isMounted = false; };
+  }, []);
 
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -128,6 +148,9 @@ export default function Dashboard() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.4, delay: 0.3 }}
         >
+          {loading && (
+            <div className="text-center text-neutral-500 py-8">Loading patients…</div>
+          )}
           {filteredPatients.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredPatients.map((patient, index) => (

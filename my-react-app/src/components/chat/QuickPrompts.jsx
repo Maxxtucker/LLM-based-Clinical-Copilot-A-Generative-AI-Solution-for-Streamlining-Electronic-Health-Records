@@ -15,9 +15,9 @@ const quickPrompts = [
 
 export default function QuickPrompts({ onPromptSelect, isLoading }) {
   return (
-    <Card className="p-4 mb-4 bg-gradient-to-r from-blue-50 to-purple-50 border-0">
-      <h3 className="font-semibold text-neutral-700 mb-3 text-sm">Quick Prompts</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+    <Card className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 border-0">
+      <h3 className="font-semibold text-neutral-700 mb-4 text-base">Quick Prompts</h3>
+      <div className="flex flex-wrap gap-3">
         {quickPrompts.map((prompt, index) => (
           <Button
             key={index}
@@ -25,9 +25,9 @@ export default function QuickPrompts({ onPromptSelect, isLoading }) {
             size="sm"
             onClick={() => onPromptSelect(prompt)}
             disabled={isLoading}
-            className="text-left justify-start h-auto p-2 hover:bg-white/70 text-neutral-600 hover:text-neutral-900 text-xs"
+            className="text-left justify-start h-auto p-3 hover:bg-white/70 text-neutral-600 hover:text-neutral-900 text-sm leading-relaxed min-h-[60px] max-w-[300px] flex-shrink-0"
           >
-            {prompt}
+            <span className="whitespace-normal break-words">{prompt}</span>
           </Button>
         ))}
       </div>

@@ -1,66 +1,24 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Button } from "../ui/button";
+import { Textarea } from "../ui/textarea";
 import { Brain, Wand2, Loader2, Save, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
-import { InvokeLLM } from "@/integrations/Core";
+import { generatePatientSummary } from "../../services/OpenAIService";
 
 export default function SummaryGenerator({ patient, onSummaryGenerated }) {
-  const [summary, setSummary] = useState(patient.ai_summary || '');
+  const [summary, setSummary] = useState(patient.ai_summary_content || '');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const generateSummary = async () => {
     setIsGenerating(true);
     try {
-      const prompt = `
-        Please generate a comprehensive medical patient summary for the following patient information. 
-        Focus on key medical insights, patterns, and important clinical considerations.
-        
-        Patient Information:
-        - Name: ${patient.first_name} ${patient.last_name}
-        - Age: ${patient.date_of_birth ? new Date().getFullYear() - new Date(patient.date_of_birth).getFullYear() : 'N/A'}
-        - Gender: ${patient.gender || 'N/A'}
-        - MRN: ${patient.medical_record_number}
-        
-        Chief Complaint: ${patient.chief_complaint || 'None provided'}
-        
-        Medical History: ${patient.medical_history || 'None provided'}
-        
-        Current Medications: ${patient.current_medications || 'None provided'}
-        
-        Allergies: ${patient.allergies || 'None provided'}
-        
-        Current Symptoms: ${patient.symptoms || 'None provided'}
-        
-        Lab Results: ${patient.lab_results || 'None provided'}
-        
-        Vital Signs:
-        - Blood Pressure: ${patient.vital_signs?.blood_pressure || 'N/A'}
-        - Heart Rate: ${patient.vital_signs?.heart_rate || 'N/A'}
-        - Temperature: ${patient.vital_signs?.temperature || 'N/A'}
-        - Weight: ${patient.vital_signs?.weight || 'N/A'}
-        - Height: ${patient.vital_signs?.height || 'N/A'}
-        
-        Diagnosis: ${patient.diagnosis || 'None provided'}
-        
-        Treatment Plan: ${patient.treatment_plan || 'None provided'}
-        
-        Please provide a structured summary that includes:
-        1. Patient Overview
-        2. Key Medical Concerns
-        3. Clinical Assessment
-        4. Treatment Recommendations
-        5. Follow-up Considerations
-        
-        Keep the summary professional, concise, and clinically relevant.
-      `;
-
-      const response = await InvokeLLM({ prompt });
+      const response = await generatePatientSummary(patient);
       setSummary(response);
     } catch (error) {
       console.error('Error generating summary:', error);
+      setSummary('Error generating summary. Please check your OpenAI API key and try again.');
     }
     setIsGenerating(false);
   };
@@ -68,9 +26,35 @@ export default function SummaryGenerator({ patient, onSummaryGenerated }) {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await onSummaryGenerated(summary);
+      // Update the patient with the AI summary content
+      const response = await fetch(`/api/patients/${patient._id || patient.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ai_summary: true,
+          ai_summary_content: summary
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save summary');
+      }
+
+      const updatedPatient = await response.json();
+      console.log('Summary saved successfully');
+      
+      // Show success message
+      alert('AI Summary saved successfully!');
+      
+      // Call the callback if provided
+      if (onSummaryGenerated) {
+        await onSummaryGenerated(summary);
+      }
     } catch (error) {
       console.error('Error saving summary:', error);
+      alert('Failed to save summary. Please try again.');
     }
     setIsSaving(false);
   };

@@ -41,7 +41,6 @@ export default function DischargeReport({ patients, isLoading }) {
     return patients.find(p => p.id.toString() === selectedPatient);
   };
 
-  const selectedPatientData = getSelectedPatientData();
 
   const generateReport = async () => {
     if (!selectedPatient) {
@@ -53,54 +52,44 @@ export default function DischargeReport({ patients, isLoading }) {
     const patient = getSelectedPatientData();
 
     try {
-      const prompt = `
-        Generate a professional discharge summary in structured HTML format for the following patient:
-
-        PATIENT INFORMATION:
-        Name: ${patient.first_name} ${patient.last_name}
-        MRN: ${patient.medical_record_number}
-        Age: ${patient.date_of_birth ? new Date().getFullYear() - new Date(patient.date_of_birth).getFullYear() : 'N/A'}
-        Gender: ${patient.gender || 'N/A'}
-
-        ADMISSION DETAILS:
-        Admission Date: ${formData.admission_date}
-        Discharge Date: ${formData.discharge_date}
-        Attending Physician: ${formData.attending_physician}
-        Length of Stay: ${formData.admission_date && formData.discharge_date ? 
-          Math.ceil((new Date(formData.discharge_date) - new Date(formData.admission_date)) / (1000 * 60 * 60 * 24)) + ' days' : 'N/A'}
-
-        CLINICAL INFORMATION:
-        Primary Diagnosis: ${formData.primary_diagnosis || patient.diagnosis || 'N/A'}
-        Secondary Diagnoses: ${formData.secondary_diagnoses || 'None'}
-        Chief Complaint: ${patient.chief_complaint || 'N/A'}
-        Medical History: ${patient.medical_history || 'N/A'}
-        Procedures Performed: ${formData.procedures_performed || 'None'}
-        Complications: ${formData.complications || 'None'}
-        Hospital Course: ${formData.hospital_course || 'Standard recovery course'}
-
-        DISCHARGE INFORMATION:
-        Discharge Condition: ${formData.discharge_condition || 'Stable'}
-        Discharge Disposition: ${formData.discharge_disposition || 'Home'}
-        Discharge Medications: ${formData.discharge_medications || patient.current_medications || 'As prescribed'}
-        Follow-up Instructions: ${formData.follow_up_instructions || 'Follow up with primary care physician in 1-2 weeks'}
-
-        VITAL SIGNS (Last Recorded):
-        Blood Pressure: ${patient.vital_signs?.blood_pressure || 'N/A'}
-        Heart Rate: ${patient.vital_signs?.heart_rate || 'N/A'}
-        Temperature: ${patient.vital_signs?.temperature || 'N/A'}
-
-        Please format this as a structured HTML discharge summary with the following requirements:
-        1. Use proper HTML structure with div tags and classes.
-        2. Include a professional header with hospital/clinic letterhead style.
-        3. Organize information in clear sections with headings (e.g., h2, h3).
-        4. Use tables for structured data where appropriate (e.g., vital signs, medications, patient details if tabular).
-        5. Maintain professional medical document formatting, akin to a clinical report.
-        6. Ensure proper spacing and typography for readability.
-        7. Make it print-ready and professional looking.
-        8. Use modern CSS (e.g., Tailwind CSS classes if applicable for visual styling like borders, padding, text size).
-
-        Return only the HTML content without any markdown formatting, code blocks, or additional text. Ensure the HTML is well-formed.
+      // Mock response for now
+      const mockResponse = `
+        <div class="discharge-summary">
+          <h1>DISCHARGE SUMMARY</h1>
+          <h2>Patient Information</h2>
+          <p><strong>Name:</strong> ${patient.first_name} ${patient.last_name}</p>
+          <p><strong>MRN:</strong> ${patient.medical_record_number}</p>
+          <p><strong>Date of Birth:</strong> ${patient.date_of_birth ? new Date(patient.date_of_birth).toLocaleDateString() : 'N/A'}</p>
+          <p><strong>Gender:</strong> ${patient.gender || 'N/A'}</p>
+          
+          <h2>Admission Summary</h2>
+          <p><strong>Chief Complaint:</strong> ${patient.chief_complaint || 'None provided'}</p>
+          <p><strong>Admission Date:</strong> ${formData.admission_date || new Date().toLocaleDateString()}</p>
+          <p><strong>Discharge Date:</strong> ${formData.discharge_date || new Date().toLocaleDateString()}</p>
+          
+          <h2>Discharge Diagnosis</h2>
+          <p><strong>Primary:</strong> ${formData.primary_diagnosis || 'To be determined'}</p>
+          <p><strong>Secondary:</strong> ${formData.secondary_diagnoses || 'None'}</p>
+          
+          <h2>Procedures Performed</h2>
+          <p>${formData.procedures_performed || 'None documented'}</p>
+          
+          <h2>Discharge Instructions</h2>
+          <p><strong>Medications:</strong> ${formData.discharge_medications || patient.current_medications || 'None prescribed'}</p>
+          <p><strong>Activity Level:</strong> ${formData.activity_level || 'As tolerated'}</p>
+          <p><strong>Diet:</strong> ${formData.diet || 'Regular diet'}</p>
+          <p><strong>Follow-up:</strong> ${formData.follow_up_instructions || 'Schedule follow-up appointment within 1-2 weeks'}</p>
+          
+          <h2>Patient Education</h2>
+          <p><strong>Warning Signs:</strong> ${formData.warning_signs || 'Return to ED if symptoms worsen'}</p>
+          <p>Patient has been educated on their condition, medications, and when to seek immediate medical attention.</p>
+          
+          <h2>Contact Information</h2>
+          <p>For questions or concerns, please contact your primary care physician or return to the emergency department if symptoms worsen.</p>
+        </div>
       `;
+
+      setGeneratedReport(mockResponse);
 
       //const response = await InvokeLLM({ prompt });
       //setGeneratedReport(response);

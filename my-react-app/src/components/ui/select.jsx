@@ -20,7 +20,7 @@ const Select = ({ children, value, onValueChange, ...props }) => {
 }
 
 const SelectTrigger = React.forwardRef(({ className, renderValue }, ref) => {
-  const { isOpen, toggleOpen, value } = React.useContext(SelectContext)
+  const { toggleOpen, value } = React.useContext(SelectContext)
 
   return (
     <button

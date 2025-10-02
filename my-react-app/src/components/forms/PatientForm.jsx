@@ -7,6 +7,7 @@ import { Textarea } from "../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Save, Loader2, User, FileText, Activity } from "lucide-react";
 import { motion } from "framer-motion";
+import SpeechInput from "../ui/SpeechInput";
 
 export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
   const [formData, setFormData] = useState({
@@ -52,6 +53,35 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
     }
   };
 
+  const handleSpeechInput = (field, transcription) => {
+    // Clean up the transcription (remove extra spaces, capitalize properly)
+    const cleanedText = transcription.trim().replace(/\s+/g, ' ');
+    
+    // Special handling for different field types
+    if (field === 'first_name' || field === 'last_name') {
+      // Capitalize names
+      const capitalizedText = cleanedText.split(' ').map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+      ).join(' ');
+      handleChange(field, capitalizedText);
+    } else if (field === 'phone') {
+      // Clean phone number (remove non-digits, add formatting)
+      const phoneDigits = cleanedText.replace(/\D/g, '');
+      let formattedPhone = phoneDigits;
+      if (phoneDigits.length >= 10) {
+        formattedPhone = `(${phoneDigits.slice(0, 3)}) ${phoneDigits.slice(3, 6)}-${phoneDigits.slice(6, 10)}`;
+      }
+      handleChange(field, formattedPhone);
+    } else if (field === 'email') {
+      // Ensure email format
+      const emailText = cleanedText.toLowerCase();
+      handleChange(field, emailText);
+    } else {
+      // For other fields, just use the cleaned text
+      handleChange(field, cleanedText);
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit(formData);
@@ -75,23 +105,35 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="first_name" className="text-sm font-medium text-neutral-700">First Name *</Label>
-                <Input
-                  id="first_name"
-                  value={formData.first_name}
-                  onChange={(e) => handleChange('first_name', e.target.value)}
-                  className="mt-1"
-                  required
-                />
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    id="first_name"
+                    value={formData.first_name}
+                    onChange={(e) => handleChange('first_name', e.target.value)}
+                    className="flex-1"
+                    required
+                  />
+                  <SpeechInput
+                    onTranscription={(text) => handleSpeechInput('first_name', text)}
+                    className="flex-shrink-0"
+                  />
+                </div>
               </div>
               <div>
                 <Label htmlFor="last_name" className="text-sm font-medium text-neutral-700">Last Name *</Label>
-                <Input
-                  id="last_name"
-                  value={formData.last_name}
-                  onChange={(e) => handleChange('last_name', e.target.value)}
-                  className="mt-1"
-                  required
-                />
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    id="last_name"
+                    value={formData.last_name}
+                    onChange={(e) => handleChange('last_name', e.target.value)}
+                    className="flex-1"
+                    required
+                  />
+                  <SpeechInput
+                    onTranscription={(text) => handleSpeechInput('last_name', text)}
+                    className="flex-shrink-0"
+                  />
+                </div>
               </div>
               <div>
                 <Label htmlFor="date_of_birth" className="text-sm font-medium text-neutral-700">Date of Birth *</Label>
@@ -120,31 +162,49 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
 
               <div>
                 <Label htmlFor="phone" className="text-sm font-medium text-neutral-700">Phone</Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => handleChange('phone', e.target.value)}
-                  className="mt-1"
-                />
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    id="phone"
+                    value={formData.phone}
+                    onChange={(e) => handleChange('phone', e.target.value)}
+                    className="flex-1"
+                  />
+                  <SpeechInput
+                    onTranscription={(text) => handleSpeechInput('phone', text)}
+                    className="flex-shrink-0"
+                  />
+                </div>
               </div>
               <div>
                 <Label htmlFor="email" className="text-sm font-medium text-neutral-700">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => handleChange('email', e.target.value)}
-                  className="mt-1"
-                />
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => handleChange('email', e.target.value)}
+                    className="flex-1"
+                  />
+                  <SpeechInput
+                    onTranscription={(text) => handleSpeechInput('email', text)}
+                    className="flex-shrink-0"
+                  />
+                </div>
               </div>
               <div className="md:col-span-2">
                 <Label htmlFor="address" className="text-sm font-medium text-neutral-700">Address</Label>
-                <Input
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => handleChange('address', e.target.value)}
-                  className="mt-1"
-                />
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    id="address"
+                    value={formData.address}
+                    onChange={(e) => handleChange('address', e.target.value)}
+                    className="flex-1"
+                  />
+                  <SpeechInput
+                    onTranscription={(text) => handleSpeechInput('address', text)}
+                    className="flex-shrink-0"
+                  />
+                </div>
               </div>
               <div>
                 <Label htmlFor="medical_record_number" className="text-sm font-medium text-neutral-700">Medical Record Number *</Label>
@@ -189,55 +249,95 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
           <CardContent className="space-y-4">
             <div>
               <Label htmlFor="chief_complaint" className="text-sm font-medium text-neutral-700">Chief Complaint</Label>
-              <Textarea
-                id="chief_complaint"
-                value={formData.chief_complaint}
-                onChange={(e) => handleChange('chief_complaint', e.target.value)}
-                className="mt-1 min-h-[80px]"
-                placeholder="Primary reason for visit or concern..."
-              />
+              <div className="mt-1">
+                <Textarea
+                  id="chief_complaint"
+                  value={formData.chief_complaint}
+                  onChange={(e) => handleChange('chief_complaint', e.target.value)}
+                  className="min-h-[80px]"
+                  placeholder="Primary reason for visit or concern..."
+                />
+                <div className="mt-2">
+                  <SpeechInput
+                    onTranscription={(text) => handleSpeechInput('chief_complaint', text)}
+                    placeholder="Click microphone to dictate chief complaint..."
+                  />
+                </div>
+              </div>
             </div>
             <div>
               <Label htmlFor="medical_history" className="text-sm font-medium text-neutral-700">Medical History</Label>
-              <Textarea
-                id="medical_history"
-                value={formData.medical_history}
-                onChange={(e) => handleChange('medical_history', e.target.value)}
-                className="mt-1 min-h-[100px]"
-                placeholder="Past medical history and conditions..."
-              />
+              <div className="mt-1">
+                <Textarea
+                  id="medical_history"
+                  value={formData.medical_history}
+                  onChange={(e) => handleChange('medical_history', e.target.value)}
+                  className="min-h-[100px]"
+                  placeholder="Past medical history and conditions..."
+                />
+                <div className="mt-2">
+                  <SpeechInput
+                    onTranscription={(text) => handleSpeechInput('medical_history', text)}
+                    placeholder="Click microphone to dictate medical history..."
+                  />
+                </div>
+              </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="current_medications" className="text-sm font-medium text-neutral-700">Current Medications</Label>
-                <Textarea
-                  id="current_medications"
-                  value={formData.current_medications}
-                  onChange={(e) => handleChange('current_medications', e.target.value)}
-                  className="mt-1 min-h-[80px]"
-                  placeholder="Current medications and dosages..."
-                />
+                <div className="mt-1">
+                  <Textarea
+                    id="current_medications"
+                    value={formData.current_medications}
+                    onChange={(e) => handleChange('current_medications', e.target.value)}
+                    className="min-h-[80px]"
+                    placeholder="Current medications and dosages..."
+                  />
+                  <div className="mt-2">
+                    <SpeechInput
+                      onTranscription={(text) => handleSpeechInput('current_medications', text)}
+                      placeholder="Click microphone to dictate medications..."
+                    />
+                  </div>
+                </div>
               </div>
               <div>
                 <Label htmlFor="allergies" className="text-sm font-medium text-neutral-700">Allergies</Label>
-                <Textarea
-                  id="allergies"
-                  value={formData.allergies}
-                  onChange={(e) => handleChange('allergies', e.target.value)}
-                  className="mt-1 min-h-[80px]"
-                  placeholder="Known allergies and reactions..."
-                />
+                <div className="mt-1">
+                  <Textarea
+                    id="allergies"
+                    value={formData.allergies}
+                    onChange={(e) => handleChange('allergies', e.target.value)}
+                    className="min-h-[80px]"
+                    placeholder="Known allergies and reactions..."
+                  />
+                  <div className="mt-2">
+                    <SpeechInput
+                      onTranscription={(text) => handleSpeechInput('allergies', text)}
+                      placeholder="Click microphone to dictate allergies..."
+                    />
+                  </div>
+                </div>
               </div>
             </div>
             <div>
               <Label htmlFor="symptoms" className="text-sm font-medium text-neutral-700">Current Symptoms</Label>
-              <Textarea
-                id="symptoms"
-                value={formData.symptoms}
-                onChange={(e) => handleChange('symptoms', e.target.value)}
-                className="mt-1 min-h-[80px]"
-                placeholder="Current symptoms and observations..."
-              />
+              <div className="mt-1">
+                <Textarea
+                  id="symptoms"
+                  value={formData.symptoms}
+                  onChange={(e) => handleChange('symptoms', e.target.value)}
+                  className="min-h-[80px]"
+                  placeholder="Current symptoms and observations..."
+                />
+                <div className="mt-2">
+                  <SpeechInput
+                    onTranscription={(text) => handleSpeechInput('symptoms', text)}
+                    placeholder="Click microphone to dictate symptoms..."
+                  />
+                </div>
+              </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -252,24 +352,40 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
               </div>
               <div>
                 <Label htmlFor="diagnosis" className="text-sm font-medium text-neutral-700">Diagnosis</Label>
-                <Textarea
-                  id="diagnosis"
-                  value={formData.diagnosis}
-                  onChange={(e) => handleChange('diagnosis', e.target.value)}
-                  className="mt-1 min-h-[80px]"
-                  placeholder="Primary and secondary diagnoses..."
-                />
+                <div className="mt-1">
+                  <Textarea
+                    id="diagnosis"
+                    value={formData.diagnosis}
+                    onChange={(e) => handleChange('diagnosis', e.target.value)}
+                    className="min-h-[80px]"
+                    placeholder="Primary and secondary diagnoses..."
+                  />
+                  <div className="mt-2">
+                    <SpeechInput
+                      onTranscription={(text) => handleSpeechInput('diagnosis', text)}
+                      placeholder="Click microphone to dictate diagnosis..."
+                    />
+                  </div>
+                </div>
               </div>
             </div>
             <div>
               <Label htmlFor="treatment_plan" className="text-sm font-medium text-neutral-700">Treatment Plan</Label>
-              <Textarea
-                id="treatment_plan"
-                value={formData.treatment_plan}
-                onChange={(e) => handleChange('treatment_plan', e.target.value)}
-                className="mt-1 min-h-[100px]"
-                placeholder="Recommended treatment plan..."
-              />
+              <div className="mt-1">
+                <Textarea
+                  id="treatment_plan"
+                  value={formData.treatment_plan}
+                  onChange={(e) => handleChange('treatment_plan', e.target.value)}
+                  className="min-h-[100px]"
+                  placeholder="Recommended treatment plan..."
+                />
+                <div className="mt-2">
+                  <SpeechInput
+                    onTranscription={(text) => handleSpeechInput('treatment_plan', text)}
+                    placeholder="Click microphone to dictate treatment plan..."
+                  />
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
