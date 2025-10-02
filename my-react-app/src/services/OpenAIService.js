@@ -7,13 +7,14 @@ const openai = new OpenAI({
 });
 
 /**
- * Generate AI response using OpenAI GPT-5-mini
+ * Generate AI response using OpenAI GPT-4o-mini
  * @param {string} prompt - The prompt to send to the AI
  * @param {string} systemMessage - Optional system message to set context
  * @returns {Promise<string>} - The AI generated response
  */
 export async function generateAIResponse(prompt, systemMessage = null) {
   try {
+    console.log('Using GPT-4o-mini for AI response generation');
     const messages = [];
     
     // Add system message if provided
@@ -31,16 +32,20 @@ export async function generateAIResponse(prompt, systemMessage = null) {
     });
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-5-mini', // Using GPT-5-mini for enhanced performance and capabilities
+      model: 'gpt-4o-mini', // Using GPT-4o-mini for reliable performance
       messages: messages,
-      max_completion_tokens: 2000,
-      // Note: GPT-5-mini only supports default temperature (1) and doesn't support other parameters
+      max_tokens: 2000,
+      temperature: 0.7,
+      top_p: 1,
+      frequency_penalty: 0,
+      presence_penalty: 0
     });
 
     return completion.choices[0].message.content;
   } catch (error) {
     console.error('OpenAI API Error:', error);
-    throw new Error('Failed to generate AI response. Please check your API key and try again.');
+    console.error('Error details:', error.message);
+    throw new Error(`Failed to generate AI response: ${error.message}. Please check your API key and try again.`);
   }
 }
 
