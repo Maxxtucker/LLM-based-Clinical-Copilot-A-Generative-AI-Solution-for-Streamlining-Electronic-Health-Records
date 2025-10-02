@@ -7,7 +7,7 @@ const openai = new OpenAI({
 });
 
 /**
- * Generate AI response using OpenAI GPT-4
+ * Generate AI response using OpenAI GPT-5-mini
  * @param {string} prompt - The prompt to send to the AI
  * @param {string} systemMessage - Optional system message to set context
  * @returns {Promise<string>} - The AI generated response
@@ -31,7 +31,7 @@ export async function generateAIResponse(prompt, systemMessage = null) {
     });
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', // Using GPT-4o-mini for better performance and cost efficiency
+      model: 'gpt-5-mini', // Using GPT-5-mini for enhanced performance and capabilities
       messages: messages,
       max_tokens: 2000,
       temperature: 0.7,

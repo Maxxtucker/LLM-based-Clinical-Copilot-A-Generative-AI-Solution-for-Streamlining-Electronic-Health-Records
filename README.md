@@ -8,7 +8,7 @@ Clinical Copilot is a modern, AI-enhanced healthcare management platform designe
 
 ### Key Features
 
-- **AI-Powered Patient Summaries**: Generate comprehensive patient summaries using OpenAI GPT-4o-mini
+- **AI-Powered Patient Summaries**: Generate comprehensive patient summaries using OpenAI GPT-5-mini
 - **Speech-to-Text Integration**: Dictate patient information using OpenAI Whisper API
 - **Intelligent Chat Assistant**: Get AI insights about patient data and medical conditions
 - **Comprehensive Patient Management**: Complete CRUD operations for patient records
@@ -248,7 +248,7 @@ REACT_APP_OPENAI_API_KEY=your_openai_api_key_here
 
 ### OpenAI Services
 
-#### 1. GPT-4o-mini Integration (`src/services/OpenAIService.js`)
+#### 1. GPT-5-mini Integration (`src/services/OpenAIService.js`)
 
 **Patient Summary Generation**
 ```javascript
