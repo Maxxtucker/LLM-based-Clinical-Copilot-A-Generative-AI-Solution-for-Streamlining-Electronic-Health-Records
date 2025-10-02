@@ -33,7 +33,7 @@ export async function generateAIResponse(prompt, systemMessage = null) {
     const completion = await openai.chat.completions.create({
       model: 'gpt-5-mini', // Using GPT-5-mini for enhanced performance and capabilities
       messages: messages,
-      max_tokens: 2000,
+      max_completion_tokens: 2000,
       temperature: 0.7,
       top_p: 1,
       frequency_penalty: 0,
