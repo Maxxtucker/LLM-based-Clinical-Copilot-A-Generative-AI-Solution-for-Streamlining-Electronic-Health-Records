@@ -26,6 +26,7 @@ const patientSchema = new mongoose.Schema(
     treatment_plan: { type: String },
 
     ai_summary: { type: Boolean, default: false },
+    ai_summary_content: { type: String },
 
     vital_signs: {
       blood_pressure: { type: String },

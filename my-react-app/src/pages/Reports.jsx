@@ -2,9 +2,7 @@
 import React, { useState, useEffect } from "react";
 // import { Patient } from "../entities/Patient";
 import { FileText, Download, Users } from "lucide-react";
-import { Button } from "../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { Card, CardHeader, CardTitle } from "../components/ui/card";
 import { motion } from "framer-motion";
 
 import DischargeReport from "../components/reports/DischargeReport";

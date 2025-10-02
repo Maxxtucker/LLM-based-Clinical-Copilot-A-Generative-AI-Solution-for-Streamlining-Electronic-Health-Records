@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Routes, Route, Navigate, Link } from "react-router-dom";
 
 import Dashboard from "./pages/Dashboard";
+import PatientDetail from "./pages/PatientDetail";
 import Reports from "./pages/Reports"; 
 import AIAssistant from "./pages/AIAssistant";
 import PatientForm from "./components/forms/PatientForm";
@@ -22,7 +23,6 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarTrigger,
 } from "./components/ui/sidebar";
 
 function SidebarFooterContent({ onLogoutClick }) {
@@ -51,6 +51,7 @@ function SidebarFooterContent({ onLogoutClick }) {
 function App() {
   const navigate = useNavigate();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isSavingPatient, setIsSavingPatient] = useState(false);
 
   const handleLogoutClick = () => {
     setShowLogoutConfirm(true);
@@ -65,6 +66,33 @@ function App() {
 
   const handleLogoutCancel = () => {
     setShowLogoutConfirm(false);
+  };
+
+  const handlePatientSubmit = async (formData) => {
+    setIsSavingPatient(true);
+    try {
+      const payload = {
+        ...formData,
+        medical_record_number: formData.medical_record_number || `MRN${Date.now()}`,
+      };
+      const res = await fetch('/api/patients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || `Failed to save patient (status ${res.status})`);
+      }
+      // Optionally use returned patient
+      await res.json();
+      navigate('/dashboard');
+    } catch (e) {
+      console.error('Create patient failed:', e);
+      alert(e.message || 'Failed to create patient');
+    } finally {
+      setIsSavingPatient(false);
+    }
   };
 
   return (
@@ -128,13 +156,14 @@ function App() {
                   <h2 className="text-xl font-bold text-neutral-800 mb-4">
                     Add New Patient
                   </h2>
-                  <PatientForm />
+                  <PatientForm onSubmit={handlePatientSubmit} isLoading={isSavingPatient} />
                 </section>
               }
             />
             <Route path="/reports" element={<Reports />} />
             <Route path="/ai" element={<AIAssistant />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/patient" element={<PatientDetail />} />
           </Routes>
 
           <ConfirmDialog
