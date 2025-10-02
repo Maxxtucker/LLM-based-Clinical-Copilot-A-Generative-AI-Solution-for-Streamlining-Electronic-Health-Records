@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from "framer-motion";
-import { User, Bot, Brain } from "lucide-react";
+import { User, Brain } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 
 export default function ChatMessage({ message, isUser }) {
