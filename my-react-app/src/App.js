@@ -1,6 +1,7 @@
 // src/App.js
 import React, { useState } from "react";
 import { Routes, Route, Navigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import Dashboard from "./pages/Dashboard";
 import PatientDetail from "./pages/PatientDetail";
@@ -8,10 +9,10 @@ import Reports from "./pages/Reports";
 import AIAssistant from "./pages/AIAssistant";
 import PatientForm from "./components/forms/PatientForm";
 import Profile from "./pages/Profile";
-import { Home, User, FileText, Brain, UserCog, LogOut } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import ConfirmDialog from "./components/ui/confirmdialog";
+import Login from "./pages/Login";  
 
+import { Home, User, FileText, Brain, UserCog, LogOut } from "lucide-react";
+import ConfirmDialog from "./components/ui/confirmdialog";
 
 // Sidebar imports
 import {
@@ -50,8 +51,11 @@ function SidebarFooterContent({ onLogoutClick }) {
 
 function App() {
   const navigate = useNavigate();
+ 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [isSavingPatient, setIsSavingPatient] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false); // 
+  const [isSavingPatient, setIsSavingPatient] = useState(false); //
+
 
   const handleLogoutClick = () => {
     setShowLogoutConfirm(true);
@@ -60,7 +64,7 @@ function App() {
   const handleLogoutConfirm = () => {
     setShowLogoutConfirm(false);
     console.log("User confirmed logout");
-    // Clear auth tokens here if needed
+    setIsAuthenticated(false); // 👈 reset auth
     navigate("/");
   };
 
@@ -96,88 +100,110 @@ function App() {
   };
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen bg-gray-50">
-        {/* Sidebar */}
-        <Sidebar>
-          <SidebarHeader>
-            <h2 className="text-xl font-bold text-blue-600">BT4103 Grp 10</h2>
-          </SidebarHeader>
-          <SidebarContent>
-            <SidebarMenu>
-              {/* Your existing nav items */}
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link to="/dashboard">
-                    <Home className="mr-2 h-4 w-4" />
-                    Dashboard
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link to="/patients">
-                    <User className="mr-2 h-4 w-4" />
-                    Patients
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link to="/ai">
-                    <Brain className="mr-2 h-4 w-4" />
-                    AI Assistant
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link to="/reports">
-                    <FileText className="mr-2 h-4 w-4" />
-                    Reports
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarContent>
+    <Routes>
+      {/* Login route (default) */}
+      <Route path="/" element={<Login setIsAuthenticated={setIsAuthenticated}/>} />
 
-          <SidebarFooterContent onLogoutClick={handleLogoutClick} />
-        </Sidebar>
+      {/* Protected routes */}
+      <Route
+        path="/*"
+        element={
+          isAuthenticated ? (
+            <SidebarProvider>
+              <div className="flex min-h-screen bg-gray-50">
+                {/* Sidebar */}
+                <Sidebar>
+                  <SidebarHeader>
+                    <h2 className="text-xl font-bold text-blue-600">
+                      BT4103 Grp 10
+                    </h2>
+                  </SidebarHeader>
+                  <SidebarContent>
+                    <SidebarMenu>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild>
+                          <Link to="/dashboard">
+                            <Home className="mr-2 h-4 w-4" />
+                            Dashboard
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild>
+                          <Link to="/patients">
+                            <User className="mr-2 h-4 w-4" />
+                            Patients
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild>
+                          <Link to="/ai">
+                            <Brain className="mr-2 h-4 w-4" />
+                            AI Assistant
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild>
+                          <Link to="/reports">
+                            <FileText className="mr-2 h-4 w-4" />
+                            Reports
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    </SidebarMenu>
+                  </SidebarContent>
+                  <SidebarFooterContent onLogoutClick={handleLogoutClick} />
+                </Sidebar>
 
-        {/* Main content */}
-        <div className="flex-1 flex flex-col">
-          <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route
-              path="/patients"
-              element={
-                <section className="p-6 mb-6">
-                  <h2 className="text-xl font-bold text-neutral-800 mb-4">
-                    Add New Patient
-                  </h2>
-                  <PatientForm onSubmit={handlePatientSubmit} isLoading={isSavingPatient} />
-                </section>
-              }
-            />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/ai" element={<AIAssistant />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/patient" element={<PatientDetail />} />
-          </Routes>
+                {/* Main content */}
+                  <div className="flex-1 flex flex-col">
+                    <Routes>
+                      {/* Redirect root to dashboard */}
+                      <Route path="/" element={<Navigate to="/dashboard" />} />
 
-          <ConfirmDialog
-            open={showLogoutConfirm}
-            title="Confirm Logout"
-            description="Are you sure you want to logout?"
-            onConfirm={handleLogoutConfirm}
-            onCancel={handleLogoutCancel}
-          />
-        </div>
-      </div>
-    </SidebarProvider>
+                      <Route path="/dashboard" element={<Dashboard />} />
+
+                      <Route
+                        path="/patients"
+                        element={
+                          <section className="p-6 mb-6">
+                            <h2 className="text-xl font-bold text-neutral-800 mb-4">
+                              Add New Patient
+                            </h2>
+                            <PatientForm onSubmit={handlePatientSubmit} isLoading={isSavingPatient} />
+                          </section>
+                        }
+                      />
+
+                      <Route path="/reports" element={<Reports />} />
+                      <Route path="/ai" element={<AIAssistant />} />
+                      <Route path="/profile" element={<Profile />} />
+                      <Route path="/patient" element={<PatientDetail />} />
+
+                      {/* Catch-all redirect to dashboard */}
+                      <Route path="*" element={<Navigate to="/dashboard" />} />
+                    </Routes>
+                  </div>
+
+                  <ConfirmDialog
+                    open={showLogoutConfirm}
+                    title="Confirm Logout"
+                    description="Are you sure you want to logout?"
+                    onConfirm={handleLogoutConfirm}
+                    onCancel={handleLogoutCancel}
+                  />
+                </div>
+              </div>
+            </SidebarProvider>
+          ) : (
+            <Navigate to="/" replace />
+          )
+        }
+      />
+    </Routes>
   );
 }
-
 
 export default App;
