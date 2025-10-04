@@ -170,7 +170,7 @@ function App() {
                         element={
                           <section className="p-6 mb-6">
                             <h2 className="text-xl font-bold text-neutral-800 mb-4">
-                              Add New Patient
+                              Add New Patient <i>(For Nurse Use)</i>
                             </h2>
                             <PatientForm onSubmit={handlePatientSubmit} isLoading={isSavingPatient} />
                           </section>
@@ -195,7 +195,6 @@ function App() {
                     onCancel={handleLogoutCancel}
                   />
                 </div>
-              </div>
             </SidebarProvider>
           ) : (
             <Navigate to="/" replace />
