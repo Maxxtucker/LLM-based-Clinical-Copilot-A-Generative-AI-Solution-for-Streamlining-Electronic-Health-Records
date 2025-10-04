@@ -14,12 +14,6 @@ import {
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../../utils/index";
 
-const statusColors = {
-  active: "bg-emerald-100 text-emerald-800 border-emerald-200",
-  inactive: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  discharged: "bg-gray-100 text-gray-800 border-gray-200"
-};
-
 export default function PatientCard({ patient }) {
   const age = patient.date_of_birth 
     ? new Date().getFullYear() - new Date(patient.date_of_birth).getFullYear()
@@ -46,12 +40,7 @@ export default function PatientCard({ patient }) {
                 <p className="text-sm text-neutral-500">MRN: {patient.medical_record_number}</p>
               </div>
             </div>
-            <Badge 
-              variant="outline" 
-              className={`${statusColors[patient.status]} border font-medium`}
-            >
-              {patient.status}
-            </Badge>
+            {/* Removed Badge for status */}
           </div>
         </CardHeader>
         
