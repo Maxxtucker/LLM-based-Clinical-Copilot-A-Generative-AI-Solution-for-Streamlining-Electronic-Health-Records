@@ -165,17 +165,17 @@ function App() {
 
                     <Route path="/dashboard" element={<Dashboard />} />
 
-                    <Route
-                      path="/patients"
-                      element={
-                        <section className="p-6 mb-6">
-                          <h2 className="text-xl font-bold text-neutral-800 mb-4">
-                            Add New Patient
-                          </h2>
-                          <PatientForm onSubmit={handlePatientSubmit} isLoading={isSavingPatient} />
-                        </section>
-                      }
-                    />
+                      <Route
+                        path="/patients"
+                        element={
+                          <section className="p-6 mb-6">
+                            <h2 className="text-xl font-bold text-neutral-800 mb-4">
+                              Add New Patient <i>(For Nurse Use)</i>
+                            </h2>
+                            <PatientForm onSubmit={handlePatientSubmit} isLoading={isSavingPatient} />
+                          </section>
+                        }
+                      />
 
                     <Route path="/reports" element={<Reports />} />
                     <Route path="/ai" element={<AIAssistant />} />
@@ -186,15 +186,7 @@ function App() {
                     <Route path="*" element={<Navigate to="/dashboard" />} />
                   </Routes>
                 </div>
-              </div>
-
-              <ConfirmDialog
-                open={showLogoutConfirm}
-                title="Confirm Logout"
-                description="Are you sure you want to logout?"
-                onConfirm={handleLogoutConfirm}
-                onCancel={handleLogoutCancel}
-              />
+                </div>
             </SidebarProvider>
           ) : (
             <Navigate to="/" replace />
