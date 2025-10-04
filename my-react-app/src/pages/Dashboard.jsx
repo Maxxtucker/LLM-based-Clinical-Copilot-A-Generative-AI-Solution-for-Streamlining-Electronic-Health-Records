@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import StatsCards from "../components/dashboard/StatsCards";
 import PatientCard from "../components/dashboard/PatientCard";
 import DateFilter from "../components/dashboard/DateFilter";
+import DateDisplay from "../components/dashboard/DateDisplay";
 
 export default function Dashboard() {
   // Patients loaded from API; falls back to demo if fetch fails
@@ -105,6 +106,16 @@ export default function Dashboard() {
               New Patient
             </Button>
           </Link>
+        </motion.div>
+
+        {/* ✅ Date Display */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="mb-6"
+        >
+          <DateDisplay selectedDate={selectedDate} />
         </motion.div>
 
         {/* ✅ Stats Cards */}
