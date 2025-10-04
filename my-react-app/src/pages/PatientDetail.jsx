@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import { motion } from "framer-motion";
+import { Mic } from "lucide-react";
 
 import SummaryGenerator from "../components/ai/SummaryGenerator";
 
@@ -212,65 +213,84 @@ export default function PatientDetail() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
             >
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="pb-4">
+              <Card className="border-0 shadow-sm relative">
+                  <button
+                  className="absolute top-4 right-4 p-2 border border-neutral-200 rounded-md hover:bg-neutral-100 transition"
+                  title="Voice dictation"
+                  type="button">
+                  <Mic className="w-5 h-5 text-neutral-600" />
+                </button>
+
+                <CardHeader className="pb-4 flex justify-between items-start">
                   <CardTitle className="text-xl">Medical Information</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  {patient.chief_complaint && (
-                    <div>
-                      <h4 className="font-semibold text-neutral-700 mb-2">Chief Complaint</h4>
-                      <p className="text-neutral-600 bg-neutral-50 p-3 rounded-lg">{patient.chief_complaint}</p>
-                    </div>
-                  )}
-                  
-                  {patient.medical_history && (
-                    <div>
-                      <h4 className="font-semibold text-neutral-700 mb-2">Medical History</h4>
-                      <p className="text-neutral-600 bg-neutral-50 p-3 rounded-lg">{patient.medical_history}</p>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {patient.current_medications && (
-                      <div>
-                        <h4 className="font-semibold text-neutral-700 mb-2">Current Medications</h4>
-                        <p className="text-neutral-600 bg-neutral-50 p-3 rounded-lg text-sm">{patient.current_medications}</p>
-                      </div>
-                    )}
-                    
-                    {patient.allergies && (
-                      <div>
-                        <h4 className="font-semibold text-neutral-700 mb-2">Allergies</h4>
-                        <p className="text-neutral-600 bg-red-50 p-3 rounded-lg text-sm">{patient.allergies}</p>
-                      </div>
-                    )}
+                <CardContent className="space-y-6 text-sm">
+                  <div>
+                    <h4 className="font-semibold text-neutral-700 mb-2">Chief Complaint</h4>
+                    <p className="text-neutral-600 bg-neutral-50 p-3 rounded-lg">
+                      {patient.chief_complaint || (
+                        <span className="italic text-neutral-400">Pending doctor's input</span>
+                      )}
+                    </p>
                   </div>
 
-                  {patient.symptoms && (
-                    <div>
-                      <h4 className="font-semibold text-neutral-700 mb-2">Current Symptoms</h4>
-                      <p className="text-neutral-600 bg-neutral-50 p-3 rounded-lg">{patient.symptoms}</p>
-                    </div>
-                  )}
+                  <div>
+                    <h4 className="font-semibold text-neutral-700 mb-2">Medical History</h4>
+                    <p className="text-neutral-600 bg-neutral-50 p-3 rounded-lg">
+                      {patient.medical_history || (
+                        <span className="italic text-neutral-400">Pending doctor's input</span>
+                      )}
+                    </p>
+                  </div>
 
-                  {(patient.diagnosis || patient.treatment_plan) && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {patient.diagnosis && (
-                        <div>
-                          <h4 className="font-semibold text-neutral-700 mb-2">Diagnosis</h4>
-                          <p className="text-neutral-600 bg-blue-50 p-3 rounded-lg text-sm">{patient.diagnosis}</p>
-                        </div>
-                      )}
-                      
-                      {patient.treatment_plan && (
-                        <div>
-                          <h4 className="font-semibold text-neutral-700 mb-2">Treatment Plan</h4>
-                          <p className="text-neutral-600 bg-green-50 p-3 rounded-lg text-sm">{patient.treatment_plan}</p>
-                        </div>
-                      )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="font-semibold text-neutral-700 mb-2">Current Medications</h4>
+                      <p className="text-neutral-600 bg-neutral-50 p-3 rounded-lg">
+                        {patient.current_medications || (
+                          <span className="italic text-neutral-400">Pending doctor's input</span>
+                        )}
+                      </p>
                     </div>
-                  )}
+
+                    <div>
+                      <h4 className="font-semibold text-neutral-700 mb-2">Allergies</h4>
+                      <p className="text-neutral-600 bg-red-50 p-3 rounded-lg">
+                        {patient.allergies || (
+                          <span className="italic text-neutral-400">Pending doctor's input</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold text-neutral-700 mb-2">Current Symptoms</h4>
+                    <p className="text-neutral-600 bg-neutral-50 p-3 rounded-lg">
+                      {patient.symptoms || (
+                        <span className="italic text-neutral-400">Pending doctor's input</span>
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="font-semibold text-neutral-700 mb-2">Diagnosis</h4>
+                      <p className="text-neutral-600 bg-blue-50 p-3 rounded-lg">
+                        {patient.diagnosis || (
+                          <span className="italic text-neutral-400">Pending doctor's input</span>
+                        )}
+                      </p>
+                    </div>
+
+                    <div>
+                      <h4 className="font-semibold text-neutral-700 mb-2">Treatment Plan</h4>
+                      <p className="text-neutral-600 bg-green-50 p-3 rounded-lg">
+                        {patient.treatment_plan || (
+                          <span className="italic text-neutral-400">Pending doctor's input</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
