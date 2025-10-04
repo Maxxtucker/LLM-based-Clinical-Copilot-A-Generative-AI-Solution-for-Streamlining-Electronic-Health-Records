@@ -8,6 +8,7 @@ import { Textarea } from "../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { FileText, Loader2, Download, Wand2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { PDFService } from "../../services/PDFService";
 //import { InvokeLLM } from "@/integrations/Core";
 
 export default function DischargeReport({ patients, isLoading }) {
@@ -29,8 +30,22 @@ export default function DischargeReport({ patients, isLoading }) {
   const [generatedReport, setGeneratedReport] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = async () => {
+    if (!selectedPatient) {
+      alert('Please select a patient first');
+      return;
+    }
+
+    const patient = getSelectedPatientData();
+    const filename = `discharge_summary_${patient.medical_record_number}_${new Date().toISOString().split('T')[0]}.pdf`;
+    
+    try {
+      const htmlContent = PDFService.formatReportHTML(patient, formData, 'discharge');
+      await PDFService.generatePDF(htmlContent, filename);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Error generating PDF. Please try again.');
+    }
   };
 
   const handleChange = (field, value) => {
@@ -52,44 +67,9 @@ export default function DischargeReport({ patients, isLoading }) {
     const patient = getSelectedPatientData();
 
     try {
-      // Mock response for now
-      const mockResponse = `
-        <div class="discharge-summary">
-          <h1>DISCHARGE SUMMARY</h1>
-          <h2>Patient Information</h2>
-          <p><strong>Name:</strong> ${patient.first_name} ${patient.last_name}</p>
-          <p><strong>MRN:</strong> ${patient.medical_record_number}</p>
-          <p><strong>Date of Birth:</strong> ${patient.date_of_birth ? new Date(patient.date_of_birth).toLocaleDateString() : 'N/A'}</p>
-          <p><strong>Gender:</strong> ${patient.gender || 'N/A'}</p>
-          
-          <h2>Admission Summary</h2>
-          <p><strong>Chief Complaint:</strong> ${patient.chief_complaint || 'None provided'}</p>
-          <p><strong>Admission Date:</strong> ${formData.admission_date || new Date().toLocaleDateString()}</p>
-          <p><strong>Discharge Date:</strong> ${formData.discharge_date || new Date().toLocaleDateString()}</p>
-          
-          <h2>Discharge Diagnosis</h2>
-          <p><strong>Primary:</strong> ${formData.primary_diagnosis || 'To be determined'}</p>
-          <p><strong>Secondary:</strong> ${formData.secondary_diagnoses || 'None'}</p>
-          
-          <h2>Procedures Performed</h2>
-          <p>${formData.procedures_performed || 'None documented'}</p>
-          
-          <h2>Discharge Instructions</h2>
-          <p><strong>Medications:</strong> ${formData.discharge_medications || patient.current_medications || 'None prescribed'}</p>
-          <p><strong>Activity Level:</strong> ${formData.activity_level || 'As tolerated'}</p>
-          <p><strong>Diet:</strong> ${formData.diet || 'Regular diet'}</p>
-          <p><strong>Follow-up:</strong> ${formData.follow_up_instructions || 'Schedule follow-up appointment within 1-2 weeks'}</p>
-          
-          <h2>Patient Education</h2>
-          <p><strong>Warning Signs:</strong> ${formData.warning_signs || 'Return to ED if symptoms worsen'}</p>
-          <p>Patient has been educated on their condition, medications, and when to seek immediate medical attention.</p>
-          
-          <h2>Contact Information</h2>
-          <p>For questions or concerns, please contact your primary care physician or return to the emergency department if symptoms worsen.</p>
-        </div>
-      `;
-
-      setGeneratedReport(mockResponse);
+      // Generate formatted HTML using PDFService
+      const formattedHTML = PDFService.formatReportHTML(patient, formData, 'discharge');
+      setGeneratedReport(formattedHTML);
 
       //const response = await InvokeLLM({ prompt });
       //setGeneratedReport(response);

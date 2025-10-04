@@ -7,6 +7,7 @@ import { Textarea } from "../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Download, Loader2, Wand2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { PDFService } from "../../services/PDFService";
 
 export default function HandoverReport({ patients, isLoading }) {
   const [selectedPatient, setSelectedPatient] = useState('');
@@ -32,8 +33,22 @@ export default function HandoverReport({ patients, isLoading }) {
   const [generatedReport, setGeneratedReport] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = async () => {
+    if (!selectedPatient) {
+      alert('Please select a patient first');
+      return;
+    }
+
+    const patient = getSelectedPatientData();
+    const filename = `handover_notes_${patient.medical_record_number}_${new Date().toISOString().split('T')[0]}.pdf`;
+    
+    try {
+      const htmlContent = PDFService.formatReportHTML(patient, formData, 'handover');
+      await PDFService.generatePDF(htmlContent, filename);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Error generating PDF. Please try again.');
+    }
   };
 
   const handleChange = (field, value) => {
@@ -54,42 +69,9 @@ export default function HandoverReport({ patients, isLoading }) {
     const patient = getSelectedPatientData();
 
     try {
-      // Mock response for now
-      const mockResponse = `
-        <div class="handover-report">
-          <h1>MEDICAL HANDOVER REPORT</h1>
-          <h2>Patient Information</h2>
-          <p><strong>Name:</strong> ${patient.first_name} ${patient.last_name}</p>
-          <p><strong>MRN:</strong> ${patient.medical_record_number}</p>
-          <p><strong>Age:</strong> ${patient.date_of_birth ? new Date().getFullYear() - new Date(patient.date_of_birth).getFullYear() : 'N/A'}</p>
-          <p><strong>Gender:</strong> ${patient.gender || 'N/A'}</p>
-          
-          <h2>Handover Details</h2>
-          <p><strong>Date:</strong> ${formData.handover_date || new Date().toLocaleDateString()}</p>
-          <p><strong>Time:</strong> ${formData.handover_time || new Date().toLocaleTimeString()}</p>
-          <p><strong>From Team:</strong> ${formData.from_team || 'Current Team'}</p>
-          <p><strong>To Team:</strong> ${formData.to_team || 'Next Team'}</p>
-          
-          <h2>Situation</h2>
-          <p><strong>Current Condition:</strong> ${formData.current_condition || 'Stable'}</p>
-          <p><strong>Key Issues:</strong> ${formData.key_issues || 'None identified'}</p>
-          
-          <h2>Background</h2>
-          <p><strong>Primary Diagnosis:</strong> ${patient.diagnosis || 'N/A'}</p>
-          <p><strong>Medical History:</strong> ${patient.medical_history || 'N/A'}</p>
-          <p><strong>Current Medications:</strong> ${patient.current_medications || 'N/A'}</p>
-          
-          <h2>Assessment</h2>
-          <p><strong>Clinical Assessment:</strong> ${formData.current_condition || 'Patient stable, continue current care plan'}</p>
-          <p><strong>Risk Factors:</strong> ${formData.safety_concerns || 'None identified'}</p>
-          
-          <h2>Recommendations</h2>
-          <p><strong>Immediate Actions:</strong> ${formData.tasks_to_complete || 'Continue monitoring'}</p>
-          <p><strong>Follow-up Required:</strong> ${formData.pending_investigations || 'Routine follow-up'}</p>
-        </div>
-      `;
-
-      setGeneratedReport(mockResponse);
+      // Generate formatted HTML using PDFService
+      const formattedHTML = PDFService.formatReportHTML(patient, formData, 'handover');
+      setGeneratedReport(formattedHTML);
     } catch (error) {
       console.error('Error generating handover report:', error);
     } finally {
