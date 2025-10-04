@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { ArrowLeft, Edit3, User, Calendar, Phone, Mail, MapPin } from "lucide-react";
+import { ArrowLeft, Edit3, User, Calendar, Phone, Activity, Mail, MapPin, Mic, Ruler, Dumbbell} from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import { motion } from "framer-motion";
-import { Mic } from "lucide-react";
+import { format } from "date-fns"; 
 
 import SummaryGenerator from "../components/ai/SummaryGenerator";
 
@@ -15,6 +15,58 @@ const statusColors = {
   inactive: "bg-yellow-100 text-yellow-800 border-yellow-200",
   discharged: "bg-gray-100 text-gray-800 border-gray-200"
 };
+
+function formatDate(dateString) {
+  return format(new Date(dateString), "dd MMM yyyy");
+}
+
+
+function getVitalSignColor(type, value, age) {
+  if (!value) return "";
+
+  if (type === "blood_pressure") {
+    // value format "systolic/diastolic"
+    const [sys, dia] = value.split("/").map(Number);
+    if (isNaN(sys) || isNaN(dia)) return "";
+
+    if (sys < 120 && dia < 80) {
+      return "bg-green-50 text-green-600";
+    } else if ((sys >= 120 && sys <= 139) || (dia >= 80 && dia <= 89)) {
+      return "bg-amber-50 text-amber-600"; // amber = yellow in tailwind, need to add amber manually or use yellow
+    } else if (sys >= 140 || dia >= 90) {
+      return "bg-red-50 text-red-600";
+    }
+  }
+
+  if (type === "heart_rate") {
+    const hr = Number(value);
+    if (isNaN(hr)) return "";
+
+    if (hr >= 60 && hr <= 100) {
+      return "bg-green-50 text-green-600";
+    } else if ((hr >= 50 && hr < 60) || (hr > 100 && hr <= 110)) {
+      return "bg-yellow-50 text-yellow-600"; // amber fallback using yellow
+    } else {
+      return "bg-red-50 text-red-600";
+    }
+  }
+
+  if (type === "temperature") {
+    const temp = Number(value);
+    if (isNaN(temp)) return "";
+
+    if (temp >= 36.1 && temp <= 37.2) {
+      return "bg-green-50 text-green-600";
+    } else if ((temp >= 35.5 && temp < 36.1) || (temp > 37.2 && temp <= 38)) {
+      return "bg-yellow-50 text-yellow-600";
+    } else {
+      return "bg-red-50 text-red-600";
+    }
+  }
+
+  return "";
+}
+
 
 export default function PatientDetail() {
   const navigate = useNavigate();
@@ -130,9 +182,6 @@ export default function PatientDetail() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Badge variant="outline" className={`${statusColors[patient.status]} border font-medium`}>
-              {patient.status}
-            </Badge>
             <Button variant="outline" className="gap-2">
               <Edit3 className="w-4 h-4" />
               Edit Patient
@@ -172,6 +221,27 @@ export default function PatientDetail() {
                         <p className="font-medium capitalize">{patient.gender || 'N/A'}</p>
                       </div>
                     </div>
+
+                    {/* Height */}
+                    <div className="flex items-center gap-2">
+                      <Ruler className="w-4 h-4 text-neutral-400" />
+                      <div>
+                        <p className="text-neutral-500">Height</p>
+                        <p className="font-medium">{patient.vital_signs?.height ? `${patient.vital_signs.height} cm` : 'N/A'}</p>
+                      </div>
+                    </div>
+
+                    {/* Weight */}
+                    <div className="flex items-center gap-2">
+                      <Dumbbell className="w-4 h-4 text-neutral-400" />
+                      <div>
+                        <p className="text-neutral-500">Weight</p>
+                        <p className="font-medium">{patient.vital_signs?.weight ? `${patient.vital_signs.weight} kg` : 'N/A'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-4 border-t border-neutral-100 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                     {patient.phone && (
                       <div className="flex items-center gap-2">
                         <Phone className="w-4 h-4 text-neutral-400" />
@@ -190,10 +260,7 @@ export default function PatientDetail() {
                         </div>
                       </div>
                     )}
-                  </div>
-                  
-                  {patient.address && (
-                    <div className="mt-4 pt-4 border-t border-neutral-100">
+                    {patient.address && (
                       <div className="flex items-center gap-2">
                         <MapPin className="w-4 h-4 text-neutral-400" />
                         <div>
@@ -201,8 +268,8 @@ export default function PatientDetail() {
                           <p className="font-medium">{patient.address}</p>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
@@ -307,26 +374,26 @@ export default function PatientDetail() {
                     <CardTitle className="text-xl">Vital Signs</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                       {patient.vital_signs?.blood_pressure && (
-                        <div className="text-center p-3 bg-red-50 rounded-lg">
+                        <div className={`text-center p-3 rounded-lg ${getVitalSignColor("blood_pressure", patient.vital_signs.blood_pressure, age)}`}>
                           <p className="text-xs text-neutral-500 mb-1">Blood Pressure</p>
-                          <p className="font-bold text-red-600">{patient.vital_signs.blood_pressure}</p>
+                          <p className="font-bold">{patient.vital_signs.blood_pressure}</p>
                         </div>
                       )}
                       {patient.vital_signs?.heart_rate && (
-                        <div className="text-center p-3 bg-pink-50 rounded-lg">
-                          <p className="text-xs text-neutral-500 mb-1">Heart Rate</p>
-                          <p className="font-bold text-pink-600">{patient.vital_signs.heart_rate}</p>
+                        <div className={`text-center p-3 rounded-lg ${getVitalSignColor("heart_rate", patient.vital_signs.heart_rate, age)}`}>
+                          <p className="text-xs text-neutral-500 mb-1">Heart Rate (bpm)</p>
+                          <p className="font-bold">{patient.vital_signs.heart_rate}</p>
                         </div>
                       )}
                       {patient.vital_signs?.temperature && (
-                        <div className="text-center p-3 bg-orange-50 rounded-lg">
-                          <p className="text-xs text-neutral-500 mb-1">Temperature</p>
-                          <p className="font-bold text-orange-600">{patient.vital_signs.temperature}</p>
+                        <div className={`text-center p-3 rounded-lg ${getVitalSignColor("temperature", patient.vital_signs.temperature, age)}`}>
+                          <p className="text-xs text-neutral-500 mb-1">Temperature (°C)</p>
+                          <p className="font-bold">{patient.vital_signs.temperature}</p>
                         </div>
                       )}
-                      {patient.vital_signs?.weight && (
+                      {/* {patient.vital_signs?.weight && (
                         <div className="text-center p-3 bg-blue-50 rounded-lg">
                           <p className="text-xs text-neutral-500 mb-1">Weight</p>
                           <p className="font-bold text-blue-600">{patient.vital_signs.weight}</p>
@@ -337,7 +404,7 @@ export default function PatientDetail() {
                           <p className="text-xs text-neutral-500 mb-1">Height</p>
                           <p className="font-bold text-green-600">{patient.vital_signs.height}</p>
                         </div>
-                      )}
+                      )} */}
                     </div>
                   </CardContent>
                 </Card>
@@ -346,8 +413,80 @@ export default function PatientDetail() {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
-            <SummaryGenerator patient={patient} onSummaryGenerated={handleSummaryGenerated} />
+            <div className="space-y-6">
+              <SummaryGenerator patient={patient} onSummaryGenerated={handleSummaryGenerated} />
+              <div className="border rounded-lg shadow-sm bg-white p-4">
+              <h3 className="flex items-center gap-2 text-lg font-semibold text-neutral-900 mb-4">
+                <Calendar className="w-5 h-5 text-blue-600" />
+                Past Visits
+              </h3>
+
+              {patient.past_visits && patient.past_visits.length > 0 ? (
+                <div className="space-y-4 max-h-48 overflow-y-auto text-sm text-neutral-700">
+                  {patient.past_visits.map((visit, index) => (
+                    <div key={index} className="pb-2 border-b border-neutral-200 last:border-b-0">
+                      <p className="font-bold text-neutral-900">{formatDate(visit.visit_date)}</p>
+                      <p><span className="font-semibold">Diagnosis:</span> {visit.diagnosis}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="italic text-neutral-400 text-sm">No past visits recorded.</p>
+              )}
+            </div>
+            <div className="border rounded-lg shadow-sm bg-white p-4 mt-6">
+              <h3 className="flex items-center gap-2 text-lg font-semibold text-neutral-900 mb-4">
+                <Activity className="w-5 h-5 text-blue-600" />
+                Past Vital Readings
+              </h3>
+
+              {patient.past_vital_readings && patient.past_vital_readings.length > 0 ? (
+                <div className="space-y-4 max-h-48 overflow-y-auto text-sm text-neutral-700">
+                  {patient.past_vital_readings.map((reading, index) => {
+                    const dateObj = new Date(reading.date);
+                    const dateTimeFormatted = `${format(dateObj, "dd MMM yyyy")} @ ${format(dateObj, "h:mm a")}`;
+
+                    // Extract only text color classes from getVitalSignColor
+                    const extractTextColorClass = (cls) => {
+                      // Find the text-* class from string (e.g. "bg-red-100 text-red-700" -> "text-red-700")
+                      const match = cls.match(/text-\S+/);
+                      return match ? match[0] : "";
+                    };
+
+                    const bpColor = extractTextColorClass(getVitalSignColor("blood_pressure", reading.blood_pressure, age));
+                    const hrColor = extractTextColorClass(getVitalSignColor("heart_rate", reading.heart_rate, age));
+                    const tempColor = extractTextColorClass(getVitalSignColor("temperature", reading.temperature, age));
+
+                    return (
+                      <div key={index} className="pb-2 border-b border-neutral-200 last:border-b-0">
+                        <p className="font-bold text-neutral-900">{dateTimeFormatted}</p>
+                        <p>
+                          <span className="font-semibold">Blood Pressure:</span>{" "}
+                          <span className={bpColor || "text-neutral-700"}>
+                            {reading.blood_pressure || "-"}
+                          </span>
+                        </p>
+                        <p>
+                          <span className="font-semibold">Heart Rate:</span>{" "}
+                          <span className={hrColor || "text-neutral-700"}>
+                            {reading.heart_rate ?? "-"} bpm
+                          </span>
+                        </p>
+                        <p>
+                          <span className="font-semibold">Temperature:</span>{" "}
+                          <span className={tempColor || "text-neutral-700"}>
+                            {reading.temperature ?? "-"} °C
+                          </span>
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="italic text-neutral-400 text-sm">No past vital readings recorded.</p>
+              )}
+
+            </div>
           </div>
         </div>
       </div>

@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
-import { Search, Plus, Users, Brain, TrendingUp, Activity } from "lucide-react";
+import { Search, Plus, Users, Brain, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import StatsCards from "../components/dashboard/StatsCards";
@@ -62,15 +62,14 @@ export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState(null);
 
-  // ✅ Filtered list by name, MRN, and date
+  // Filtered list by name, MRN, and date
   const filteredPatients = patients.filter(patient => {
     const matchesSearch = `${patient.first_name} ${patient.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
       patient.medical_record_number.toLowerCase().includes(searchTerm.toLowerCase());
     
     if (!selectedDate) return matchesSearch;
     
-    // Filter by date - you can customize this logic based on what date field you want to filter by
-    // For now, we'll filter by date_of_birth as an example
+    // Filter by date_of_birth as an example
     const patientDate = new Date(patient.date_of_birth);
     const filterDate = new Date(selectedDate);
     
@@ -80,9 +79,8 @@ export default function Dashboard() {
       patientDate.getDate() === filterDate.getDate();
   });
 
-  // ✅ Dummy stats
+  // Dummy stats
   const totalPatients = patients.length;
-  const activePatients = patients.filter(p => p.status === 'active').length;
   const aiSummaries = patients.filter(p => p.ai_summary).length;
   const summaryRate = totalPatients > 0 ? `${Math.round((aiSummaries / totalPatients) * 100)}%` : '0%';
 
@@ -108,7 +106,7 @@ export default function Dashboard() {
           </Link>
         </motion.div>
 
-        {/* ✅ Date Display */}
+        {/* Date Display */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -118,8 +116,8 @@ export default function Dashboard() {
           <DateDisplay selectedDate={selectedDate} />
         </motion.div>
 
-        {/* ✅ Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <StatsCards 
             title="Total Patients" 
             value={totalPatients}
@@ -128,17 +126,10 @@ export default function Dashboard() {
             description="All registered patients"
           />
           <StatsCards 
-            title="Active Patients" 
-            value={activePatients}
-            icon={Activity}
-            gradient="bg-gradient-to-r from-emerald-500 to-emerald-600"
-            description="Currently active cases"
-          />
-          <StatsCards 
             title="AI Summaries" 
             value={aiSummaries}
             icon={Brain}
-            gradient="bg-gradient-to-r from-purple-500 to-purple-600"
+            gradient="bg-gradient-to-r from-green-500 to-green-600"
             description="Generated summaries"
           />
           <StatsCards 
@@ -174,7 +165,7 @@ export default function Dashboard() {
           </div>
         </motion.div>
 
-        {/* ✅ Patient Cards */}
+        {/* Patient Cards */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
