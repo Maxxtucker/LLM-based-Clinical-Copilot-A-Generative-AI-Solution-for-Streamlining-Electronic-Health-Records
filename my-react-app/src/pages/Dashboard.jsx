@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import StatsCards from "../components/dashboard/StatsCards";
 import PatientCard from "../components/dashboard/PatientCard";
+import DateFilter from "../components/dashboard/DateFilter";
 
 export default function Dashboard() {
   // Patients loaded from API; falls back to demo if fetch fails
@@ -58,12 +59,25 @@ export default function Dashboard() {
   }, []);
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedDate, setSelectedDate] = useState(null);
 
-  // ✅ Filtered list by name or MRN
-  const filteredPatients = patients.filter(patient =>
-    `${patient.first_name} ${patient.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    patient.medical_record_number.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // ✅ Filtered list by name, MRN, and date
+  const filteredPatients = patients.filter(patient => {
+    const matchesSearch = `${patient.first_name} ${patient.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient.medical_record_number.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    if (!selectedDate) return matchesSearch;
+    
+    // Filter by date - you can customize this logic based on what date field you want to filter by
+    // For now, we'll filter by date_of_birth as an example
+    const patientDate = new Date(patient.date_of_birth);
+    const filterDate = new Date(selectedDate);
+    
+    return matchesSearch && 
+      patientDate.getFullYear() === filterDate.getFullYear() &&
+      patientDate.getMonth() === filterDate.getMonth() &&
+      patientDate.getDate() === filterDate.getDate();
+  });
 
   // ✅ Dummy stats
   const totalPatients = patients.length;
@@ -131,13 +145,20 @@ export default function Dashboard() {
           transition={{ duration: 0.4, delay: 0.2 }}
           className="mb-8"
         >
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-5 h-5" />
-            <Input
-              placeholder="Search patients or medical record number..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 py-3 border-neutral-200 focus:ring-blue-500 focus:border-blue-500"
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+            <div className="relative max-w-md w-full">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-5 h-5" />
+              <Input
+                placeholder="Search patients or medical record number..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 py-3 border-neutral-200 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <DateFilter 
+              selectedDate={selectedDate}
+              onDateChange={setSelectedDate}
+              className="w-full sm:w-auto"
             />
           </div>
         </motion.div>
