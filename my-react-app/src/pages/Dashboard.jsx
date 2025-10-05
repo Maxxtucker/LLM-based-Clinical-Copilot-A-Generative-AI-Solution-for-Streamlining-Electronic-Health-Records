@@ -2,11 +2,13 @@
 import React, { useEffect, useState } from "react";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
-import { Search, Plus, Users, Brain, TrendingUp, Activity } from "lucide-react";
+import { Search, Plus, Users, Brain, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import StatsCards from "../components/dashboard/StatsCards";
 import PatientCard from "../components/dashboard/PatientCard";
+import DateFilter from "../components/dashboard/DateFilter";
+import DateDisplay from "../components/dashboard/DateDisplay";
 
 export default function Dashboard() {
   // Patients loaded from API; falls back to demo if fetch fails
@@ -58,16 +60,27 @@ export default function Dashboard() {
   }, []);
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedDate, setSelectedDate] = useState(null);
 
-  // ✅ Filtered list by name or MRN
-  const filteredPatients = patients.filter(patient =>
-    `${patient.first_name} ${patient.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    patient.medical_record_number.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filtered list by name, MRN, and date
+  const filteredPatients = patients.filter(patient => {
+    const matchesSearch = `${patient.first_name} ${patient.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient.medical_record_number.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    if (!selectedDate) return matchesSearch;
+    
+    // Filter by date_of_birth as an example
+    const patientDate = new Date(patient.date_of_birth);
+    const filterDate = new Date(selectedDate);
+    
+    return matchesSearch && 
+      patientDate.getFullYear() === filterDate.getFullYear() &&
+      patientDate.getMonth() === filterDate.getMonth() &&
+      patientDate.getDate() === filterDate.getDate();
+  });
 
-  // ✅ Dummy stats
+  // Dummy stats
   const totalPatients = patients.length;
-  const activePatients = patients.filter(p => p.status === 'active').length;
   const aiSummaries = patients.filter(p => p.ai_summary).length;
   const summaryRate = totalPatients > 0 ? `${Math.round((aiSummaries / totalPatients) * 100)}%` : '0%';
 
@@ -93,8 +106,18 @@ export default function Dashboard() {
           </Link>
         </motion.div>
 
-        {/* ✅ Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Date Display */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="mb-6"
+        >
+          <DateDisplay selectedDate={selectedDate} />
+        </motion.div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <StatsCards 
             title="Total Patients" 
             value={totalPatients}
@@ -103,17 +126,10 @@ export default function Dashboard() {
             description="All registered patients"
           />
           <StatsCards 
-            title="Active Patients" 
-            value={activePatients}
-            icon={Activity}
-            gradient="bg-gradient-to-r from-emerald-500 to-emerald-600"
-            description="Currently active cases"
-          />
-          <StatsCards 
             title="AI Summaries" 
             value={aiSummaries}
             icon={Brain}
-            gradient="bg-gradient-to-r from-purple-500 to-purple-600"
+            gradient="bg-gradient-to-r from-green-500 to-green-600"
             description="Generated summaries"
           />
           <StatsCards 
@@ -131,18 +147,25 @@ export default function Dashboard() {
           transition={{ duration: 0.4, delay: 0.2 }}
           className="mb-8"
         >
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-5 h-5" />
-            <Input
-              placeholder="Search patients or medical record number..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 py-3 border-neutral-200 focus:ring-blue-500 focus:border-blue-500"
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+            <div className="relative max-w-md w-full">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-5 h-5" />
+              <Input
+                placeholder="Search patients or medical record number..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 py-3 border-neutral-200 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <DateFilter 
+              selectedDate={selectedDate}
+              onDateChange={setSelectedDate}
+              className="w-full sm:w-auto"
             />
           </div>
         </motion.div>
 
-        {/* ✅ Patient Cards */}
+        {/* Patient Cards */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

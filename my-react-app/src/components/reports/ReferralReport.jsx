@@ -7,6 +7,7 @@ import { Textarea } from "../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Download, Loader2, Wand2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { PDFService } from "../../services/PDFService";
 
 export default function ReferralReport({ patients, isLoading }) {
   const [selectedPatient, setSelectedPatient] = useState('');
@@ -27,8 +28,22 @@ export default function ReferralReport({ patients, isLoading }) {
   const [generatedReport, setGeneratedReport] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = async () => {
+    if (!selectedPatient) {
+      alert('Please select a patient first');
+      return;
+    }
+
+    const patient = getSelectedPatientData();
+    const filename = `referral_letter_${patient.medical_record_number}_${new Date().toISOString().split('T')[0]}.pdf`;
+    
+    try {
+      const htmlContent = PDFService.formatReportHTML(patient, formData, 'referral');
+      await PDFService.generatePDF(htmlContent, filename);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Error generating PDF. Please try again.');
+    }
   };
 
   const handleChange = (field, value) => {
@@ -49,45 +64,9 @@ export default function ReferralReport({ patients, isLoading }) {
     const patient = getSelectedPatientData();
 
     try {
-      // Mock response for now
-      const mockResponse = `
-        <div class="referral-letter">
-          <h1>MEDICAL REFERRAL LETTER</h1>
-          <h2>Patient Information</h2>
-          <p><strong>Name:</strong> ${patient.first_name} ${patient.last_name}</p>
-          <p><strong>MRN:</strong> ${patient.medical_record_number}</p>
-          <p><strong>DOB:</strong> ${patient.date_of_birth || 'N/A'}</p>
-          <p><strong>Age:</strong> ${patient.date_of_birth ? new Date().getFullYear() - new Date(patient.date_of_birth).getFullYear() : 'N/A'}</p>
-          <p><strong>Gender:</strong> ${patient.gender || 'N/A'}</p>
-          
-          <h2>Referring Physician</h2>
-          <p><strong>Name:</strong> ${formData.referring_physician || 'Dr. Smith'}</p>
-          <p><strong>Contact:</strong> ${formData.referring_physician_contact || 'N/A'}</p>
-          
-          <h2>Referral Details</h2>
-          <p><strong>Specialist:</strong> ${formData.specialist_name || 'To be assigned'}</p>
-          <p><strong>Department:</strong> ${formData.specialist_department || 'N/A'}</p>
-          <p><strong>Specialty:</strong> ${formData.specialty || 'N/A'}</p>
-          <p><strong>Reason for Referral:</strong> ${formData.referral_reason || 'N/A'}</p>
-          <p><strong>Clinical Question:</strong> ${formData.clinical_question || 'N/A'}</p>
-          <p><strong>Urgency:</strong> ${formData.urgency || 'Routine'}</p>
-          
-          <h2>Clinical Information</h2>
-          <p><strong>Primary Diagnosis:</strong> ${patient.diagnosis || 'N/A'}</p>
-          <p><strong>Medical History:</strong> ${patient.medical_history || 'N/A'}</p>
-          <p><strong>Current Medications:</strong> ${patient.current_medications || 'N/A'}</p>
-          <p><strong>Allergies:</strong> ${patient.allergies || 'None known'}</p>
-          
-          <h2>Investigations Done</h2>
-          <p>${formData.investigations_done || 'None documented'}</p>
-          
-          <h2>Special Requirements</h2>
-          <p><strong>Patient Mobility:</strong> ${formData.patient_mobility || 'Independent'}</p>
-          <p><strong>Interpreter Needed:</strong> ${formData.interpreter_needed || 'No'}</p>
-        </div>
-      `;
-
-      setGeneratedReport(mockResponse);
+      // Generate formatted HTML using PDFService
+      const formattedHTML = PDFService.formatReportHTML(patient, formData, 'referral');
+      setGeneratedReport(formattedHTML);
     } catch (error) {
       console.error('Error generating referral report:', error);
     } finally {

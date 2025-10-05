@@ -103,6 +103,7 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* First Name */}
               <div>
                 <Label htmlFor="first_name" className="text-sm font-medium text-neutral-700">First Name *</Label>
                 <div className="flex gap-2 mt-1">
@@ -119,6 +120,8 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                   />
                 </div>
               </div>
+
+              {/* Last Name */}
               <div>
                 <Label htmlFor="last_name" className="text-sm font-medium text-neutral-700">Last Name *</Label>
                 <div className="flex gap-2 mt-1">
@@ -135,6 +138,20 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                   />
                 </div>
               </div>
+
+              {/* Medical Record Number / IC */}
+              <div>
+                <Label htmlFor="medical_record_number" className="text-sm font-medium text-neutral-700">Medical Record Number / IC *</Label>
+                <Input
+                  id="medical_record_number"
+                  value={formData.medical_record_number}
+                  onChange={(e) => handleChange('medical_record_number', e.target.value)}
+                  className="mt-1"
+                  required
+                />
+              </div>
+
+              {/* Date of Birth */}
               <div>
                 <Label htmlFor="date_of_birth" className="text-sm font-medium text-neutral-700">Date of Birth *</Label>
                 <Input
@@ -146,6 +163,8 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                   required
                 />
               </div>
+
+              {/* Gender */}
               <div>
                 <Label htmlFor="gender" className="text-sm font-medium text-neutral-700">Gender</Label>
                 <Select value={formData.gender} onValueChange={(value) => handleChange('gender', value)}>
@@ -160,6 +179,7 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                 </Select>
               </div>
 
+              {/* Phone */}
               <div>
                 <Label htmlFor="phone" className="text-sm font-medium text-neutral-700">Phone</Label>
                 <div className="flex gap-2 mt-1">
@@ -175,6 +195,49 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                   />
                 </div>
               </div>
+
+              {/* Height */}
+              <div>
+                <Label htmlFor="height" className="text-sm font-medium text-neutral-700">Height (cm)</Label>
+                <Input
+                  id="height"
+                  value={formData.vital_signs.height}
+                  onChange={(e) => handleChange('vital_signs.height', e.target.value)}
+                  className="mt-1"
+                  placeholder="165 cm"
+                />
+              </div>
+
+              {/* Weight */}
+              <div>
+                <Label htmlFor="weight" className="text-sm font-medium text-neutral-700">Weight (kg)</Label>
+                <Input
+                  id="weight"
+                  value={formData.vital_signs.weight}
+                  onChange={(e) => handleChange('vital_signs.weight', e.target.value)}
+                  className="mt-1"
+                  placeholder="60 kg"
+                />
+              </div>
+
+              {/* Address */}
+              <div>
+                <Label htmlFor="address" className="text-sm font-medium text-neutral-700">Address</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    id="address"
+                    value={formData.address}
+                    onChange={(e) => handleChange('address', e.target.value)}
+                    className="flex-1"
+                  />
+                  <SpeechInput
+                    onTranscription={(text) => handleSpeechInput('address', text)}
+                    className="flex-shrink-0"
+                  />
+                </div>
+              </div>
+
+              {/* Email */}
               <div>
                 <Label htmlFor="email" className="text-sm font-medium text-neutral-700">Email</Label>
                 <div className="flex gap-2 mt-1">
@@ -191,50 +254,12 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                   />
                 </div>
               </div>
-              <div className="md:col-span-2">
-                <Label htmlFor="address" className="text-sm font-medium text-neutral-700">Address</Label>
-                <div className="flex gap-2 mt-1">
-                  <Input
-                    id="address"
-                    value={formData.address}
-                    onChange={(e) => handleChange('address', e.target.value)}
-                    className="flex-1"
-                  />
-                  <SpeechInput
-                    onTranscription={(text) => handleSpeechInput('address', text)}
-                    className="flex-shrink-0"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="medical_record_number" className="text-sm font-medium text-neutral-700">Medical Record Number *</Label>
-                <Input
-                  id="medical_record_number"
-                  value={formData.medical_record_number}
-                  onChange={(e) => handleChange('medical_record_number', e.target.value)}
-                  className="mt-1"
-                  required
-                />
-              </div>
-              <div>
-                  <Label htmlFor="status" className="text-sm font-medium text-neutral-700">Status</Label>
-                <Select value={formData.status} onValueChange={(value) => handleChange('status', value)}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="discharged">Discharged</SelectItem>
-                  </SelectContent>
-                </Select>
-                </div>
             </div>
           </CardContent>
         </Card>
       </motion.div>
 
-      <motion.div
+      {/* <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
@@ -389,7 +414,7 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
             </div>
           </CardContent>
         </Card>
-      </motion.div>
+      </motion.div> */}
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -404,7 +429,7 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="blood_pressure" className="text-sm font-medium text-neutral-700">Blood Pressure</Label>
                 <Input
@@ -435,7 +460,7 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                   placeholder="36.8 °C"
                 />
               </div>
-              <div>
+              {/* <div>
                 <Label htmlFor="weight" className="text-sm font-medium text-neutral-700">Weight (kg)</Label>
                 <Input
                   id="weight"
@@ -454,7 +479,7 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                   className="mt-1"
                   placeholder="165 cm"
                 />
-              </div>
+              </div> */}
             </div>
           </CardContent>
         </Card>
