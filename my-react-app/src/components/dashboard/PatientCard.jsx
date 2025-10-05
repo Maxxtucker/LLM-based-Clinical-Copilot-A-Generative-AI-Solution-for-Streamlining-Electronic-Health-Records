@@ -69,6 +69,7 @@ export default function PatientCard({ patient }) {
             </div>
           )}
           
+
           <div className="flex justify-between items-center pt-2">
             <div className="flex items-center gap-2">
               {patient.ai_summary ? (

@@ -1,20 +1,16 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { ArrowLeft, Edit3, User, Calendar, Phone, Activity, Mail, MapPin, Mic, Ruler, Dumbbell} from "lucide-react";
+import { ArrowLeft, Edit3, User, Calendar, Phone, Activity, Mail, MapPin, Ruler, Dumbbell, Save, X} from "lucide-react";
 import { Button } from "../components/ui/button";
-import { Badge } from "../components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { Textarea } from "../components/ui/textarea";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import { motion } from "framer-motion";
 import { format } from "date-fns"; 
 
 import SummaryGenerator from "../components/ai/SummaryGenerator";
+import VoiceRecordingButton from "../components/speech/VoiceRecordingButton";
 
-const statusColors = {
-  active: "bg-emerald-100 text-emerald-800 border-emerald-200",
-  inactive: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  discharged: "bg-gray-100 text-gray-800 border-gray-200"
-};
 
 function formatDate(dateString) {
   return format(new Date(dateString), "dd MMM yyyy");
@@ -72,6 +68,8 @@ export default function PatientDetail() {
   const navigate = useNavigate();
   const [patient, setPatient] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedFields, setEditedFields] = useState({});
   
   const urlParams = new URLSearchParams(window.location.search);
   const patientId = urlParams.get('id');
@@ -114,6 +112,112 @@ export default function PatientDetail() {
     } catch (e) {
       console.error('Failed updating summary', e);
     }
+  };
+
+  const handleConversationExtracted = async (extractedData) => {
+    try {
+      console.log('Extracted data received:', extractedData);
+      
+      // Update patient data with extracted information
+      const updateData = {
+        ...patient,
+        // Map extracted data to patient fields based on backend structure
+        chief_complaint: extractedData.medicalInfo?.chiefComplaint || patient.chief_complaint,
+        symptoms: extractedData.medicalInfo?.symptoms?.join(', ') || patient.symptoms,
+        medical_history: extractedData.medicalInfo?.medicalHistory?.join(', ') || patient.medical_history,
+        current_medications: extractedData.medicalInfo?.currentMedications?.join(', ') || patient.current_medications,
+        allergies: extractedData.medicalInfo?.allergies?.join(', ') || patient.allergies,
+        diagnosis: extractedData.medicalInfo?.diagnosis || patient.diagnosis,
+        treatment_plan: extractedData.medicalInfo?.treatmentPlan || patient.treatment_plan,
+        // Update vital signs if extracted
+        vital_signs: {
+          ...patient.vital_signs,
+          ...(extractedData.vitalSigns && {
+            blood_pressure: extractedData.vitalSigns.blood_pressure || patient.vital_signs?.blood_pressure,
+            heart_rate: extractedData.vitalSigns.heart_rate || patient.vital_signs?.heart_rate,
+            temperature: extractedData.vitalSigns.temperature || patient.vital_signs?.temperature,
+            weight: extractedData.vitalSigns.weight || patient.vital_signs?.weight,
+            height: extractedData.vitalSigns.height || patient.vital_signs?.height
+          })
+        }
+      };
+
+      // Fetch updated patient data from backend (backend already updated it during speech processing)
+      const response = await fetch(`/api/patients/${patient._id}`);
+      
+      if (response.ok) {
+        const updatedPatientData = await response.json();
+        setPatient(updatedPatientData);
+        console.log('Patient data refreshed with conversation extraction');
+      } else {
+        console.error('Failed to fetch updated patient data');
+      }
+    } catch (error) {
+      console.error('Error updating patient with extracted data:', error);
+    }
+  };
+
+  const handleEditField = (field, value) => {
+    setEditedFields(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSaveChanges = async () => {
+    try {
+      const updateData = {
+        ...patient,
+        ...editedFields
+      };
+
+      const response = await fetch(`/api/patients/${patient._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData)
+      });
+
+      if (response.ok) {
+        const updatedPatient = await response.json();
+        setPatient(updatedPatient);
+        setEditedFields({});
+        setIsEditing(false);
+        console.log('Patient data updated successfully');
+      } else {
+        console.error('Failed to update patient data');
+      }
+    } catch (error) {
+      console.error('Error updating patient:', error);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditedFields({});
+    setIsEditing(false);
+  };
+
+  const renderEditableField = (fieldName, label, placeholder = "Pending doctor's input") => {
+    const currentValue = editedFields[fieldName] !== undefined ? editedFields[fieldName] : patient[fieldName];
+    
+    return (
+      <div>
+        <h4 className="font-semibold text-neutral-700 mb-2">{label}</h4>
+        {isEditing ? (
+          <Textarea
+            value={currentValue || ''}
+            onChange={(e) => handleEditField(fieldName, e.target.value)}
+            placeholder={placeholder}
+            className="bg-neutral-50 p-3 rounded-lg border-0 resize-none min-h-[60px]"
+          />
+        ) : (
+          <p className="text-neutral-600 bg-neutral-50 p-3 rounded-lg">
+            {currentValue || (
+              <span className="italic text-neutral-400">{placeholder}</span>
+            )}
+          </p>
+        )}
+      </div>
+    );
   };
 
   if (isLoading) {
@@ -281,81 +385,110 @@ export default function PatientDetail() {
               transition={{ duration: 0.4, delay: 0.1 }}
             >
               <Card className="border-0 shadow-sm relative">
-                  <button
-                  className="absolute top-4 right-4 p-2 border border-neutral-200 rounded-md hover:bg-neutral-100 transition"
-                  title="Voice dictation"
-                  type="button">
-                  <Mic className="w-5 h-5 text-neutral-600" />
-                </button>
-
                 <CardHeader className="pb-4 flex justify-between items-start">
                   <CardTitle className="text-xl">Medical Information</CardTitle>
+                  <div className="absolute top-4 right-4 flex gap-2">
+                    <VoiceRecordingButton
+                      patientId={patient._id}
+                      onProcessingComplete={handleConversationExtracted}
+                      onError={(error) => console.error('Voice processing error:', error)}
+                      size="sm"
+                      variant="outline"
+                    />
+                    {!isEditing ? (
+                      <Button
+                        onClick={() => setIsEditing(true)}
+                        size="sm"
+                        variant="outline"
+                        className="gap-2"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                        Edit
+                      </Button>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={handleSaveChanges}
+                          size="sm"
+                          className="gap-2"
+                        >
+                          <Save className="w-4 h-4" />
+                          Save
+                        </Button>
+                        <Button
+                          onClick={handleCancelEdit}
+                          size="sm"
+                          variant="outline"
+                          className="gap-2"
+                        >
+                          <X className="w-4 h-4" />
+                          Cancel
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-6 text-sm">
-                  <div>
-                    <h4 className="font-semibold text-neutral-700 mb-2">Chief Complaint</h4>
-                    <p className="text-neutral-600 bg-neutral-50 p-3 rounded-lg">
-                      {patient.chief_complaint || (
-                        <span className="italic text-neutral-400">Pending doctor's input</span>
-                      )}
-                    </p>
-                  </div>
-
-                  <div>
-                    <h4 className="font-semibold text-neutral-700 mb-2">Medical History</h4>
-                    <p className="text-neutral-600 bg-neutral-50 p-3 rounded-lg">
-                      {patient.medical_history || (
-                        <span className="italic text-neutral-400">Pending doctor's input</span>
-                      )}
-                    </p>
-                  </div>
-
+                  {renderEditableField('chief_complaint', 'Chief Complaint')}
+                  {renderEditableField('medical_history', 'Medical History')}
+                  
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="font-semibold text-neutral-700 mb-2">Current Medications</h4>
-                      <p className="text-neutral-600 bg-neutral-50 p-3 rounded-lg">
-                        {patient.current_medications || (
-                          <span className="italic text-neutral-400">Pending doctor's input</span>
-                        )}
-                      </p>
-                    </div>
-
+                    {renderEditableField('current_medications', 'Current Medications')}
                     <div>
                       <h4 className="font-semibold text-neutral-700 mb-2">Allergies</h4>
-                      <p className="text-neutral-600 bg-red-50 p-3 rounded-lg">
-                        {patient.allergies || (
-                          <span className="italic text-neutral-400">Pending doctor's input</span>
-                        )}
-                      </p>
+                      {isEditing ? (
+                        <Textarea
+                          value={editedFields.allergies !== undefined ? editedFields.allergies : patient.allergies || ''}
+                          onChange={(e) => handleEditField('allergies', e.target.value)}
+                          placeholder="No known allergies"
+                          className="bg-red-50 p-3 rounded-lg border-0 resize-none min-h-[60px]"
+                        />
+                      ) : (
+                        <p className="text-neutral-600 bg-red-50 p-3 rounded-lg">
+                          {patient.allergies || (
+                            <span className="italic text-neutral-400">No known allergies</span>
+                          )}
+                        </p>
+                      )}
                     </div>
                   </div>
 
-                  <div>
-                    <h4 className="font-semibold text-neutral-700 mb-2">Current Symptoms</h4>
-                    <p className="text-neutral-600 bg-neutral-50 p-3 rounded-lg">
-                      {patient.symptoms || (
-                        <span className="italic text-neutral-400">Pending doctor's input</span>
-                      )}
-                    </p>
-                  </div>
-
+                  {renderEditableField('symptoms', 'Current Symptoms')}
+                  
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <h4 className="font-semibold text-neutral-700 mb-2">Diagnosis</h4>
-                      <p className="text-neutral-600 bg-blue-50 p-3 rounded-lg">
-                        {patient.diagnosis || (
-                          <span className="italic text-neutral-400">Pending doctor's input</span>
-                        )}
-                      </p>
+                      {isEditing ? (
+                        <Textarea
+                          value={editedFields.diagnosis !== undefined ? editedFields.diagnosis : patient.diagnosis || ''}
+                          onChange={(e) => handleEditField('diagnosis', e.target.value)}
+                          placeholder="Pending doctor's input"
+                          className="bg-blue-50 p-3 rounded-lg border-0 resize-none min-h-[60px]"
+                        />
+                      ) : (
+                        <p className="text-neutral-600 bg-blue-50 p-3 rounded-lg">
+                          {patient.diagnosis || (
+                            <span className="italic text-neutral-400">Pending doctor's input</span>
+                          )}
+                        </p>
+                      )}
                     </div>
-
                     <div>
                       <h4 className="font-semibold text-neutral-700 mb-2">Treatment Plan</h4>
-                      <p className="text-neutral-600 bg-green-50 p-3 rounded-lg">
-                        {patient.treatment_plan || (
-                          <span className="italic text-neutral-400">Pending doctor's input</span>
-                        )}
-                      </p>
+                      {isEditing ? (
+                        <Textarea
+                          value={editedFields.treatment_plan !== undefined ? editedFields.treatment_plan : patient.treatment_plan || ''}
+                          onChange={(e) => handleEditField('treatment_plan', e.target.value)}
+                          placeholder="Pending doctor's input"
+                          className="bg-green-50 p-3 rounded-lg border-0 resize-none min-h-[60px]"
+                        />
+                      ) : (
+                        <p className="text-neutral-600 bg-green-50 p-3 rounded-lg">
+                          {patient.treatment_plan || (
+                            <span className="italic text-neutral-400">Pending doctor's input</span>
+                          )}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </CardContent>

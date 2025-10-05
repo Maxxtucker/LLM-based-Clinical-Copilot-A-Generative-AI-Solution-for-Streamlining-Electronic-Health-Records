@@ -62,6 +62,30 @@ export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState(null);
 
+  // Handle patient updates from voice processing
+  const handlePatientUpdate = async (patientId, updateData) => {
+    try {
+      // Update the local state with the new data
+      setPatients(prevPatients => 
+        prevPatients.map(patient => 
+          patient.id === patientId 
+            ? { ...patient, ...updateData.medicalExtraction?.extractedData }
+            : patient
+        )
+      );
+      
+      // Optionally refresh the patient list from the server
+      const res = await fetch('/api/patients');
+      if (res.ok) {
+        const data = await res.json();
+        const mapped = (Array.isArray(data) ? data : []).map(p => ({ ...p, id: p._id }));
+        setPatients(mapped);
+      }
+    } catch (error) {
+      console.error('Error updating patient:', error);
+    }
+  };
+
   // Filtered list by name, MRN, and date
   const filteredPatients = patients.filter(patient => {
     const matchesSearch = `${patient.first_name} ${patient.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -183,7 +207,10 @@ export default function Dashboard() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.05 }}
                 >
-                  <PatientCard patient={patient} />
+                  <PatientCard 
+                    patient={patient} 
+                    onPatientUpdate={handlePatientUpdate}
+                  />
                 </motion.div>
               ))}
             </div>
