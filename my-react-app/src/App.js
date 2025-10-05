@@ -10,6 +10,8 @@ import AIAssistant from "./pages/AIAssistant";
 import PatientForm from "./components/forms/PatientForm";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";  
+import EditDetails from "./pages/EditDetails";
+
 
 import { Home, User, FileText, Brain, UserCog, LogOut } from "lucide-react";
 import ConfirmDialog from "./components/ui/confirmdialog";
@@ -53,8 +55,10 @@ function App() {
   const navigate = useNavigate();
  
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // 
-  const [isSavingPatient, setIsSavingPatient] = useState(false); //
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem("isAuthenticated") === "true";
+  });
+  const [isSavingPatient, setIsSavingPatient] = useState(false);
 
 
   const handleLogoutClick = () => {
@@ -62,19 +66,23 @@ function App() {
   };
 
   const handleLogoutConfirm = () => {
-    setShowLogoutConfirm(false);
-    console.log("User confirmed logout");
-    setIsAuthenticated(false); // 👈 reset auth
-    console.log("Authentication set to false, navigating to login");
-    
-    // Try navigate first, then fallback to window.location
-    try {
-      navigate("/", { replace: true });
-    } catch (error) {
-      console.log("Navigate failed, using window.location");
-      window.location.href = "/";
-    }
-  };
+  setShowLogoutConfirm(false);
+  console.log("User confirmed logout");
+
+  // ✅ Clear persisted auth state
+  localStorage.removeItem("isAuthenticated");
+
+  setIsAuthenticated(false); // 👈 reset auth
+  console.log("Authentication set to false, navigating to login");
+
+  // Try navigate first, then fallback to window.location
+  try {
+    navigate("/", { replace: true });
+  } catch (error) {
+    console.log("Navigate failed, using window.location");
+    window.location.href = "/";
+  }
+};
 
   const handleLogoutCancel = () => {
     setShowLogoutConfirm(false);
@@ -189,6 +197,7 @@ function App() {
                     <Route path="/ai" element={<AIAssistant />} />
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/patient" element={<PatientDetail />} />
+                    <Route path="/edit-patient/:id" element={<EditDetails />} />
 
                     {/* Catch-all redirect to dashboard */}
                     <Route path="*" element={<Navigate to="/dashboard" />} />

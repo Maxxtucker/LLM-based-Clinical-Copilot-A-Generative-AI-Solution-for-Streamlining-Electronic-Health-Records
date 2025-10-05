@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { ArrowLeft, Edit3, User, Calendar, Phone, Activity, Mail, MapPin, Mic, Ruler, Dumbbell} from "lucide-react";
+import { ArrowLeft, Edit3, User, Calendar, Clipboard, Phone, Activity, Mail, MapPin, Mic, Ruler, Dumbbell} from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -182,7 +182,11 @@ export default function PatientDetail() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" className="gap-2">
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => navigate(`/edit-patient/${patient.id}`)}
+            >
               <Edit3 className="w-4 h-4" />
               Edit Patient
             </Button>
@@ -289,7 +293,10 @@ export default function PatientDetail() {
                 </button>
 
                 <CardHeader className="pb-4 flex justify-between items-start">
-                  <CardTitle className="text-xl">Medical Information</CardTitle>
+                    <CardTitle className="flex items-center gap-2 text-xl">
+                    <Clipboard className="w-5 h-5 text-emerald-600" />
+                    Medical Information
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6 text-sm">
                   <div>
@@ -371,7 +378,10 @@ export default function PatientDetail() {
               >
                 <Card className="border-0 shadow-sm">
                   <CardHeader className="pb-4">
-                    <CardTitle className="text-xl">Vital Signs</CardTitle>
+                    <CardTitle className="flex items-center gap-2 text-xl">
+                    <Activity className="w-5 h-5 text-orange-600" />
+                    Vital Signs
+                  </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">

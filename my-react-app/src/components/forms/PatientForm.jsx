@@ -424,7 +424,7 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
         <Card className="border-0 shadow-sm">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-xl">
-              <Activity className="w-5 h-5 text-emerald-600" />
+              <Activity className="w-5 h-5 text-orange-600" />
               Vital Signs
             </CardTitle>
           </CardHeader>
