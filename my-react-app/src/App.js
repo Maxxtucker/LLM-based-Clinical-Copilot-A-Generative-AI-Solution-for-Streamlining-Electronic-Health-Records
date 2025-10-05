@@ -53,8 +53,10 @@ function App() {
   const navigate = useNavigate();
  
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // 
-  const [isSavingPatient, setIsSavingPatient] = useState(false); //
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem("isAuthenticated") === "true";
+  });
+  const [isSavingPatient, setIsSavingPatient] = useState(false);
 
 
   const handleLogoutClick = () => {
@@ -62,19 +64,23 @@ function App() {
   };
 
   const handleLogoutConfirm = () => {
-    setShowLogoutConfirm(false);
-    console.log("User confirmed logout");
-    setIsAuthenticated(false); // 👈 reset auth
-    console.log("Authentication set to false, navigating to login");
-    
-    // Try navigate first, then fallback to window.location
-    try {
-      navigate("/", { replace: true });
-    } catch (error) {
-      console.log("Navigate failed, using window.location");
-      window.location.href = "/";
-    }
-  };
+  setShowLogoutConfirm(false);
+  console.log("User confirmed logout");
+
+  // ✅ Clear persisted auth state
+  localStorage.removeItem("isAuthenticated");
+
+  setIsAuthenticated(false); // 👈 reset auth
+  console.log("Authentication set to false, navigating to login");
+
+  // Try navigate first, then fallback to window.location
+  try {
+    navigate("/", { replace: true });
+  } catch (error) {
+    console.log("Navigate failed, using window.location");
+    window.location.href = "/";
+  }
+};
 
   const handleLogoutCancel = () => {
     setShowLogoutConfirm(false);

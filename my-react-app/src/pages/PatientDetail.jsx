@@ -16,7 +16,6 @@ function formatDate(dateString) {
   return format(new Date(dateString), "dd MMM yyyy");
 }
 
-
 function getVitalSignColor(type, value, age) {
   if (!value) return "";
 
@@ -62,7 +61,6 @@ function getVitalSignColor(type, value, age) {
 
   return "";
 }
-
 
 export default function PatientDetail() {
   const navigate = useNavigate();
@@ -618,7 +616,6 @@ export default function PatientDetail() {
               ) : (
                 <p className="italic text-neutral-400 text-sm">No past vital readings recorded.</p>
               )}
-
             </div>
           </div>
         </div>

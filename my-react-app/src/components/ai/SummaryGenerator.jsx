@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { generatePatientSummary } from "../../services/OpenAIService";
 
 export default function SummaryGenerator({ patient, onSummaryGenerated }) {
-  const [summary, setSummary] = useState(patient.ai_summary_content || '');
+  const [summary, setSummary] = useState(patient?.ai_summary_content || '');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
