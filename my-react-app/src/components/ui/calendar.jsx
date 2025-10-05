@@ -3,6 +3,7 @@
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { DayPicker } from "react-day-picker"
+import { startOfDay } from "date-fns"
 
 import { cn } from "../utils"
 
@@ -22,6 +23,7 @@ const getButtonVariant = (variant = "outline") => {
 function Calendar({ className, classNames, showOutsideDays = true, ...props }) {
   return (
     <DayPicker
+      today={startOfDay(new Date())}  // Explicitly tell DayPicker what today is
       showOutsideDays={showOutsideDays}
       className={cn("p-3", className)}
       classNames={{
@@ -49,7 +51,8 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }) {
         day_range_end: "day-range-end",
         day_selected:
           "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-        day_today: "bg-accent text-accent-foreground",
+        // Update day_today with bold + blue color and bg
+        day_today: "bg-blue-50 text-blue-600 font-bold rounded-md",
         day_outside:
           "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
         day_disabled: "text-muted-foreground opacity-50",
@@ -59,8 +62,8 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }) {
         ...classNames,
       }}
       components={{
-        IconLeft: ({ ...props }) => <ChevronLeft className="h-4 w-4" />,
-        IconRight: ({ ...props }) => <ChevronRight className="h-4 w-4" />,
+        IconLeft: (props) => <ChevronLeft className="h-4 w-4" {...props} />,
+        IconRight: (props) => <ChevronRight className="h-4 w-4" {...props} />,
       }}
       {...props}
     />
