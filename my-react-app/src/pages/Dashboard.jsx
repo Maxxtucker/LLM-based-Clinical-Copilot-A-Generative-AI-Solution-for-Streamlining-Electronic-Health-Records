@@ -61,7 +61,7 @@ export default function Dashboard() {
   }, []);
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [showAllPatients, setShowAllPatients] = useState(false);
 
   // Handle patient updates from voice processing
