@@ -657,7 +657,7 @@ const handleEditVitalSign = (vitalField, value) => {
 
               {patient.past_visits && patient.past_visits.length > 0 ? (
                 <div className="space-y-4 max-h-48 overflow-y-auto text-sm text-neutral-700">
-                  {patient.past_visits.map((visit, index) => (
+                  {patient.past_visits.slice(0,3).map((visit, index) => (
                     <div key={index} className="pb-2 border-b border-neutral-200 last:border-b-0">
                       <p className="font-bold text-neutral-900">{formatDate(visit.visit_date)}</p>
                       <p><span className="font-semibold">Diagnosis:</span> {visit.diagnosis}</p>
@@ -676,7 +676,7 @@ const handleEditVitalSign = (vitalField, value) => {
 
               {patient.past_vital_readings && patient.past_vital_readings.length > 0 ? (
                 <div className="space-y-4 max-h-48 overflow-y-auto text-sm text-neutral-700">
-                  {patient.past_vital_readings.map((reading, index) => {
+                  {patient.past_vital_readings.slice(0,3).map((reading, index) => {
                     const dateObj = new Date(reading.date);
                     const dateTimeFormatted = `${format(dateObj, "dd MMM yyyy")} @ ${format(dateObj, "h:mm a")}`;
 
@@ -718,6 +718,35 @@ const handleEditVitalSign = (vitalField, value) => {
                 </div>
               ) : (
                 <p className="italic text-neutral-400 text-sm">No past vital readings recorded.</p>
+              )}
+            </div>
+            {/* Past Reports */}
+            <div className="border rounded-lg shadow-sm bg-white p-4 mt-6">
+              <h3 className="flex items-center gap-2 text-lg font-semibold text-neutral-900 mb-4">
+                <Clipboard className="w-5 h-5 text-blue-600" />
+                Past Reports
+              </h3>
+
+              {patient.past_reports && patient.past_reports.length > 0 ? (
+                <div className="space-y-4 max-h-48 overflow-y-auto text-sm text-neutral-700">
+                  {patient.past_reports.slice(0,3).map((report) => (
+                    <div key={report.id} className="pb-2 border-b border-neutral-200 last:border-b-0 flex justify-between items-center">
+                      <div>
+                        <p className="font-bold text-neutral-900">{report.title}</p>
+                        <p className="text-neutral-500">{formatDate(report.date)}</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(report.url, "_blank")}
+                      >
+                        View
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="italic text-neutral-400 text-sm">No past reports recorded.</p>
               )}
             </div>
           </div>
