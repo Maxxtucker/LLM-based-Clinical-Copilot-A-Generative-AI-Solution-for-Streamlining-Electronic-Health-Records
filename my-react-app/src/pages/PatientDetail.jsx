@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { ArrowLeft, Edit3, User, Calendar, Phone, Activity, Mail, MapPin, Ruler, Dumbbell, Save, X} from "lucide-react";
+import { ArrowLeft, Edit3, User, Calendar, Clipboard, Phone, Activity, Mail, MapPin, Ruler, Dumbbell, Save, X} from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Textarea } from "../components/ui/textarea";
+import ConfirmDialog from "../components/ui/confirmdialog";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import { motion } from "framer-motion";
@@ -15,7 +16,6 @@ import VoiceRecordingButton from "../components/speech/VoiceRecordingButton";
 function formatDate(dateString) {
   return format(new Date(dateString), "dd MMM yyyy");
 }
-
 
 function getVitalSignColor(type, value, age) {
   if (!value) return "";
@@ -63,13 +63,13 @@ function getVitalSignColor(type, value, age) {
   return "";
 }
 
-
 export default function PatientDetail() {
   const navigate = useNavigate();
   const [patient, setPatient] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editedFields, setEditedFields] = useState({});
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   
   const urlParams = new URLSearchParams(window.location.search);
   const patientId = urlParams.get('id');
@@ -166,9 +166,15 @@ export default function PatientDetail() {
 
   const handleSaveChanges = async () => {
     try {
+      const updatedVitals = {
+        ...patient.vital_signs,
+        ...editedFields.vital_signs
+      };
+
       const updateData = {
         ...patient,
-        ...editedFields
+        ...editedFields,
+        vital_signs: updatedVitals
       };
 
       const response = await fetch(`/api/patients/${patient._id}`, {
@@ -182,14 +188,45 @@ export default function PatientDetail() {
         setPatient(updatedPatient);
         setEditedFields({});
         setIsEditing(false);
-        console.log('Patient data updated successfully');
+        console.log("Patient data updated successfully");
       } else {
-        console.error('Failed to update patient data');
+        console.error("Failed to update patient data");
       }
     } catch (error) {
-      console.error('Error updating patient:', error);
+      console.error("Error updating patient:", error);
     }
   };
+
+  const renderInlineField = (field, label, placeholder = "Enter value") => {
+  const currentValue = editedFields[field] !== undefined ? editedFields[field] : patient[field];
+  return (
+    <div className="flex items-center gap-2">
+      <div>
+        <p className="text-neutral-500">{label}</p>
+        {isEditing ? (
+          <input
+            className="bg-neutral-50 p-2 rounded-lg w-full border border-neutral-200 text-sm"
+            value={currentValue || ""}
+            placeholder={placeholder}
+            onChange={(e) => handleEditField(field, e.target.value)}
+          />
+        ) : (
+          <p className="font-medium">{currentValue || "N/A"}</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const handleEditVitalSign = (vitalField, value) => {
+  setEditedFields(prev => ({
+    ...prev,
+    vital_signs: {
+      ...prev.vital_signs,
+      [vitalField]: value
+    }
+  }));
+};
 
   const handleCancelEdit = () => {
     setEditedFields({});
@@ -286,10 +323,59 @@ export default function PatientDetail() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" className="gap-2">
+          {!isEditing ? (
+            <Button
+              onClick={() => setIsEditing(true)}
+              className="gap-2"
+            >
               <Edit3 className="w-4 h-4" />
               Edit Patient
             </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setShowConfirmDialog(true)}
+                className="gap-2"
+              >
+                <Save className="w-4 h-4" />
+                Save Changes
+              </Button>
+              <Button
+                onClick={handleCancelEdit}
+                variant="outline"
+                className="gap-2"
+              >
+                <X className="w-4 h-4" />
+                Cancel
+              </Button>
+              {showConfirmDialog && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                  <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg">
+                    <h2 className="text-lg font-semibold text-neutral-800 mb-2">Confirm Save</h2>
+                    <p className="text-sm text-neutral-600 mb-4">
+                      Are you sure you want to save the changes to <strong>{patient.first_name} {patient.last_name}</strong> (<strong>{patient.medical_record_number}</strong>)'s record?
+                    </p>
+                    <div className="flex justify-end gap-3">
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowConfirmDialog(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setShowConfirmDialog(false);
+                          handleSaveChanges(); // Call actual save
+                        }}
+                      >
+                        Confirm
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           </div>
         </motion.div>
 
@@ -302,80 +388,89 @@ export default function PatientDetail() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
             >
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-2 text-xl">
-                    <User className="w-5 h-5 text-blue-600" />
-                    Patient Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-neutral-400" />
-                      <div>
-                        <p className="text-neutral-500">Age</p>
-                        <p className="font-medium">{age} years</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-neutral-400" />
-                      <div>
-                        <p className="text-neutral-500">Gender</p>
-                        <p className="font-medium capitalize">{patient.gender || 'N/A'}</p>
-                      </div>
-                    </div>
-
-                    {/* Height */}
-                    <div className="flex items-center gap-2">
-                      <Ruler className="w-4 h-4 text-neutral-400" />
-                      <div>
-                        <p className="text-neutral-500">Height</p>
-                        <p className="font-medium">{patient.vital_signs?.height ? `${patient.vital_signs.height} cm` : 'N/A'}</p>
-                      </div>
-                    </div>
-
-                    {/* Weight */}
-                    <div className="flex items-center gap-2">
-                      <Dumbbell className="w-4 h-4 text-neutral-400" />
-                      <div>
-                        <p className="text-neutral-500">Weight</p>
-                        <p className="font-medium">{patient.vital_signs?.weight ? `${patient.vital_signs.weight} kg` : 'N/A'}</p>
-                      </div>
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <User className="w-5 h-5 text-blue-600" />
+                  Patient Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  {/* Age (edit date_of_birth instead) */}
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-neutral-400" />
+                    <div>
+                      <p className="text-neutral-500">Date of Birth</p>
+                      {isEditing ? (
+                        <input
+                          type="date"
+                          className="bg-neutral-50 p-2 rounded-lg w-full border border-neutral-200 text-sm"
+                          value={editedFields.date_of_birth || patient.date_of_birth || ""}
+                          onChange={(e) => handleEditField("date_of_birth", e.target.value)}
+                        />
+                      ) : (
+                        <p className="font-medium">{patient.date_of_birth ? formatDate(patient.date_of_birth) : "N/A"}</p>
+                      )}
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-4 border-t border-neutral-100 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                    {patient.phone && (
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-neutral-400" />
-                        <div>
-                          <p className="text-neutral-500">Phone</p>
-                          <p className="font-medium">{patient.phone}</p>
-                        </div>
-                      </div>
-                    )}
-                    {patient.email && (
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-neutral-400" />
-                        <div>
-                          <p className="text-neutral-500">Email</p>
-                          <p className="font-medium">{patient.email}</p>
-                        </div>
-                      </div>
-                    )}
-                    {patient.address && (
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-neutral-400" />
-                        <div>
-                          <p className="text-neutral-500 text-sm">Address</p>
-                          <p className="font-medium">{patient.address}</p>
-                        </div>
-                      </div>
-                    )}
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-neutral-400" />
+                    {renderInlineField("gender", "Gender")}
                   </div>
-                </CardContent>
-              </Card>
+
+                  <div className="flex items-center gap-2">
+                    <Ruler className="w-4 h-4 text-neutral-400" />
+                    <div>
+                      <p className="text-neutral-500">Height (cm)</p>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          className="bg-neutral-50 p-2 rounded-lg w-full border border-neutral-200 text-sm"
+                          value={editedFields.vital_signs?.height || patient.vital_signs?.height || ""}
+                          onChange={(e) => handleEditVitalSign("height", e.target.value)}
+                        />
+                      ) : (
+                        <p className="font-medium">{patient.vital_signs?.height || "N/A"}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Dumbbell className="w-4 h-4 text-neutral-400" />
+                    <div>
+                      <p className="text-neutral-500">Weight (kg)</p>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          className="bg-neutral-50 p-2 rounded-lg w-full border border-neutral-200 text-sm"
+                          value={editedFields.vital_signs?.weight || patient.vital_signs?.weight || ""}
+                          onChange={(e) => handleEditVitalSign("weight", e.target.value)}
+                        />
+                      ) : (
+                        <p className="font-medium">{patient.vital_signs?.weight || "N/A"}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-neutral-100 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-neutral-400" />
+                    {renderInlineField("phone", "Phone")}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-neutral-400" />
+                    {renderInlineField("email", "Email")}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-neutral-400" />
+                    {renderInlineField("address", "Address")}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
             </motion.div>
 
             {/* Medical Information */}
@@ -386,7 +481,10 @@ export default function PatientDetail() {
             >
               <Card className="border-0 shadow-sm relative">
                 <CardHeader className="pb-4 flex justify-between items-start">
-                  <CardTitle className="text-xl">Medical Information</CardTitle>
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    <Clipboard className="w-5 h-5 text-emerald-600" />
+                    Medical Information
+                  </CardTitle>
                   <div className="absolute top-4 right-4 flex gap-2">
                     <VoiceRecordingButton
                       patientId={patient._id}
@@ -395,37 +493,6 @@ export default function PatientDetail() {
                       size="sm"
                       variant="outline"
                     />
-                    {!isEditing ? (
-                      <Button
-                        onClick={() => setIsEditing(true)}
-                        size="sm"
-                        variant="outline"
-                        className="gap-2"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                        Edit
-                      </Button>
-                    ) : (
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={handleSaveChanges}
-                          size="sm"
-                          className="gap-2"
-                        >
-                          <Save className="w-4 h-4" />
-                          Save
-                        </Button>
-                        <Button
-                          onClick={handleCancelEdit}
-                          size="sm"
-                          variant="outline"
-                          className="gap-2"
-                        >
-                          <X className="w-4 h-4" />
-                          Cancel
-                        </Button>
-                      </div>
-                    )}
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6 text-sm">
@@ -496,53 +563,87 @@ export default function PatientDetail() {
             </motion.div>
 
             {/* Vital Signs */}
-            {Object.values(patient.vital_signs || {}).some(value => value) && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.2 }}
-              >
-                <Card className="border-0 shadow-sm">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-xl">Vital Signs</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {patient.vital_signs?.blood_pressure && (
-                        <div className={`text-center p-3 rounded-lg ${getVitalSignColor("blood_pressure", patient.vital_signs.blood_pressure, age)}`}>
-                          <p className="text-xs text-neutral-500 mb-1">Blood Pressure</p>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+            >
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="pb-4 flex">
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    <Activity className="w-5 h-5 text-orange-600" />
+                    Vital Signs
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+
+                    {/* Blood Pressure */}
+                    <div className={`text-center p-3 rounded-lg ${getVitalSignColor("blood_pressure", patient.vital_signs?.blood_pressure, age)}`}>
+                      <p className="text-xs text-neutral-500 mb-1">Blood Pressure</p>
+                      {isEditing ? (
+                        <input
+                          className="w-full text-center bg-white p-2 rounded-lg border"
+                          value={editedFields.vital_signs?.blood_pressure || patient.vital_signs?.blood_pressure || ""}
+                          placeholder="Pending input"
+                          onChange={(e) => handleEditVitalSign("blood_pressure", e.target.value)}
+                        />
+                      ) : (
+                        patient.vital_signs?.blood_pressure?.trim() ? (
                           <p className="font-bold">{patient.vital_signs.blood_pressure}</p>
-                        </div>
+                        ) : (
+                          <div className="border border-neutral-200 bg-white p-2 rounded-lg">
+                            <p className="text-sm text-neutral-400 italic">Pending input</p>
+                          </div>
+                        )
                       )}
-                      {patient.vital_signs?.heart_rate && (
-                        <div className={`text-center p-3 rounded-lg ${getVitalSignColor("heart_rate", patient.vital_signs.heart_rate, age)}`}>
-                          <p className="text-xs text-neutral-500 mb-1">Heart Rate (bpm)</p>
-                          <p className="font-bold">{patient.vital_signs.heart_rate}</p>
-                        </div>
-                      )}
-                      {patient.vital_signs?.temperature && (
-                        <div className={`text-center p-3 rounded-lg ${getVitalSignColor("temperature", patient.vital_signs.temperature, age)}`}>
-                          <p className="text-xs text-neutral-500 mb-1">Temperature (°C)</p>
-                          <p className="font-bold">{patient.vital_signs.temperature}</p>
-                        </div>
-                      )}
-                      {/* {patient.vital_signs?.weight && (
-                        <div className="text-center p-3 bg-blue-50 rounded-lg">
-                          <p className="text-xs text-neutral-500 mb-1">Weight</p>
-                          <p className="font-bold text-blue-600">{patient.vital_signs.weight}</p>
-                        </div>
-                      )}
-                      {patient.vital_signs?.height && (
-                        <div className="text-center p-3 bg-green-50 rounded-lg">
-                          <p className="text-xs text-neutral-500 mb-1">Height</p>
-                          <p className="font-bold text-green-600">{patient.vital_signs.height}</p>
-                        </div>
-                      )} */}
                     </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
+
+                    {/* Heart Rate */}
+                    <div className={`text-center p-3 rounded-lg ${getVitalSignColor("heart_rate", patient.vital_signs?.heart_rate, age)}`}>
+                      <p className="text-xs text-neutral-500 mb-1">Heart Rate (bpm)</p>
+                      {isEditing ? (
+                        <input
+                          className="w-full text-center bg-white p-2 rounded-lg border"
+                          value={editedFields.vital_signs?.heart_rate || patient.vital_signs?.heart_rate || ""}
+                          placeholder="Pending input"
+                          onChange={(e) => handleEditVitalSign("heart_rate", e.target.value)}
+                        />
+                      ) : (
+                        patient.vital_signs?.heart_rate?.toString().trim() ? (
+                          <p className="font-bold">{patient.vital_signs.heart_rate}</p>
+                        ) : (
+                          <div className="border border-neutral-200 bg-white p-2 rounded-lg">
+                            <p className="text-sm text-neutral-400 italic">Pending input</p>
+                          </div>
+                        )
+                      )}
+                    </div>
+
+                    {/* Temperature */}
+                    <div className={`text-center p-3 rounded-lg ${getVitalSignColor("temperature", patient.vital_signs?.temperature, age)}`}>
+                      <p className="text-xs text-neutral-500 mb-1">Temperature (°C)</p>
+                      {isEditing ? (
+                        <input
+                          className="w-full text-center bg-white p-2 rounded-lg border"
+                          value={editedFields.vital_signs?.temperature || patient.vital_signs?.temperature || ""}
+                          placeholder="Pending input"
+                          onChange={(e) => handleEditVitalSign("temperature", e.target.value)}
+                        />
+                      ) : (
+                        patient.vital_signs?.temperature?.toString().trim() ? (
+                          <p className="font-bold">{patient.vital_signs.temperature}</p>
+                        ) : (
+                          <div className="border border-neutral-200 bg-white p-2 rounded-lg">
+                            <p className="text-sm text-neutral-400 italic">Pending input</p>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div> 
           </div>
 
           {/* Sidebar */}
@@ -618,7 +719,6 @@ export default function PatientDetail() {
               ) : (
                 <p className="italic text-neutral-400 text-sm">No past vital readings recorded.</p>
               )}
-
             </div>
           </div>
         </div>

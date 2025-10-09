@@ -82,11 +82,20 @@ export class PDFService {
     
     let html = `
       <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-        <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #2563eb; padding-bottom: 15px;">
-          <h1 style="color: #2563eb; margin: 0; font-size: 24px;">${reportType.toUpperCase()}</h1>
-          <p style="margin: 5px 0; color: #666;">Generated on ${currentDate} at ${currentTime}</p>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 12px; border-bottom: 2px solid #2563eb; margin-bottom: 16px;">
+          <div style="width: 72px; height: 72px; border: 2px solid #cbd5e1; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 10px;">Logo</div>
+          <div style="flex: 1; text-align: right;">
+            <div style="font-size: 18px; font-weight: bold; color: #0f172a;">${formData.hospital_name || 'Your Hospital Name'}</div>
+            <div style="font-size: 12px; color: #475569;">${formData.hospital_location || '123 Healthcare Ave, City, Country'}</div>
+            <div style="font-size: 11px; color: #64748b;">${formData.hospital_contact || 'Phone: (000) 000-0000  |  Email: info@hospital.org'}</div>
+          </div>
         </div>
-        
+
+        <div style="text-align: center; margin-bottom: 18px;">
+          <h1 style="color: #1e40af; margin: 0; font-size: 20px; letter-spacing: 0.5px;">${reportType.toUpperCase()}</h1>
+          <p style="margin: 4px 0; color: #666; font-size: 11px;">Generated on ${currentDate} at ${currentTime}</p>
+        </div>
+
         <div style="background-color: #f8fafc; padding: 15px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
           <h2 style="color: #1e40af; margin: 0 0 10px 0; font-size: 18px;">Patient Information</h2>
           <table style="width: 100%; border-collapse: collapse;">
@@ -156,26 +165,58 @@ export class PDFService {
     } else if (reportType === 'referral') {
       html += `
         <div style="margin-bottom: 20px;">
-          <h2 style="color: #1e40af; margin: 0 0 10px 0; font-size: 18px;">Referral Information</h2>
-          <p><strong>Referring Physician:</strong> ${formData.referring_physician || 'Not specified'}</p>
-          <p><strong>Specialty Referred To:</strong> ${formData.specialty || 'Not specified'}</p>
-          <p><strong>Reason for Referral:</strong> ${formData.reason || 'Not specified'}</p>
+          <h2 style="color: #1e40af; margin: 0 0 10px 0; font-size: 18px;">Referral Details</h2>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 8px; border: 1px solid #e2e8f0; background-color: #f8fafc; font-weight: bold; width: 30%;">Referring Physician</td>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;">${formData.referring_physician || 'Not specified'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #e2e8f0; background-color: #f8fafc; font-weight: bold;">Physician Contact</td>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;">${formData.referring_physician_contact || 'Not provided'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #e2e8f0; background-color: #f8fafc; font-weight: bold;">Specialist Name</td>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;">${formData.specialist_name || 'Not specified'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #e2e8f0; background-color: #f8fafc; font-weight: bold;">Department</td>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;">${formData.specialist_department || 'Not specified'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #e2e8f0; background-color: #f8fafc; font-weight: bold;">Specialty</td>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;">${formData.specialty || 'Not specified'}</td>
+            </tr>
+          </table>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <h2 style="color: #1e40af; margin: 0 0 10px 0; font-size: 18px;">Reason and Clinical Question</h2>
+          <p><strong>Reason for Referral:</strong> ${formData.referral_reason || 'Not specified'}</p>
+          <p><strong>Clinical Question:</strong> ${formData.clinical_question || 'Not specified'}</p>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <h2 style="color: #1e40af; margin: 0 0 10px 0; font-size: 18px;">Urgency and Timeframe</h2>
           <p><strong>Urgency:</strong> ${formData.urgency || 'Routine'}</p>
+          <p><strong>Preferred Appointment Timeframe:</strong> ${formData.preferred_appointment_timeframe || 'Not specified'}</p>
         </div>
 
         <div style="margin-bottom: 20px;">
-          <h2 style="color: #1e40af; margin: 0 0 10px 0; font-size: 18px;">Clinical Summary</h2>
-          <p>${formData.clinical_summary || 'No clinical summary provided'}</p>
+          <h2 style="color: #1e40af; margin: 0 0 10px 0; font-size: 18px;">Investigations Completed</h2>
+          <p>${formData.investigations_done || 'None provided'}</p>
         </div>
 
         <div style="margin-bottom: 20px;">
-          <h2 style="color: #1e40af; margin: 0 0 10px 0; font-size: 18px;">Current Medications</h2>
-          <p>${formData.current_medications || 'None documented'}</p>
+          <h2 style="color: #1e40af; margin: 0 0 10px 0; font-size: 18px;">Additional Considerations</h2>
+          <p><strong>Patient Mobility:</strong> ${formData.patient_mobility || 'Not specified'}</p>
+          <p><strong>Interpreter Needed:</strong> ${formData.interpreter_needed || 'No'}</p>
         </div>
 
-        <div style="margin-bottom: 20px;">
-          <h2 style="color: #1e40af; margin: 0 0 10px 0; font-size: 18px;">Specific Questions for Specialist</h2>
-          <p>${formData.specialist_questions || 'None specified'}</p>
+        <div style="margin-top: 28px;">
+          <p>Kind regards,</p>
+          <p style="margin-top: 16px; font-weight: bold;">${formData.referring_physician || ''}</p>
+          <p style="color: #475569;">${formData.referring_physician_contact || ''}</p>
         </div>
       `;
     } else if (reportType === 'handover') {
