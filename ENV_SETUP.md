@@ -69,3 +69,4 @@ With this setup, you'll have:
 6. The system will automatically transcribe and extract medical information
 7. Patient records will be updated with the extracted data
 
+

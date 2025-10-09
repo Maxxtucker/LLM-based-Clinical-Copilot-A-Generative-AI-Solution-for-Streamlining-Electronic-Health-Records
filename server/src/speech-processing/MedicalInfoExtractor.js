@@ -80,7 +80,7 @@ class MedicalInfoExtractor {
         medicalInfo: {
           type: "object",
           properties: {
-            chiefComplaint: { type: "string", description: "Primary complaint or reason for visit" },
+            chiefComplaint: { type: "string", description: "Comprehensive 3-5 sentence summary of the patient's condition and presentation including patient's main concern, all key symptoms mentioned WITH TIMING/DURATION (when they started, how long present), relevant medical history discussed, vital signs if present, current medications, and important negations. Focus on WHAT the patient is experiencing, NOT treatment plans or interventions. Always include temporal information if mentioned in the conversation. Should read like a detailed clinical assessment of the presenting condition." },
             symptoms: { type: "array", items: { type: "string" }, description: "List of symptoms mentioned" },
             currentMedications: { type: "array", items: { type: "string" }, description: "Current medications" },
             allergies: { type: "array", items: { type: "string" }, description: "Known allergies" },
@@ -112,7 +112,7 @@ Output: {
     "heartRate": 85
   },
   "medicalInfo": {
-    "chiefComplaint": "chest pain for 2 days",
+    "chiefComplaint": "Patient is a diabetic currently managed on metformin 500mg twice daily who presents with chest pain that has been ongoing for 2 days. Current vital signs show slightly elevated blood pressure at 140/90 with a heart rate of 85 bpm. The patient reports no known drug allergies. This presentation is concerning given the patient's diabetic history and warrants further cardiac evaluation.",
     "symptoms": ["chest pain"],
     "currentMedications": ["metformin 500mg twice daily"],
     "allergies": [],
@@ -132,7 +132,7 @@ Output: {
     "bloodPressure": "normal"
   },
   "medicalInfo": {
-    "chiefComplaint": "headache and nausea",
+    "chiefComplaint": "Patient presents with chief complaints of headache and nausea. Blood pressure readings are within normal limits. Patient explicitly denies experiencing any fever or febrile symptoms. The combination of headache and nausea without fever may suggest migraine, tension headache, or other neurological concerns.",
     "symptoms": ["headache", "nausea"],
     "currentMedications": [],
     "allergies": [],
@@ -145,6 +145,22 @@ Output: {
     "negatedSymptoms": ["fever"]
   }
 }
+
+Input: "I've had this cough for about 3 weeks now. The fever started 2 days ago and has been getting worse. I've also been feeling short of breath for the past week."
+Output: {
+  "vitalSigns": {},
+  "medicalInfo": {
+    "chiefComplaint": "Patient presents with a cough that has been ongoing for approximately 3 weeks, accompanied by a fever that started 2 days ago and has been progressively worsening. Additionally, the patient has been experiencing shortness of breath for the past week. This constellation of respiratory symptoms with an extended duration raises concern for possible lower respiratory tract infection or other pulmonary pathology.",
+    "symptoms": ["cough", "fever", "shortness of breath"],
+    "currentMedications": [],
+    "allergies": [],
+    "medicalHistory": "",
+    "diagnosis": "",
+    "treatmentPlan": ""
+  },
+  "confidence": 0.9,
+  "negationFlags": {}
+}
 `;
 
     try {
@@ -153,7 +169,25 @@ Output: {
         messages: [
           {
             role: "system",
-            content: `You are a medical information extraction specialist. Extract structured medical information from doctor-patient conversations. Focus on accuracy and handle negation patterns carefully. Use the provided JSON schema and examples as guidance. Always respond with valid JSON format.`
+            content: `You are a medical information extraction specialist. Extract structured medical information from doctor-patient conversations.
+
+CRITICAL INSTRUCTION FOR CHIEF COMPLAINT:
+The chiefComplaint field must be a comprehensive, detailed 3-5 sentence clinical summary of the patient's CONDITION and presentation. Include:
+- Patient's primary reason for visit and main concerns
+- ALL key symptoms mentioned with TEMPORAL CONTEXT (duration, onset time, how long symptoms have been present - e.g., "for 2 days", "started 3 hours ago", "ongoing for several weeks")
+- Relevant past medical history discussed during the conversation
+- Current medications if mentioned
+- Vital signs if present
+- Important negations (symptoms patient denies)
+- Clinical context and any red flags
+
+ALWAYS include timing/duration information when it is mentioned in the conversation. This is critical for clinical assessment.
+
+DO NOT include treatment plans, interventions, or management strategies in the chief complaint - those belong in the treatmentPlan field.
+
+Write as if you are documenting the patient's presenting condition. Be thorough and detailed - this should capture the essence of what the patient is experiencing, not what will be done about it.
+
+Focus on accuracy and handle negation patterns carefully. Use the provided JSON schema and examples as guidance. Always respond with valid JSON format.`
           },
           {
             role: "user",
