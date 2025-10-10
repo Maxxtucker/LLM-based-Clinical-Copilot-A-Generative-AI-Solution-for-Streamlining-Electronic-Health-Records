@@ -21,6 +21,8 @@ function createApp() {
   app.use('/api/patients', patientsRouter);
   app.use('/api/speech', speechRoutes);
 
+  app.use('/api/rag', ragRouter);
+
   app.use(notFound);
   app.use(errorHandler);
 
