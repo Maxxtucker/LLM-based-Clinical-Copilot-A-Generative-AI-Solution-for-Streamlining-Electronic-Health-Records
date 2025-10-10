@@ -56,6 +56,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return localStorage.getItem("isAuthenticated") === "true";
   });
+  const [userRole, setUserRole] = useState(() => localStorage.getItem("userRole") || "nurse");
   const [isSavingPatient, setIsSavingPatient] = useState(false);
 
 
@@ -69,6 +70,7 @@ function App() {
 
   // ✅ Clear persisted auth state
   localStorage.removeItem("isAuthenticated");
+  localStorage.removeItem("userRole");
 
   setIsAuthenticated(false); // 👈 reset auth
   console.log("Authentication set to false, navigating to login");
@@ -116,7 +118,7 @@ function App() {
   return (
     <Routes>
       {/* Login route (default) */}
-      <Route path="/" element={<Login setIsAuthenticated={setIsAuthenticated}/>} />
+      <Route path="/" element={<Login setIsAuthenticated={setIsAuthenticated} setUserRole={setUserRole} />} />
 
       {/* Protected routes */}
       <Route
@@ -194,7 +196,7 @@ function App() {
                     <Route path="/reports" element={<Reports />} />
                     <Route path="/ai" element={<AIAssistant />} />
                     <Route path="/profile" element={<Profile />} />
-                    <Route path="/patient" element={<PatientDetail />} />
+                    <Route path="/patient" element={<PatientDetail userRole={userRole} />} />
 
                     {/* Catch-all redirect to dashboard */}
                     <Route path="*" element={<Navigate to="/dashboard" />} />

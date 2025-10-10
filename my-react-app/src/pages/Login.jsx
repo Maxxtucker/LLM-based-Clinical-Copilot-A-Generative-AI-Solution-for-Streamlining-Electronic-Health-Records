@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
 // Pass `setIsAuthenticated` down from App.js
-export default function Login({ setIsAuthenticated }) {
+export default function Login({ setIsAuthenticated, setUserRole }) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,8 +35,15 @@ export default function Login({ setIsAuthenticated }) {
     const user = mockUsers.find(u => u.email === email && u.password === password);
     
     if (user) {
-      setIsAuthenticated(true); // ✅ tell App.js the user is logged in
-      navigate("/dashboard");   // ✅ redirect to dashboard
+      // persist auth + role
+      localStorage.setItem("isAuthenticated", "true");
+      localStorage.setItem("userRole", user.role);
+
+      setIsAuthenticated(true);
+      if (typeof setUserRole === "function") {
+        setUserRole(user.role);
+      }
+      navigate("/dashboard");
     } else {
       setError("Invalid email or password");
     }

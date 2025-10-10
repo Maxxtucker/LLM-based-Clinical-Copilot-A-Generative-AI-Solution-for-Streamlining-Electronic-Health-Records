@@ -63,13 +63,15 @@ function getVitalSignColor(type, value, age) {
   return "";
 }
 
-export default function PatientDetail() {
+export default function PatientDetail({ userRole = localStorage.getItem("userRole") || "nurse" }) {
   const navigate = useNavigate();
   const [patient, setPatient] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editedFields, setEditedFields] = useState({});
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const isDoctor = userRole === "doctor";
+  const canEditMedical = isDoctor;
   
   const urlParams = new URLSearchParams(window.location.search);
   const patientId = urlParams.get('id');
@@ -233,13 +235,13 @@ const handleEditVitalSign = (vitalField, value) => {
     setIsEditing(false);
   };
 
-  const renderEditableField = (fieldName, label, placeholder = "Pending doctor's input") => {
+  const renderEditableField = (fieldName, label, placeholder = "Pending doctor's input", canEdit = true) => {
     const currentValue = editedFields[fieldName] !== undefined ? editedFields[fieldName] : patient[fieldName];
     
     return (
       <div>
         <h4 className="font-semibold text-neutral-700 mb-2">{label}</h4>
-        {isEditing ? (
+        {isEditing && canEdit ? (
           <Textarea
             value={currentValue || ''}
             onChange={(e) => handleEditField(fieldName, e.target.value)}
@@ -485,25 +487,27 @@ const handleEditVitalSign = (vitalField, value) => {
                     <Clipboard className="w-5 h-5 text-emerald-600" />
                     Medical Information
                   </CardTitle>
-                  <div className="absolute top-4 right-4 flex gap-2">
-                    <VoiceRecordingButton
-                      patientId={patient._id}
-                      onProcessingComplete={handleConversationExtracted}
-                      onError={(error) => console.error('Voice processing error:', error)}
-                      size="sm"
-                      variant="outline"
-                    />
-                  </div>
+                  {isDoctor && (
+                    <div className="absolute top-4 right-4 flex gap-2">
+                      <VoiceRecordingButton
+                        patientId={patient._id}
+                        onProcessingComplete={handleConversationExtracted}
+                        onError={(error) => console.error('Voice processing error:', error)}
+                        size="sm"
+                        variant="outline"
+                      />
+                    </div>
+                  )}
                 </CardHeader>
                 <CardContent className="space-y-6 text-sm">
-                  {renderEditableField('chief_complaint', 'Chief Complaint')}
-                  {renderEditableField('medical_history', 'Medical History')}
+                  {renderEditableField('chief_complaint', 'Chief Complaint', 'Pending doctor\'s input', canEditMedical)}
+                  {renderEditableField('medical_history', 'Medical History', 'Pending doctor\'s input', canEditMedical)}
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {renderEditableField('current_medications', 'Current Medications')}
+                    {renderEditableField('current_medications', 'Current Medications', 'Pending doctor\'s input', canEditMedical)}
                     <div>
                       <h4 className="font-semibold text-neutral-700 mb-2">Allergies</h4>
-                      {isEditing ? (
+                      {isEditing && canEditMedical ? (
                         <Textarea
                           value={editedFields.allergies !== undefined ? editedFields.allergies : patient.allergies || ''}
                           onChange={(e) => handleEditField('allergies', e.target.value)}
@@ -520,12 +524,12 @@ const handleEditVitalSign = (vitalField, value) => {
                     </div>
                   </div>
 
-                  {renderEditableField('symptoms', 'Current Symptoms')}
+                  {renderEditableField('symptoms', 'Current Symptoms', 'Pending doctor\'s input', canEditMedical)}
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <h4 className="font-semibold text-neutral-700 mb-2">Diagnosis</h4>
-                      {isEditing ? (
+                      {isEditing && canEditMedical ? (
                         <Textarea
                           value={editedFields.diagnosis !== undefined ? editedFields.diagnosis : patient.diagnosis || ''}
                           onChange={(e) => handleEditField('diagnosis', e.target.value)}
@@ -542,7 +546,7 @@ const handleEditVitalSign = (vitalField, value) => {
                     </div>
                     <div>
                       <h4 className="font-semibold text-neutral-700 mb-2">Treatment Plan</h4>
-                      {isEditing ? (
+                      {isEditing && canEditMedical ? (
                         <Textarea
                           value={editedFields.treatment_plan !== undefined ? editedFields.treatment_plan : patient.treatment_plan || ''}
                           onChange={(e) => handleEditField('treatment_plan', e.target.value)}
