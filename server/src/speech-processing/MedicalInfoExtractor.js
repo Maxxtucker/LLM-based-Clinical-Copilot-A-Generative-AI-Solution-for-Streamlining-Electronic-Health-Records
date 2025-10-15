@@ -37,9 +37,9 @@ class MedicalInfoExtractor {
         tachycardia: '> 100'
       },
       temperature: {
-        hypothermia: '< 95',
-        normal: '97-99',
-        fever: '> 100.4'
+        hypothermia: '< 35',
+        normal: '36-37.2',
+        fever: '> 38'
       }
     };
   }
@@ -72,7 +72,7 @@ class MedicalInfoExtractor {
           properties: {
             bloodPressure: { type: "string", description: "Blood pressure in format 'systolic/diastolic'" },
             heartRate: { type: "number", description: "Heart rate in BPM" },
-            temperature: { type: "number", description: "Temperature in Fahrenheit" },
+            temperature: { type: "number", description: "Temperature in Celsius" },
             weight: { type: "number", description: "Weight in pounds" },
             height: { type: "string", description: "Height in feet and inches" }
           }
@@ -235,7 +235,7 @@ Focus on accuracy and handle negation patterns carefully. Use the provided JSON 
       // Temperature validation
       if (normalized.vitalSigns.temperature) {
         const temp = Number(normalized.vitalSigns.temperature);
-        if (temp < 90 || temp > 110) {
+        if (temp < 30 || temp > 45) {
           normalized.vitalSigns.temperature = null; // Invalid reading
         }
       }

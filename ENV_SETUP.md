@@ -70,3 +70,4 @@ With this setup, you'll have:
 7. Patient records will be updated with the extracted data
 
 
+

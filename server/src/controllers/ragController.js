@@ -1,5 +1,5 @@
 // controllers/ragController.js
-const { searchSimilarPatients } = require("../services/vectorSearchService");
+const { searchSimilarPatients } = require("../services/vectorSearch");
 
 async function searchPatientsRAG(req, res) {
   const { query } = req.body;
