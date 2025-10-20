@@ -511,9 +511,15 @@ async function generateMockData() {
     await Patient.deleteMany({});
     console.log('🗑️ Cleared existing patient data');
 
+    // Add createdAt field to mock patients with random dates in the last 30 days
+    const patientsWithDates = mockPatients.map(patient => ({
+      ...patient,
+      createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000) // Random date within last 30 days
+    }));
+
     // Insert mock patients
-    const insertedPatients = await Patient.insertMany(mockPatients);
-    console.log(`✅ Inserted ${insertedPatients.length} mock patients`);
+    const insertedPatients = await Patient.insertMany(patientsWithDates);
+    console.log(`✅ Inserted ${insertedPatients.length} mock patients with creation dates`);
 
     // Generate embeddings for each patient
     console.log('🧠 Generating embeddings for vector search...');
