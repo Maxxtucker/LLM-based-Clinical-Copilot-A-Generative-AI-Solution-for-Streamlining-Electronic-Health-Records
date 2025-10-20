@@ -109,7 +109,7 @@ export default function AIAssistant() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-neutral-50 to-blue-50">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-neutral-50 to-blue-50">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}

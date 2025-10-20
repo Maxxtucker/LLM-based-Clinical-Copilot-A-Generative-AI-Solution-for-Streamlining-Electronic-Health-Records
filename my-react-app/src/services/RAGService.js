@@ -1,6 +1,6 @@
 /**
  * RAG (Retrieval-Augmented Generation) Service
- * Integrates vector search with AI to provide context-aware responses
+ * Integrates vector search with AI to provide concise, context-aware responses for clinicians.
  */
 
 import { generateAIResponse } from './OpenAIService';
@@ -14,13 +14,8 @@ async function callBackendAI(prompt, systemMessage) {
   try {
     const response = await fetch(`${API_BASE_URL}/ai/generate`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        prompt,
-        systemMessage
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, systemMessage }),
     });
 
     if (!response.ok) {
@@ -37,17 +32,12 @@ async function callBackendAI(prompt, systemMessage) {
 
 /**
  * Search for similar patients using vector search
- * @param {string} query - The search query
- * @param {number} topK - Number of results to return (default: 5)
- * @returns {Promise<Array>} - Array of similar patient embeddings
  */
 export async function searchSimilarPatients(query, topK = 5) {
   try {
     const response = await fetch('/api/rag/search', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query, topK }),
     });
 
@@ -55,8 +45,7 @@ export async function searchSimilarPatients(query, topK = 5) {
       throw new Error(`Vector search failed: ${response.statusText}`);
     }
 
-    const results = await response.json();
-    return results;
+    return await response.json();
   } catch (error) {
     console.error('RAG Search Error:', error);
     return [];
@@ -65,37 +54,31 @@ export async function searchSimilarPatients(query, topK = 5) {
 
 /**
  * Generate AI response with RAG context from vector search
- * @param {string} userQuery - User's question or request
- * @param {Array} allPatients - All patients data (fallback)
- * @returns {Promise<string>} - AI response with RAG context
  */
 export async function generateRAGResponse(userQuery, allPatients = []) {
   try {
-    // Step 1: Perform vector search to find relevant patient data
     console.log('🔍 Performing vector search for:', userQuery);
     const similarPatients = await searchSimilarPatients(userQuery, 3);
-    
-    // Step 2: Prepare context from vector search results
+
     let ragContext = '';
     let searchMethod = '';
-    
+
     if (similarPatients && similarPatients.length > 0) {
       console.log(`📊 Found ${similarPatients.length} similar patients via vector search`);
       searchMethod = 'vector_search';
-      
+
       ragContext = similarPatients.map((result, index) => {
         const patient = result.content || result;
         return `
 **Relevant Patient ${index + 1} (Similarity Score: ${result.score?.toFixed(3) || 'N/A'}):**
-- Patient ID: ${result.patient_id}
-- Content: ${patient}
+- Patient ID: ${result.patient_id || 'N/A'}
+- Summary: ${patient}
         `;
       }).join('\n');
     } else {
       console.log('⚠️ No similar patients found via vector search, using general patient data');
       searchMethod = 'general_search';
-      
-      // Fallback to general patient data if vector search returns no results
+
       if (allPatients.length > 0) {
         ragContext = allPatients.slice(0, 3).map(patient => `
 **Patient: ${patient.first_name} ${patient.last_name} (MRN: ${patient.medical_record_number})**
@@ -110,42 +93,83 @@ export async function generateRAGResponse(userQuery, allPatients = []) {
       }
     }
 
-    // Step 3: Generate enhanced AI response with RAG context
-    const systemMessage = `You are an advanced AI medical assistant with access to a vector database of patient records. You can perform semantic similarity searches to find the most relevant patient cases for any medical query.
+const systemMessage = `
+You are **MedGPT**, an advanced AI assistant integrated into an EHR system.
 
-Your capabilities include:
-- **Semantic Patient Search**: Find patients with similar conditions, symptoms, or medical histories
-- **Clinical Pattern Recognition**: Identify trends and patterns across patient populations
-- **Evidence-Based Insights**: Provide recommendations based on similar cases
-- **Risk Assessment**: Analyze patient data for potential health risks
-- **Treatment Optimization**: Suggest treatments based on successful outcomes in similar cases
+**Your Role:**
+- Assist clinicians and nurses by analyzing patient data retrieved from vector search.
+- Provide evidence-based insights, identify trends, and summarize findings concisely.
+- Maintain professional tone, factual accuracy, and avoid giving direct diagnoses or treatments.
 
-Always maintain patient confidentiality and provide clinically relevant, evidence-based insights.`;
+**Response Format (Markdown, ≤150 words):**
+1. **Summary of Findings** (bullets or numbering)
+2. **Relevant Patient Data or Trends** (prefer bullets)
+3. **Key Clinical Insights** (bullets or numbered)
+4. **Suggested Next Steps (if applicable)** (bullets or numbered)
 
-    const prompt = `**User Query:** "${userQuery}"
+**Guidelines:**
+- Prefer **bullet points** or **numbered lists** for clarity.
+- Keep output concise and information-dense.
+- Transparently note data gaps or uncertainties.
+`;
 
-**Context from ${searchMethod === 'vector_search' ? 'Vector Search' : 'Patient Database'} (Most Relevant Patient Cases):**
-${ragContext || 'No patient data available, but I can provide general medical insights.'}
+const fewShotExamples = `
+### Example 1
+**User Query:** "What are the recent trends in blood pressure among hypertensive patients?"
+**Retrieved Patient Data:**
+- Patient A: BP 140/90 → 145/92 over 3 months
+- Patient B: BP 135/85 → 138/88 over 2 months
+- Patient C: BP 150/95 → 152/96 over 3 months
 
-**Instructions:**
-Based on the user's query and the available patient data, provide a comprehensive response that:
+**Structured Response (Markdown):**
+1. **Summary of Findings**
+   - Slight upward trend in BP across patients over 2–3 months.
+2. **Relevant Patient Data or Trends**
+   - Patient A: 140/90 → 145/92
+   - Patient B: 135/85 → 138/88
+   - Patient C: 150/95 → 152/96
+3. **Key Clinical Insights**
+   - BP control may be suboptimal; consistent upward trend noted.
+4. **Suggested Next Steps**
+   - Review medication adherence.
+   - Consider lifestyle counseling.
 
-1. **Directly addresses the user's question** using the available patient context
-2. **Highlights key findings** from the patient data (${searchMethod === 'vector_search' ? 'found via semantic similarity search' : 'from general database search'})
-3. **Provides clinical insights** based on the retrieved patient information
-4. **Suggests actionable recommendations** if applicable
-5. **Identifies any patterns or trends** across the patient cases
+### Example 2
+**User Query:** "Identify patterns of HbA1c in diabetic patients over the last 6 months."
+**Retrieved Patient Data:**
+- Patient X: 7.2% → 6.9%
+- Patient Y: 8.1% → 7.8%
+- Patient Z: 6.5% → 6.6%
 
-${searchMethod === 'vector_search' ? 
-  'Since vector search found specific similar patients, reference them and explain why they are relevant to the query.' : 
-  'Since no specific similar patients were found via vector search, I\'m using general patient data. Provide insights based on the available patient information while noting this limitation.'}
+**Structured Response (Markdown):**
+1. **Summary of Findings**
+   - Overall modest improvement in HbA1c, with some patients showing stable levels.
+2. **Relevant Patient Data or Trends**
+   - Patient X: 7.2% → 6.9%
+   - Patient Y: 8.1% → 7.8%
+   - Patient Z: 6.5% → 6.6%
+3. **Key Clinical Insights**
+   - Glycemic control improving for most patients; continued monitoring recommended.
+4. **Suggested Next Steps**
+   - Reinforce adherence to diet and medication.
+   - Schedule follow-up labs in 3 months.
+`;
 
-Format your response using markdown for better readability.`;
+const prompt = `
+${fewShotExamples}
+
+**User Query:** "${userQuery}"
+**Retrieved Patient Data:**
+${ragContext || 'No similar patients found. Use general clinical reasoning only.'}
+
+**Final Response:** 
+Provide only the structured Markdown response (≤150 words) according to the format above.
+`;
+
 
     console.log('🤖 Generating AI response with RAG context...');
-    // Call backend API instead of OpenAI directly to avoid CORS issues
     const aiResponse = await callBackendAI(prompt, systemMessage);
-    
+
     return aiResponse;
   } catch (error) {
     console.error('RAG Response Generation Error:', error);
@@ -154,131 +178,77 @@ Format your response using markdown for better readability.`;
 }
 
 /**
- * Enhanced patient insights with RAG
- * @param {Array} allPatients - All patients data
- * @param {string} userQuery - User's specific question
- * @returns {Promise<string>} - RAG-enhanced insights
+ * Generate enhanced patient insights with RAG context
  */
 export async function generateRAGPatientInsights(allPatients, userQuery) {
   try {
-    // Use RAG for more intelligent patient analysis
     const ragResponse = await generateRAGResponse(userQuery, allPatients);
-    
-    // Add additional context about the overall patient database
-    const databaseStats = `
-**Patient Database Overview:**
-- Total Patients: ${allPatients.length}
-- Active Patients: ${allPatients.filter(p => p.status === 'active').length}
-- Common Conditions: ${getMostCommonConditions(allPatients).join(', ')}
-- Age Range: ${getAgeRange(allPatients)}
-    `;
 
-    return `${ragResponse}\n\n---\n\n${databaseStats}`;
+//     const databaseStats = `
+// **Patient Database Overview:**
+// - Total Patients: ${allPatients.length}
+// - Active Patients: ${allPatients.filter(p => p.status === 'active').length}
+// - Common Conditions: ${getMostCommonConditions(allPatients).join(', ')}
+// - Age Range: ${getAgeRange(allPatients)}
+//     `;
+
+    return ragResponse;
   } catch (error) {
     console.error('RAG Patient Insights Error:', error);
-    // Fallback to backend AI if RAG fails
     console.log('🔄 Falling back to backend AI service...');
     const fallbackPrompt = `Based on the patient data, provide insights for: "${userQuery}"`;
     return await callBackendAI(fallbackPrompt, 'You are a medical AI assistant.');
   }
 }
 
-/**
- * Get most common conditions from patient data
- * @param {Array} patients - Array of patient objects
- * @returns {Array} - Array of common conditions
- */
+/** Utility: Get top conditions */
 function getMostCommonConditions(patients) {
   const conditions = {};
-  patients.forEach(patient => {
-    const diagnosis = patient.diagnosis;
-    const history = patient.medical_history;
-    
-    if (diagnosis) {
-      conditions[diagnosis] = (conditions[diagnosis] || 0) + 1;
-    }
-    if (history) {
-      conditions[history] = (conditions[history] || 0) + 1;
-    }
+  patients.forEach(p => {
+    const fields = [p.diagnosis, p.medical_history].filter(Boolean);
+    fields.forEach(f => (conditions[f] = (conditions[f] || 0) + 1));
   });
-  
+
   return Object.entries(conditions)
-    .sort(([,a], [,b]) => b - a)
+    .sort(([, a], [, b]) => b - a)
     .slice(0, 5)
     .map(([condition]) => condition);
 }
 
-/**
- * Get age range from patient data
- * @param {Array} patients - Array of patient objects
- * @returns {string} - Age range string
- */
+/** Utility: Get age range */
 function getAgeRange(patients) {
   const currentYear = new Date().getFullYear();
   const ages = patients
     .filter(p => p.date_of_birth)
     .map(p => currentYear - new Date(p.date_of_birth).getFullYear())
     .filter(age => age > 0 && age < 120);
-  
+
   if (ages.length === 0) return 'Not available';
-  
-  const minAge = Math.min(...ages);
-  const maxAge = Math.max(...ages);
-  return `${minAge}-${maxAge} years`;
+  return `${Math.min(...ages)}-${Math.max(...ages)} years`;
 }
 
-/**
- * Smart query classification for better RAG results
- * @param {string} query - User query
- * @returns {Object} - Query classification with search strategy
- */
+/** Query classifier for search optimization */
 export function classifyQuery(query) {
-  const lowerQuery = query.toLowerCase();
-  
-  // Medical condition queries
-  if (lowerQuery.includes('diabetes') || lowerQuery.includes('hypertension') || 
-      lowerQuery.includes('chest pain') || lowerQuery.includes('headache') ||
-      lowerQuery.includes('fever') || lowerQuery.includes('pain')) {
-    return {
-      type: 'medical_condition',
-      searchStrategy: 'symptoms_and_conditions',
-      priority: 'high'
-    };
+  const q = query.toLowerCase();
+
+  if (q.match(/diabetes|hypertension|pain|fever|headache/)) {
+    return { type: 'medical_condition', searchStrategy: 'symptoms', priority: 'high' };
   }
-  
-  // Patient demographic queries
-  if (lowerQuery.includes('age') || lowerQuery.includes('gender') || 
-      lowerQuery.includes('elderly') || lowerQuery.includes('young')) {
-    return {
-      type: 'demographic',
-      searchStrategy: 'demographics',
-      priority: 'medium'
-    };
+  if (q.match(/age|gender|elderly|young/)) {
+    return { type: 'demographic', searchStrategy: 'demographics', priority: 'medium' };
   }
-  
-  // Treatment queries
-  if (lowerQuery.includes('treatment') || lowerQuery.includes('medication') || 
-      lowerQuery.includes('therapy') || lowerQuery.includes('drug')) {
-    return {
-      type: 'treatment',
-      searchStrategy: 'treatment_plans',
-      priority: 'high'
-    };
+  if (q.match(/treatment|therapy|medication|drug/)) {
+    return { type: 'treatment', searchStrategy: 'treatment_plans', priority: 'high' };
   }
-  
-  // General analysis queries
-  return {
-    type: 'general',
-    searchStrategy: 'comprehensive',
-    priority: 'medium'
-  };
+
+  return { type: 'general', searchStrategy: 'comprehensive', priority: 'medium' };
 }
 
 const RAGService = {
   searchSimilarPatients,
   generateRAGResponse,
   generateRAGPatientInsights,
-  classifyQuery
+  classifyQuery,
 };
 
 export default RAGService;
