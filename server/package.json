@@ -7,7 +7,8 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "generate-mock-data": "node src/scripts/generateMockData.js",
-    "create-vector-index": "node src/scripts/createVectorIndex.js"
+    "create-vector-index": "node src/scripts/createVectorIndex.js",
+    "cleanup-data": "node src/scripts/cleanupData.js"
   },
   "dependencies": {
     "express": "^4.18.2",
