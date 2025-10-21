@@ -1,0 +1,93 @@
+# === Node / Package managers ===
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-debug.log*
+
+# === Build / Bundler outputs ===
+dist/
+build/
+out/
+.tmp/
+.temp/
+tmp/
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+.svelte-kit/
+.esbuild/
+
+# === Testing / Coverage ===
+coverage/
+.nyc_output/
+coverage-final.json
+.jest/
+.playwright/
+playwright-report/
+test-results/
+
+# === Logs / PIDs ===
+logs/
+*.log
+*.log.*
+pids/
+*.pid
+*.pid.lock
+*.seed
+
+# === Env & secrets (keep example files tracked) ===
+.env
+.env.*
+!.env.example
+.envrc
+*.local.env
+
+# === Database / local data dumps ===
+data/
+dump/
+uploads/
+storage/
+*.sqlite
+*.db
+*.db-journal
+prisma/dev.db
+prisma/dev.db-journal
+
+# === TypeScript ===
+*.tsbuildinfo
+
+# === Lint/Format caches ===
+.eslintcache
+.stylelintcache
+.prettier-cache
+
+# === Framework / host tooling ===
+.vercel/
+.netlify/
+.serverless/
+.turbo/
+nx-out/
+
+# === IDEs / Editors ===
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+*.iml
+
+# === OS files ===
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+*~
