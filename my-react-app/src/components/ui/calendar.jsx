@@ -3,9 +3,20 @@
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { DayPicker } from "react-day-picker"
+import { cn } from "../utils"
 
-import { cn } from "@/components/utils"
-import { buttonVariants } from "@/components/ui/button"
+// Button variant classes for calendar navigation
+const getButtonVariant = (variant = "outline") => {
+  const variants = {
+    default: "bg-blue-600 text-white hover:bg-blue-700",
+    destructive: "bg-red-600 text-white hover:bg-red-700",
+    outline: "border border-gray-300 bg-white hover:bg-gray-50",
+    secondary: "bg-gray-100 text-gray-900 hover:bg-gray-200",
+    ghost: "hover:bg-gray-100",
+    link: "text-blue-600 underline-offset-4 hover:underline",
+  }
+  return variants[variant] || variants.outline
+}
 
 function Calendar({ className, classNames, showOutsideDays = true, ...props }) {
   return (
@@ -19,7 +30,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }) {
         caption_label: "text-sm font-medium",
         nav: "space-x-1 flex items-center",
         nav_button: cn(
-          buttonVariants({ variant: "outline" }),
+          getButtonVariant("outline"),
           "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
         ),
         nav_button_previous: "absolute left-1",
@@ -31,7 +42,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }) {
         row: "flex w-full mt-2",
         cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
         day: cn(
-          buttonVariants({ variant: "ghost" }),
+          getButtonVariant("ghost"),
           "h-9 w-9 p-0 font-normal aria-selected:opacity-100"
         ),
         day_range_end: "day-range-end",

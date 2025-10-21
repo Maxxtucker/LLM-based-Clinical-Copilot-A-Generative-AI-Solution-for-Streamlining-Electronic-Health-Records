@@ -4,12 +4,12 @@ import { motion } from "framer-motion";
 import ChatMessage from "../components/chat/ChatMessage";
 import ChatInput from "../components/chat/ChatInput";
 import QuickPrompts from "../components/chat/QuickPrompts";
-import { generatePatientInsights } from "../services/OpenAIService";
+import { generateRAGPatientInsights, classifyQuery } from "../services/RAGService";
 
 export default function AIAssistant() {
   const [messages, setMessages] = useState([
     {
-      text: "Hello! I'm your AI medical assistant. I can help you analyze patient data, generate reports, and answer questions about your patients. What would you like to know?",
+      text: "Hello! I'm your AI medical assistant powered by **RAG (Retrieval-Augmented Generation)** and **vector search**. I can:\n\n🔍 **Find similar patients** using semantic search\n📊 **Analyze medical patterns** across your patient database\n💡 **Provide evidence-based insights** from relevant cases\n🏥 **Suggest treatments** based on successful outcomes\n\n**Try asking:**\n- \"Show me patients with similar symptoms to chest pain\"\n- \"What treatments worked for diabetic patients?\"\n- \"Find elderly patients with hypertension\"\n\nWhat would you like to explore?",
       isUser: false
     }
   ]);
@@ -87,10 +87,14 @@ export default function AIAssistant() {
         ];
       }
 
-      // Use OpenAI API to generate insights
-      console.log('Calling OpenAI API with', patients.length, 'patients');
-      const aiResponse = await generatePatientInsights(patients, userMessage);
-      console.log('OpenAI API response received');
+      // Classify the query to understand intent
+      const queryClassification = classifyQuery(userMessage);
+      console.log('Query classified as:', queryClassification);
+
+      // Use RAG-enhanced AI to generate insights with vector search context
+      console.log('🔍 Using RAG-enhanced AI with vector search for:', userMessage);
+      const aiResponse = await generateRAGPatientInsights(patients, userMessage);
+      console.log('✅ RAG-enhanced AI response received');
       setMessages(prev => [...prev, { text: aiResponse, isUser: false }]);
       
     } catch (error) {
@@ -105,7 +109,7 @@ export default function AIAssistant() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-neutral-50 to-blue-50">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-neutral-50 to-blue-50">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -120,12 +124,12 @@ export default function AIAssistant() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-neutral-900">AI Medical Assistant</h1>
-              <p className="text-neutral-600">Ask questions about your patients and get intelligent insights</p>
+              <p className="text-neutral-600">Ask questions about your patients and get intelligent insights powered by vector search</p>
             </div>
             <div className="ml-auto">
               <div className="flex items-center gap-2 bg-gradient-to-r from-purple-100 to-blue-100 px-3 py-1 rounded-full">
                 <Sparkles className="w-4 h-4 text-purple-600" />
-                <span className="text-sm font-medium text-purple-700">AI Powered</span>
+                <span className="text-sm font-medium text-purple-700">RAG + Vector Search</span>
               </div>
             </div>
           </div>
@@ -173,7 +177,7 @@ export default function AIAssistant() {
                     <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
                     <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                   </div>
-                  <span className="text-sm text-neutral-500">Analyzing patient data...</span>
+                  <span className="text-sm text-neutral-500">Searching vector database and analyzing patient data...</span>
                 </div>
               </div>
             </motion.div>

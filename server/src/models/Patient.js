@@ -35,12 +35,25 @@ const patientSchema = new mongoose.Schema(
       weight: { type: Number },
       height: { type: Number },
     },
+
+    // Explicitly add timestamp fields
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );
 
 patientSchema.index({ medical_record_number: 1 }, { unique: true });
 patientSchema.index({ last_name: 1, first_name: 1 });
+
+// Ensure timestamps are included in JSON output
+patientSchema.set('toJSON', {
+  transform: function(doc, ret) {
+    ret.createdAt = doc.createdAt;
+    ret.updatedAt = doc.updatedAt;
+    return ret;
+  }
+});
 
 const Patient = mongoose.model('Patient', patientSchema);
 module.exports = Patient;

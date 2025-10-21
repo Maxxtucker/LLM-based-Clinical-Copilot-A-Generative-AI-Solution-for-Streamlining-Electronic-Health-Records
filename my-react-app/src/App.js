@@ -53,8 +53,10 @@ function App() {
   const navigate = useNavigate();
  
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // 
-  const [isSavingPatient, setIsSavingPatient] = useState(false); //
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem("isAuthenticated") === "true";
+  });
+  const [isSavingPatient, setIsSavingPatient] = useState(false);
 
 
   const handleLogoutClick = () => {
@@ -62,11 +64,23 @@ function App() {
   };
 
   const handleLogoutConfirm = () => {
-    setShowLogoutConfirm(false);
-    console.log("User confirmed logout");
-    setIsAuthenticated(false); // 👈 reset auth
-    navigate("/");
-  };
+  setShowLogoutConfirm(false);
+  console.log("User confirmed logout");
+
+  // ✅ Clear persisted auth state
+  localStorage.removeItem("isAuthenticated");
+
+  setIsAuthenticated(false); // 👈 reset auth
+  console.log("Authentication set to false, navigating to login");
+
+  // Try navigate first, then fallback to window.location
+  try {
+    navigate("/", { replace: true });
+  } catch (error) {
+    console.log("Navigate failed, using window.location");
+    window.location.href = "/";
+  }
+};
 
   const handleLogoutCancel = () => {
     setShowLogoutConfirm(false);
@@ -158,43 +172,43 @@ function App() {
                 </Sidebar>
 
                 {/* Main content */}
-                  <div className="flex-1 flex flex-col">
-                    <Routes>
-                      {/* Redirect root to dashboard */}
-                      <Route path="/" element={<Navigate to="/dashboard" />} />
+                <div className="flex-1 flex flex-col">
+                  <Routes>
+                    {/* Redirect root to dashboard */}
+                    <Route path="/" element={<Navigate to="/dashboard" />} />
 
-                      <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
 
                       <Route
                         path="/patients"
                         element={
                           <section className="p-6 mb-6">
                             <h2 className="text-xl font-bold text-neutral-800 mb-4">
-                              Add New Patient
+                              Add New Patient <i>(For Nurse Use)</i>
                             </h2>
                             <PatientForm onSubmit={handlePatientSubmit} isLoading={isSavingPatient} />
                           </section>
                         }
                       />
 
-                      <Route path="/reports" element={<Reports />} />
-                      <Route path="/ai" element={<AIAssistant />} />
-                      <Route path="/profile" element={<Profile />} />
-                      <Route path="/patient" element={<PatientDetail />} />
+                    <Route path="/reports" element={<Reports />} />
+                    <Route path="/ai" element={<AIAssistant />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/patient" element={<PatientDetail />} />
 
-                      {/* Catch-all redirect to dashboard */}
-                      <Route path="*" element={<Navigate to="/dashboard" />} />
-                    </Routes>
-                  </div>
-
-                  <ConfirmDialog
-                    open={showLogoutConfirm}
-                    title="Confirm Logout"
-                    description="Are you sure you want to logout?"
-                    onConfirm={handleLogoutConfirm}
-                    onCancel={handleLogoutCancel}
-                  />
+                    {/* Catch-all redirect to dashboard */}
+                    <Route path="*" element={<Navigate to="/dashboard" />} />
+                  </Routes>
                 </div>
+                </div>
+
+                <ConfirmDialog
+                  open={showLogoutConfirm}
+                  title="Confirm Logout"
+                  description="Are you sure you want to logout?"
+                  onConfirm={handleLogoutConfirm}
+                  onCancel={handleLogoutCancel}
+                />
             </SidebarProvider>
           ) : (
             <Navigate to="/" replace />

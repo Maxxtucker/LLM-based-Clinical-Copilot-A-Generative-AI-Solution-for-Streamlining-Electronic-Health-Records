@@ -3,20 +3,20 @@ import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 
 const quickPrompts = [
-  "Show me a summary of all active patients",
-  "Which patients need follow-up visits?",
-  "List patients with high blood pressure",
-  "Show patients with diabetes",
-  "Who are my patients with medication allergies?",
-  "Generate a report on recent diagnoses",
-  "Show patients by age groups",
-  "List patients with pending lab results"
+  "Find patients with similar symptoms to chest pain",
+  "What treatments worked for diabetic patients?",
+  "Show me patients with hypertension and their outcomes",
+  "Find elderly patients with heart conditions",
+  "Which patients had successful migraine treatments?",
+  "Show patients with similar medical history patterns",
+  "Find patients who responded well to specific medications",
+  "Analyze treatment patterns for chronic conditions"
 ];
 
 export default function QuickPrompts({ onPromptSelect, isLoading }) {
   return (
     <Card className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 border-0">
-      <h3 className="font-semibold text-neutral-700 mb-4 text-base">Quick Prompts</h3>
+      <h3 className="font-semibold text-neutral-700 mb-4 text-base">🔍 RAG-Enhanced Queries</h3>
       <div className="flex flex-wrap gap-3">
         {quickPrompts.map((prompt, index) => (
           <Button
