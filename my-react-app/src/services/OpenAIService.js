@@ -55,55 +55,105 @@ export async function generateAIResponse(prompt, systemMessage = null) {
  * @returns {Promise<string>} - Generated patient summary
  */
 export async function generatePatientSummary(patient) {
-  const systemMessage = `You are an AI medical assistant specialized in generating comprehensive patient summaries for healthcare professionals. 
+  const systemMessage = `You are an expert medical AI assistant specializing in generating comprehensive, structured patient summaries for healthcare professionals. 
+
+Your expertise includes:
+- Clinical assessment and risk stratification
+- Medication management and drug interactions
+- Vital signs interpretation and clinical significance
+- Evidence-based treatment recommendations
+- Patient safety and quality of care optimization
+
+Generate summaries that are:
+- Clinically accurate and evidence-based
+- Structured for quick clinical decision-making
+- Actionable with specific recommendations
+- Professional and concise
+- Focused on patient safety and outcomes
+
+Always maintain HIPAA compliance and provide information that directly supports clinical workflow and patient care.`;
+
+  // Calculate age from date of birth
+  const age = patient.date_of_birth ? 
+    new Date().getFullYear() - new Date(patient.date_of_birth).getFullYear() : 'Unknown';
   
-  Your role is to analyze patient data and create clear, professional, and clinically relevant summaries that help healthcare providers understand:
-  - Patient's current condition and chief complaint
-  - Medical history and risk factors
-  - Current medications and potential interactions
-  - Vital signs and their clinical significance
-  - Recommended treatment plans and follow-up care
-  
-  Always maintain patient confidentiality and provide information that would be useful for clinical decision-making.`;
+  // Calculate BMI if weight and height are available
+  const weight = patient.vital_signs?.weight;
+  const height = patient.vital_signs?.height;
+  const bmi = (weight && height) ? 
+    (weight / ((height / 39.37) ** 2)).toFixed(1) : 'Cannot calculate';
 
-  const prompt = `Please generate a comprehensive medical summary for the following patient:
+  const prompt = `Generate a comprehensive, structured medical summary for this patient:
 
-Patient Information:
-- Name: ${patient.first_name} ${patient.last_name}
-- Medical Record Number: ${patient.medical_record_number}
-- Date of Birth: ${patient.date_of_birth}
-- Gender: ${patient.gender}
-- Phone: ${patient.phone}
-- Status: ${patient.status}
+## PATIENT DEMOGRAPHICS
+**Name:** ${patient.first_name} ${patient.last_name}
+**MRN:** ${patient.medical_record_number}
+**Age:** ${age} years | **Gender:** ${patient.gender}
+**Status:** ${patient.status}
+**Contact:** ${patient.phone}
 
-Medical Details:
-- Chief Complaint: ${patient.chief_complaint || 'Not specified'}
-- Medical History: ${patient.medical_history || 'None recorded'}
-- Current Medications: ${patient.current_medications || 'None'}
-- Allergies: ${patient.allergies || 'None known'}
+## CLINICAL PRESENTATION
+**Chief Complaint:** ${patient.chief_complaint || 'Not specified'}
+**Current Symptoms:** ${patient.symptoms || 'Not documented'}
+**Primary Diagnosis:** ${patient.diagnosis || 'Under evaluation'}
 
-Vital Signs:
-- Blood Pressure: ${patient.vital_signs?.blood_pressure || 'Not recorded'}
-- Heart Rate: ${patient.vital_signs?.heart_rate || 'Not recorded'}
-- Temperature: ${patient.vital_signs?.temperature || 'Not recorded'}
-- Weight: ${patient.vital_signs?.weight || 'Not recorded'}
-- Height: ${patient.vital_signs?.height || 'Not recorded'}
+## MEDICAL HISTORY & RISK FACTORS
+**Medical History:** ${patient.medical_history || 'No significant history documented'}
+**Current Medications:** ${patient.current_medications || 'No medications listed'}
+**Known Allergies:** ${patient.allergies || 'No known allergies'}
 
-Clinical Information:
-- Diagnosis: ${patient.diagnosis || 'Pending'}
-- Treatment Plan: ${patient.treatment_plan || 'To be determined'}
-- Symptoms: ${patient.symptoms || 'Not specified'}
+## VITAL SIGNS & ASSESSMENT
+**Blood Pressure:** ${patient.vital_signs?.blood_pressure || 'Not recorded'} mmHg
+**Heart Rate:** ${patient.vital_signs?.heart_rate || 'Not recorded'} bpm
+**Temperature:** ${patient.vital_signs?.temperature || 'Not recorded'}°F
+**Weight:** ${patient.vital_signs?.weight || 'Not recorded'} lbs
+**Height:** ${patient.vital_signs?.height || 'Not recorded'} inches
+**BMI:** ${bmi}
 
-Please provide a well-structured summary that includes:
-1. Patient Overview
-2. Current Condition Assessment
-3. Medical History Analysis
-4. Medication Review
-5. Vital Signs Interpretation
-6. Clinical Recommendations
-7. Follow-up Considerations
+## TREATMENT PLAN
+**Current Treatment:** ${patient.treatment_plan || 'To be determined'}
 
-Format the response using markdown for better readability.`;
+---
+
+**INSTRUCTIONS:** Generate a concise, structured clinical summary. You MUST use this EXACT format with proper markdown headers:
+
+# CLINICAL SUMMARY
+
+## OVERVIEW
+[1-2 sentences: Patient status and primary concern]
+
+## ASSESSMENT
+- **Condition:** [Chief complaint/symptoms]
+- **Risk Level:** [Low/Moderate/High with key factors]
+- **Vitals:** [Notable vital signs with interpretation]
+
+## MEDICATIONS & ALLERGIES
+- **Current:** [Key medications and dosing]
+- **Allergies:** [Known allergies and reactions]
+- **Interactions:** [Any notable drug interactions]
+
+## RECOMMENDATIONS
+- **Immediate:** [Priority actions for next 24-48h]
+- **Treatment:** [Key treatment adjustments]
+- **Follow-up:** [Monitoring schedule and next steps]
+
+## ALERTS
+[Any red flags, contraindications, or safety concerns]
+
+---
+
+**MANDATORY FORMATTING RULES:**
+1. Start with exactly: # CLINICAL SUMMARY (with # and space)
+2. Use exactly: ## OVERVIEW (with ## and space)
+3. Use exactly: ## ASSESSMENT (with ## and space)
+4. Use exactly: ## MEDICATIONS & ALLERGIES (with ## and space)
+5. Use exactly: ## RECOMMENDATIONS (with ## and space)
+6. Use exactly: ## ALERTS (with ## and space)
+7. Keep each section to 1-3 bullet points maximum
+8. Use **bold** for key terms only (not headers)
+9. Be concise but clinically complete
+10. Total summary should be under 200 words
+11. DO NOT use ** around headers - use standard markdown # and ##`;
 
   return await generateAIResponse(prompt, systemMessage);
 }
