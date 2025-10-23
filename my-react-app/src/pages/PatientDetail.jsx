@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { ArrowLeft, Edit3, User, Calendar, Clipboard, Phone, Activity, Mail, MapPin, Ruler, Dumbbell, Save, X} from "lucide-react";
+import { ArrowLeft, Edit3, User, Calendar, Clipboard, Phone, Activity, Mail, MapPin, Ruler, Dumbbell, Save, X, Trash2} from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Textarea } from "../components/ui/textarea";
@@ -70,6 +70,8 @@ export default function PatientDetail() {
   const [isEditing, setIsEditing] = useState(false);
   const [editedFields, setEditedFields] = useState({});
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showDeleteConfirm1, setShowDeleteConfirm1] = useState(false);
+  const [showDeleteConfirm2, setShowDeleteConfirm2] = useState(false);
   
   const urlParams = new URLSearchParams(window.location.search);
   const patientId = urlParams.get('id');
@@ -233,6 +235,25 @@ const handleEditVitalSign = (vitalField, value) => {
     setIsEditing(false);
   };
 
+  const handleDeletePatient = async () => {
+    try {
+      const response = await fetch(`/api/patients/${patient._id}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        console.log("Patient deleted successfully");
+        navigate(createPageUrl("Dashboard"));
+      } else {
+        console.error("Failed to delete patient");
+        alert("Failed to delete patient. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error deleting patient:", error);
+      alert("Error deleting patient. Please try again.");
+    }
+  };
+
   const renderEditableField = (fieldName, label, placeholder = "Pending doctor's input") => {
     const currentValue = editedFields[fieldName] !== undefined ? editedFields[fieldName] : patient[fieldName];
     
@@ -324,13 +345,23 @@ const handleEditVitalSign = (vitalField, value) => {
           </div>
           <div className="flex items-center gap-3">
           {!isEditing ? (
-            <Button
-              onClick={() => setIsEditing(true)}
-              className="gap-2"
-            >
-              <Edit3 className="w-4 h-4" />
-              Edit Patient
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setIsEditing(true)}
+                className="gap-2"
+              >
+                <Edit3 className="w-4 h-4" />
+                Edit Patient
+              </Button>
+              <Button
+                onClick={() => setShowDeleteConfirm1(true)}
+                variant="destructive"
+                className="gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete Patient
+              </Button>
+            </div>
           ) : (
             <div className="flex gap-2">
               <Button
@@ -723,6 +754,32 @@ const handleEditVitalSign = (vitalField, value) => {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation (step 1) */}
+      <ConfirmDialog
+        open={showDeleteConfirm1}
+        title="Delete Patient"
+        description={`Are you sure you want to delete ${patient?.first_name} ${patient?.last_name} (MRN: ${patient?.medical_record_number})? This action cannot be undone.`}
+        onConfirm={() => {
+          setShowDeleteConfirm1(false);
+          setShowDeleteConfirm2(true);
+        }}
+        onCancel={() => setShowDeleteConfirm1(false)}
+        confirmLabel="Continue"
+        cancelLabel="Cancel"
+      />
+
+      {/* Delete Confirmation (step 2) */}
+      <ConfirmDialog
+        open={showDeleteConfirm2}
+        title="Final Confirmation"
+        description="This will permanently delete this patient's record. Are you absolutely sure?"
+        onConfirm={() => {
+          setShowDeleteConfirm2(false);
+          handleDeletePatient();
+        }}
+        onCancel={() => setShowDeleteConfirm2(false)}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+      />
     </div>
-  );
-}
