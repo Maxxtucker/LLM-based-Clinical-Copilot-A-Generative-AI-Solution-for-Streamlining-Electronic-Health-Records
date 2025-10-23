@@ -49,7 +49,7 @@ module.exports = {
         },
         },
     },
-    plugins: [],
+    plugins: [require('@tailwindcss/typography')],
 }// tailwind.config.js
 module.exports = {
     content: [
