@@ -8,18 +8,28 @@
     "dev": "nodemon src/server.js",
     "generate-mock-data": "node src/scripts/generateMockData.js",
     "create-vector-index": "node src/scripts/createVectorIndex.js",
-    "cleanup-data": "node src/scripts/cleanupData.js"
+    "cleanup-data": "node src/scripts/cleanupData.js",
+    "migrate:test": "node src/scripts/patientMigration.js --test",
+    "migrate:apply": "node src/scripts/patientMigration.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
     "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.18.2",
+    "express-handlebars": "^7.1.3",
+    "mongoose": "^7.8.7",
     "morgan": "^1.10.0",
-    "mongoose": "^7.5.0",
-    "dotenv": "^16.3.1",
+    "nodemon": "^3.0.1",
     "openai": "^4.20.1",
-    "nodemon": "^3.0.1"
+    "puppeteer": "^24.26.1"
   },
-  "keywords": ["clinical", "copilot", "rag", "vector-search", "ai"],
+  "keywords": [
+    "clinical",
+    "copilot",
+    "rag",
+    "vector-search",
+    "ai"
+  ],
   "author": "Clinical Copilot Team",
   "license": "MIT"
 }

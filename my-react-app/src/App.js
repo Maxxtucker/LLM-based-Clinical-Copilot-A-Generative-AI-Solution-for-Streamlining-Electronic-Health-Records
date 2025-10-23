@@ -1,16 +1,15 @@
 // src/App.js
 import React, { useState } from "react";
-import { Routes, Route, Navigate, Link } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+import { Routes, Route, Navigate, Link, useNavigate } from "react-router-dom";
 
 import Dashboard from "./pages/Dashboard";
 import PatientDetail from "./pages/PatientDetail";
-import Reports from "./pages/Reports"; 
+import Reports from "./pages/Reports";
 import AIAssistant from "./pages/AIAssistant";
 import PatientForm from "./components/forms/PatientForm";
 import Profile from "./pages/Profile";
-import Login from "./pages/Login";  
-
+import Login from "./pages/Login";
+import ReportPrompt from "./components/ai/ReportPrompt"; 
 import { Home, User, FileText, Brain, UserCog, LogOut } from "lucide-react";
 import ConfirmDialog from "./components/ui/confirmdialog";
 
@@ -51,40 +50,27 @@ function SidebarFooterContent({ onLogoutClick }) {
 
 function App() {
   const navigate = useNavigate();
- 
+
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return localStorage.getItem("isAuthenticated") === "true";
   });
   const [isSavingPatient, setIsSavingPatient] = useState(false);
 
-
-  const handleLogoutClick = () => {
-    setShowLogoutConfirm(true);
-  };
+  const handleLogoutClick = () => setShowLogoutConfirm(true);
 
   const handleLogoutConfirm = () => {
-  setShowLogoutConfirm(false);
-  console.log("User confirmed logout");
-
-  // ✅ Clear persisted auth state
-  localStorage.removeItem("isAuthenticated");
-
-  setIsAuthenticated(false); // 👈 reset auth
-  console.log("Authentication set to false, navigating to login");
-
-  // Try navigate first, then fallback to window.location
-  try {
-    navigate("/", { replace: true });
-  } catch (error) {
-    console.log("Navigate failed, using window.location");
-    window.location.href = "/";
-  }
-};
-
-  const handleLogoutCancel = () => {
     setShowLogoutConfirm(false);
+    localStorage.removeItem("isAuthenticated");
+    setIsAuthenticated(false);
+    try {
+      navigate("/", { replace: true });
+    } catch {
+      window.location.href = "/";
+    }
   };
+
+  const handleLogoutCancel = () => setShowLogoutConfirm(false);
 
   const handlePatientSubmit = async (formData) => {
     setIsSavingPatient(true);
@@ -93,21 +79,20 @@ function App() {
         ...formData,
         medical_record_number: formData.medical_record_number || `MRN${Date.now()}`,
       };
-      const res = await fetch('/api/patients', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/patients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || `Failed to save patient (status ${res.status})`);
       }
-      // Optionally use returned patient
       await res.json();
-      navigate('/dashboard');
+      navigate("/dashboard");
     } catch (e) {
-      console.error('Create patient failed:', e);
-      alert(e.message || 'Failed to create patient');
+      console.error("Create patient failed:", e);
+      alert(e.message || "Failed to create patient");
     } finally {
       setIsSavingPatient(false);
     }
@@ -115,10 +100,10 @@ function App() {
 
   return (
     <Routes>
-      {/* Login route (default) */}
-      <Route path="/" element={<Login setIsAuthenticated={setIsAuthenticated}/>} />
+      {/* Public / login */}
+      <Route path="/" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
 
-      {/* Protected routes */}
+      {/* Protected area */}
       <Route
         path="/*"
         element={
@@ -128,9 +113,7 @@ function App() {
                 {/* Sidebar */}
                 <Sidebar>
                   <SidebarHeader>
-                    <h2 className="text-xl font-bold text-blue-600">
-                      BT4103 Grp 10
-                    </h2>
+                    <h2 className="text-xl font-bold text-blue-600">BT4103 Grp 10</h2>
                   </SidebarHeader>
                   <SidebarContent>
                     <SidebarMenu>
@@ -142,6 +125,7 @@ function App() {
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
+
                       <SidebarMenuItem>
                         <SidebarMenuButton asChild>
                           <Link to="/patients">
@@ -150,6 +134,7 @@ function App() {
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
+
                       <SidebarMenuItem>
                         <SidebarMenuButton asChild>
                           <Link to="/ai">
@@ -158,6 +143,7 @@ function App() {
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
+
                       <SidebarMenuItem>
                         <SidebarMenuButton asChild>
                           <Link to="/reports">
@@ -166,49 +152,61 @@ function App() {
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
+
+                      {/*  Report Builder (open-ended prompt) */}
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild>
+                          <Link to="/report-builder">
+                            <FileText className="mr-2 h-4 w-4" />
+                            Report Builder
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
                     </SidebarMenu>
                   </SidebarContent>
+
                   <SidebarFooterContent onLogoutClick={handleLogoutClick} />
                 </Sidebar>
 
                 {/* Main content */}
                 <div className="flex-1 flex flex-col">
                   <Routes>
-                    {/* Redirect root to dashboard */}
                     <Route path="/" element={<Navigate to="/dashboard" />} />
-
                     <Route path="/dashboard" element={<Dashboard />} />
 
-                      <Route
-                        path="/patients"
-                        element={
-                          <section className="p-6 mb-6">
-                            <h2 className="text-xl font-bold text-neutral-800 mb-4">
-                              Add New Patient <i>(For Nurse Use)</i>
-                            </h2>
-                            <PatientForm onSubmit={handlePatientSubmit} isLoading={isSavingPatient} />
-                          </section>
-                        }
-                      />
+                    <Route
+                      path="/patients"
+                      element={
+                        <section className="p-6 mb-6">
+                          <h2 className="text-xl font-bold text-neutral-800 mb-4">
+                            Add New Patient <i>(For Nurse Use)</i>
+                          </h2>
+                          <PatientForm onSubmit={handlePatientSubmit} isLoading={isSavingPatient} />
+                        </section>
+                      }
+                    />
 
                     <Route path="/reports" element={<Reports />} />
                     <Route path="/ai" element={<AIAssistant />} />
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/patient" element={<PatientDetail />} />
 
-                    {/* Catch-all redirect to dashboard */}
+                    {/* ✅ New route: open-ended prompt page */}
+                    <Route path="/report-builder" element={<ReportPrompt />} />
+
+                    {/* Catch-all */}
                     <Route path="*" element={<Navigate to="/dashboard" />} />
                   </Routes>
                 </div>
-                </div>
+              </div>
 
-                <ConfirmDialog
-                  open={showLogoutConfirm}
-                  title="Confirm Logout"
-                  description="Are you sure you want to logout?"
-                  onConfirm={handleLogoutConfirm}
-                  onCancel={handleLogoutCancel}
-                />
+              <ConfirmDialog
+                open={showLogoutConfirm}
+                title="Confirm Logout"
+                description="Are you sure you want to logout?"
+                onConfirm={handleLogoutConfirm}
+                onCancel={handleLogoutCancel}
+              />
             </SidebarProvider>
           ) : (
             <Navigate to="/" replace />

@@ -3,57 +3,45 @@ const mongoose = require('mongoose');
 const patientSchema = new mongoose.Schema(
   {
     first_name: { type: String, required: true },
-    last_name: { type: String, required: true },
-    medical_record_number: { type: String, required: true },
-    date_of_birth: { type: Date },
-    gender: { type: String },
-    phone: { type: String },
-    email: { type: String },
-    address: { type: String },
+    last_name:  { type: String, required: true },
+    medical_record_number: { type: String, required: true, unique: true },
+    date_of_birth: Date,
+    gender: String,
+    phone: String,
+    email: String,
+    address: String,
 
-    status: {
-      type: String,
-      enum: ['active', 'inactive', 'discharged'],
-      default: 'active',
-    },
+    status: { type: String, enum: ['active', 'inactive', 'discharged'], default: 'active' },
 
-    chief_complaint: { type: String },
-    medical_history: { type: String },
-    current_medications: { type: String },
-    allergies: { type: String },
-    symptoms: { type: String },
-    diagnosis: { type: String },
-    treatment_plan: { type: String },
+    chief_complaint: String,
+    medical_history: String,
+    current_medications: String,
+    allergies: String,
+    symptoms: String,
+    diagnosis: String,
+    treatment_plan: String,
 
     ai_summary: { type: Boolean, default: false },
-    ai_summary_content: { type: String },
+    ai_summary_content: String,
 
+    // Latest-snapshot only (time-series lives in Checkup)
     vital_signs: {
-      blood_pressure: { type: String },
-      heart_rate: { type: Number },
-      temperature: { type: Number },
-      weight: { type: Number },
-      height: { type: Number },
+      blood_pressure: String,   // e.g. "120/75" (UI convenience)
+      heart_rate: Number,       // bpm
+      temperature: Number,      // °C
+      weight: Number,           // kg
+      height: Number,           // cm
     },
 
-    // Explicitly add timestamp fields
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now },
+    // optional: mark once migration is done
+    _migrated_vitals_to_checkups: { type: Boolean, default: false, select: false },
   },
-  { timestamps: true }
+  { timestamps: true } // adds createdAt, updatedAt automatically
 );
 
-patientSchema.index({ medical_record_number: 1 }, { unique: true });
+// helpful indexes
 patientSchema.index({ last_name: 1, first_name: 1 });
+patientSchema.index({ gender: 1, date_of_birth: 1 });
 
-// Ensure timestamps are included in JSON output
-patientSchema.set('toJSON', {
-  transform: function(doc, ret) {
-    ret.createdAt = doc.createdAt;
-    ret.updatedAt = doc.updatedAt;
-    return ret;
-  }
-});
+module.exports = mongoose.model('Patient', patientSchema);
 
-const Patient = mongoose.model('Patient', patientSchema);
-module.exports = Patient;
