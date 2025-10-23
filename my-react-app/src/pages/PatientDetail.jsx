@@ -783,3 +783,5 @@ const handleEditVitalSign = (vitalField, value) => {
         cancelLabel="Cancel"
       />
     </div>
+  );
+}
