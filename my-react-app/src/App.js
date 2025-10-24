@@ -9,7 +9,7 @@ import AIAssistant from "./pages/AIAssistant";
 import PatientForm from "./components/forms/PatientForm";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
-import ReportPrompt from "./components/ai/ReportPrompt"; 
+import ReportGenerator from "./pages/ReportGenerator";
 import { Home, User, FileText, Brain, UserCog, LogOut } from "lucide-react";
 import ConfirmDialog from "./components/ui/confirmdialog";
 
@@ -192,7 +192,7 @@ function App() {
                     <Route path="/patient" element={<PatientDetail />} />
 
                     {/* ✅ New route: open-ended prompt page */}
-                    <Route path="/report-builder" element={<ReportPrompt />} />
+                    <Route path="/report-builder" element={<ReportGenerator/>} />
 
                     {/* Catch-all */}
                     <Route path="*" element={<Navigate to="/dashboard" />} />
