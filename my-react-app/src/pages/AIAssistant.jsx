@@ -117,7 +117,7 @@ export default function AIAssistant() {
         transition={{ duration: 0.4 }}
         className="bg-white border-b border-neutral-200 p-6 shadow-sm"
       >
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl flex items-center justify-center">
               <Brain className="w-6 h-6 text-white" />
@@ -137,7 +137,7 @@ export default function AIAssistant() {
       </motion.div>
 
       {/* Chat Container */}
-      <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full">
+      <div className="flex-1 flex flex-col max-w-5xl mx-auto w-full">
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-6 space-y-1">
           {messages.length === 1 && (

@@ -3,19 +3,19 @@ import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 
 const quickPrompts = [
-  "Find patients with similar symptoms to chest pain",
-  "What treatments worked for diabetic patients?",
-  "Show me patients with hypertension and their outcomes",
-  "Find elderly patients with heart conditions",
-  "Which patients had successful migraine treatments?",
-  "Show patients with similar medical history patterns",
-  "Find patients who responded well to specific medications",
-  "Analyze treatment patterns for chronic conditions"
+  "Eg1",
+  "Eg2",
+  "Eg3",
+  "Eg4",
+  "Eg5",
+  "Eg6",
+  "Eg7",
+  "Eg8"
 ];
 
 export default function ReportPrompts({ onPromptSelect, isLoading }) {
   return (
-    <Card className="p-4 bg-gradient-to-r from-red-50 to-pink-50 border-0">
+    <Card className="p-4 bg-gradient-to-r from-pink-50 to-red-50 border-0">
       <h3 className="font-semibold text-neutral-700 mb-4 text-base">🔍 To be filled up</h3>
       <div className="flex flex-wrap gap-3">
         {quickPrompts.map((prompt, index) => (
