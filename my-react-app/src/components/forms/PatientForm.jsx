@@ -57,6 +57,76 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
     }
   };
 
+  // Validation functions
+  const validateEmail = (email) => {
+    if (!email) return null;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return "Invalid email format. Please enter a valid email address.";
+    }
+    return null;
+  };
+
+  const validateHeight = () => {
+    if (!formData.vital_signs.height) return null;
+    const height = parseFloat(formData.vital_signs.height);
+    if (!isNaN(height) && (height < 100 || height > 250)) {
+      return `Height (${height} cm) seems unusual. Please verify.`;
+    }
+    return null;
+  };
+
+  const validateWeight = () => {
+    if (!formData.vital_signs.weight) return null;
+    const weight = parseFloat(formData.vital_signs.weight);
+    if (!isNaN(weight) && (weight < 20 || weight > 200)) {
+      return `Weight (${weight} kg) seems unusual. Please verify.`;
+    }
+    return null;
+  };
+
+  const validateBloodPressure = () => {
+    if (!formData.vital_signs.blood_pressure) return null;
+    const bpMatch = formData.vital_signs.blood_pressure.match(/(\d+)\/(\d+)/);
+    if (bpMatch) {
+      const systolic = parseInt(bpMatch[1]);
+      const diastolic = parseInt(bpMatch[2]);
+      
+      if (systolic < 90 || systolic > 180) {
+        return `Blood Pressure systolic (${systolic}) is abnormal. Please verify.`;
+      }
+      if (diastolic < 60 || diastolic > 110) {
+        return `Blood Pressure diastolic (${diastolic}) is abnormal. Please verify.`;
+      }
+    }
+    return null;
+  };
+
+  const validateHeartRate = () => {
+    if (!formData.vital_signs.heart_rate) return null;
+    const hr = parseInt(formData.vital_signs.heart_rate);
+    if (!isNaN(hr) && (hr < 50 || hr > 120)) {
+      return `Heart Rate (${hr} bpm) is abnormal. Please verify.`;
+    }
+    return null;
+  };
+
+  const validateTemperature = () => {
+    if (!formData.vital_signs.temperature) return null;
+    const temp = parseFloat(formData.vital_signs.temperature);
+    if (!isNaN(temp) && (temp < 35.0 || temp > 42.0)) {
+      return `Temperature (${temp}°C) is abnormal. Please verify.`;
+    }
+    return null;
+  };
+
+  const emailWarning = validateEmail(formData.email);
+  const heightWarning = validateHeight();
+  const weightWarning = validateWeight();
+  const bpWarning = validateBloodPressure();
+  const hrWarning = validateHeartRate();
+  const tempWarning = validateTemperature();
+
   const handleSearchPatient = async () => {
     if (!searchMRN.trim()) {
       alert('Please enter a Medical Record Number to search');
@@ -287,6 +357,14 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                 </p>
               </div>
             )}
+            
+            {!hasSearched && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>Search Required:</strong> Please search for a patient's MRN first before filling in the form below.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>
@@ -312,6 +390,7 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                   value={formData.first_name}
                   onChange={(e) => handleChange('first_name', e.target.value)}
                   className="mt-1"
+                  disabled={!hasSearched}
                   required
                 />
               </div>
@@ -323,6 +402,7 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                   value={formData.last_name}
                   onChange={(e) => handleChange('last_name', e.target.value)}
                   className="mt-1"
+                  disabled={!hasSearched}
                   required
                 />
               </div>
@@ -334,6 +414,7 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                   value={formData.medical_record_number}
                   onChange={(e) => handleChange('medical_record_number', e.target.value)}
                   className="mt-1"
+                  disabled={!hasSearched}
                   required
                 />
               </div>
@@ -346,13 +427,14 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                   value={formData.date_of_birth}
                   onChange={(e) => handleChange('date_of_birth', e.target.value)}
                   className="mt-1"
+                  disabled={!hasSearched}
                   required
                 />
               </div>
 
               <div>
                 <Label htmlFor="gender" className="text-sm font-medium text-neutral-700">Gender</Label>
-                <Select value={formData.gender} onValueChange={(value) => handleChange('gender', value)}>
+                <Select value={formData.gender} onValueChange={(value) => handleChange('gender', value)} disabled={!hasSearched}>
                   <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Select gender" />
                   </SelectTrigger>
@@ -371,6 +453,7 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                   value={formData.phone}
                   onChange={(e) => handleChange('phone', e.target.value)}
                   className="mt-1"
+                  disabled={!hasSearched}
                 />
               </div>
 
@@ -382,7 +465,11 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                   onChange={(e) => handleChange('vital_signs.height', e.target.value)}
                   className="mt-1"
                   placeholder="165 cm"
+                  disabled={!hasSearched}
                 />
+                {hasSearched && heightWarning && (
+                  <p className="text-xs text-red-600 mt-1">⚠️ {heightWarning}</p>
+                )}
               </div>
 
               <div>
@@ -393,7 +480,11 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                   onChange={(e) => handleChange('vital_signs.weight', e.target.value)}
                   className="mt-1"
                   placeholder="60 kg"
+                  disabled={!hasSearched}
                 />
+                {hasSearched && weightWarning && (
+                  <p className="text-xs text-red-600 mt-1">⚠️ {weightWarning}</p>
+                )}
               </div>
 
               <div>
@@ -403,6 +494,7 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                   value={formData.address}
                   onChange={(e) => handleChange('address', e.target.value)}
                   className="mt-1"
+                  disabled={!hasSearched}
                 />
               </div>
 
@@ -414,7 +506,11 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                   value={formData.email}
                   onChange={(e) => handleChange('email', e.target.value)}
                   className="mt-1"
+                  disabled={!hasSearched}
                 />
+                {hasSearched && emailWarning && (
+                  <p className="text-xs text-red-600 mt-1">⚠️ {emailWarning}</p>
+                )}
               </div>
             </div>
           </CardContent>
@@ -443,7 +539,11 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                   onChange={(e) => handleChange('vital_signs.blood_pressure', e.target.value)}
                   className="mt-1"
                   placeholder="120/80"
+                  disabled={!hasSearched}
                 />
+                {hasSearched && bpWarning && (
+                  <p className="text-xs text-red-600 mt-1">⚠️ {bpWarning}</p>
+                )}
               </div>
               <div>
                 <Label htmlFor="heart_rate" className="text-sm font-medium text-neutral-700">Heart Rate (bpm)</Label>
@@ -453,7 +553,11 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                   onChange={(e) => handleChange('vital_signs.heart_rate', e.target.value)}
                   className="mt-1"
                   placeholder="72 bpm"
+                  disabled={!hasSearched}
                 />
+                {hasSearched && hrWarning && (
+                  <p className="text-xs text-red-600 mt-1">⚠️ {hrWarning}</p>
+                )}
               </div>
               <div>
                 <Label htmlFor="temperature" className="text-sm font-medium text-neutral-700">Temperature (°C)</Label>
@@ -463,7 +567,11 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                   onChange={(e) => handleChange('vital_signs.temperature', e.target.value)}
                   className="mt-1"
                   placeholder="36.8 °C"
+                  disabled={!hasSearched}
                 />
+                {hasSearched && tempWarning && (
+                  <p className="text-xs text-red-600 mt-1">⚠️ {tempWarning}</p>
+                )}
               </div>
             </div>
           </CardContent>
@@ -479,12 +587,17 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
         <Button 
           type="submit" 
           className="bg-blue-600 hover:bg-blue-700 px-8 py-3 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200"
-          disabled={isLoading}
+          disabled={isLoading || !hasSearched}
         >
           {isLoading ? (
             <>
               <Loader2 className="w-5 h-5 mr-2 animate-spin" />
               Saving Patient...
+            </>
+          ) : !hasSearched ? (
+            <>
+              <Save className="w-5 h-5 mr-2" />
+              Search Patient First
             </>
           ) : (
             <>
