@@ -3,12 +3,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { Textarea } from "../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { Save, Loader2, User, Activity } from "lucide-react";
+import { Save, Loader2, User, Activity, Search, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
+  const [searchMRN, setSearchMRN] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResult, setSearchResult] = useState(null);
+  const [patientFound, setPatientFound] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -52,6 +57,160 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
     }
   };
 
+  const handleSearchPatient = async () => {
+    if (!searchMRN.trim()) {
+      alert('Please enter a Medical Record Number to search');
+      return;
+    }
+
+    setIsSearching(true);
+    setHasSearched(true);
+    try {
+      const response = await fetch(`/api/patients?q=${encodeURIComponent(searchMRN)}`);
+      const patients = await response.json();
+      
+      if (patients && patients.length > 0) {
+        const patient = patients.find(p => p.medical_record_number === searchMRN);
+        if (patient) {
+          setSearchResult(patient);
+          setPatientFound(true);
+          
+          // Auto-populate form with existing patient data
+          // Format date_of_birth if it's a Date object
+          let formattedDateOfBirth = '';
+          if (patient.date_of_birth) {
+            if (patient.date_of_birth instanceof Date) {
+              formattedDateOfBirth = patient.date_of_birth.toISOString().split('T')[0];
+            } else if (typeof patient.date_of_birth === 'string') {
+              // If it's already a string, use it directly
+              formattedDateOfBirth = patient.date_of_birth.split('T')[0];
+            }
+          }
+          
+          setFormData(prev => ({
+            ...prev,
+            first_name: patient.first_name || '',
+            last_name: patient.last_name || '',
+            date_of_birth: formattedDateOfBirth,
+            gender: patient.gender || '',
+            phone: patient.phone || '',
+            email: patient.email || '',
+            address: patient.address || '',
+            medical_record_number: patient.medical_record_number || '',
+            // Populate vital signs with existing data (nurse can edit)
+            vital_signs: {
+              blood_pressure: patient.vital_signs?.blood_pressure || '',
+              heart_rate: patient.vital_signs?.heart_rate || '',
+              temperature: patient.vital_signs?.temperature || '',
+              weight: patient.vital_signs?.weight || '',
+              height: patient.vital_signs?.height || ''
+            }
+          }));
+        } else {
+          // Patient not found - clear the form
+          setPatientFound(false);
+          setSearchResult(null);
+          setFormData({
+            first_name: '',
+            last_name: '',
+            date_of_birth: '',
+            gender: '',
+            phone: '',
+            email: '',
+            address: '',
+            medical_record_number: searchMRN, // Keep the searched MRN
+            chief_complaint: '',
+            medical_history: '',
+            current_medications: '',
+            allergies: '',
+            symptoms: '',
+            lab_results: '',
+            diagnosis: '',
+            treatment_plan: '',
+            vital_signs: {
+              blood_pressure: '',
+              heart_rate: '',
+              temperature: '',
+              weight: '',
+              height: ''
+            },
+            status: 'active',
+            ...initialData
+          });
+        }
+      } else {
+        // No patients found - clear the form
+        setPatientFound(false);
+        setSearchResult(null);
+        setFormData({
+          first_name: '',
+          last_name: '',
+          date_of_birth: '',
+          gender: '',
+          phone: '',
+          email: '',
+          address: '',
+          medical_record_number: searchMRN, // Keep the searched MRN
+          chief_complaint: '',
+          medical_history: '',
+          current_medications: '',
+          allergies: '',
+          symptoms: '',
+          lab_results: '',
+          diagnosis: '',
+          treatment_plan: '',
+          vital_signs: {
+            blood_pressure: '',
+            heart_rate: '',
+            temperature: '',
+            weight: '',
+            height: ''
+          },
+          status: 'active',
+          ...initialData
+        });
+      }
+    } catch (error) {
+      console.error('Error searching for patient:', error);
+      alert('Error searching for patient. Please try again.');
+    }
+    setIsSearching(false);
+  };
+
+  const handleClearForm = () => {
+    setFormData({
+      first_name: '',
+      last_name: '',
+      date_of_birth: '',
+      gender: '',
+      phone: '',
+      email: '',
+      address: '',
+      medical_record_number: '',
+      chief_complaint: '',
+      medical_history: '',
+      current_medications: '',
+      allergies: '',
+      symptoms: '',
+      lab_results: '',
+      diagnosis: '',
+      treatment_plan: '',
+      vital_signs: {
+        blood_pressure: '',
+        heart_rate: '',
+        temperature: '',
+        weight: '',
+        height: ''
+      },
+      status: 'active',
+      ...initialData
+    });
+    setSearchMRN('');
+    setSearchResult(null);
+    setPatientFound(false);
+    setHasSearched(false);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit(formData);
@@ -59,10 +218,83 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Patient Search Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
+      >
+        <Card className="border-0 shadow-sm bg-blue-50">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <Search className="w-5 h-5 text-blue-600" />
+              Search Existing Patient
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <Label htmlFor="search_mrn" className="text-sm font-medium text-neutral-700">Medical Record Number</Label>
+                <Input
+                  id="search_mrn"
+                  value={searchMRN}
+                  onChange={(e) => setSearchMRN(e.target.value)}
+                  placeholder="Enter MRN to search for existing patient"
+                  className="mt-1"
+                />
+              </div>
+              <div className="flex items-end gap-2">
+                <Button
+                  type="button"
+                  onClick={handleSearchPatient}
+                  disabled={isSearching || !searchMRN.trim()}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {isSearching ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Search className="w-4 h-4" />
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleClearForm}
+                  variant="outline"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+            
+            {/* Search Result Status */}
+            {searchResult && patientFound && (
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-sm text-green-800">
+                  <strong>Patient Found:</strong> {searchResult.first_name} {searchResult.last_name} 
+                  (MRN: {searchResult.medical_record_number})
+                </p>
+                <p className="text-xs text-green-600 mt-1">
+                  Personal information has been auto-populated. Please fill in the vital signs below.
+                </p>
+              </div>
+            )}
+            
+            {hasSearched && !patientFound && !isSearching && (
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800">
+                  <strong>New Patient:</strong> No existing patient found with MRN "{searchMRN}". 
+                  Please fill in all patient information below.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
       >
         <Card className="border-0 shadow-sm">
           <CardHeader className="pb-4">

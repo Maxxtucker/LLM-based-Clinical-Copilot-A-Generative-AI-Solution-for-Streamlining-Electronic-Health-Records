@@ -11,15 +11,26 @@
     "cleanup-data": "node src/scripts/cleanupData.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
+    "@huggingface/inference": "^4.12.0",
+    "axios": "^1.12.2",
+    "compromise": "^14.14.4",
     "cors": "^2.8.5",
-    "morgan": "^1.10.0",
-    "mongoose": "^7.5.0",
     "dotenv": "^16.3.1",
-    "openai": "^4.20.1",
-    "nodemon": "^3.0.1"
+    "express": "^4.18.2",
+    "mongoose": "^7.5.0",
+    "morgan": "^1.10.0",
+    "multer": "^2.0.2",
+    "natural": "^8.1.0",
+    "nodemon": "^3.0.1",
+    "openai": "^4.20.1"
   },
-  "keywords": ["clinical", "copilot", "rag", "vector-search", "ai"],
+  "keywords": [
+    "clinical",
+    "copilot",
+    "rag",
+    "vector-search",
+    "ai"
+  ],
   "author": "Clinical Copilot Team",
   "license": "MIT"
 }
