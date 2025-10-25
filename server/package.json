@@ -11,7 +11,7 @@
     "cleanup-data": "node src/scripts/cleanupData.js"
   },
   "dependencies": {
-    "@huggingface/inference": "^4.12.0",
+    "@huggingface/inference": "^4.13.0",
     "axios": "^1.12.2",
     "compromise": "^14.14.4",
     "cors": "^2.8.5",
