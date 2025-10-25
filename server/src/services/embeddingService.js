@@ -18,6 +18,17 @@ const PatientEmbedding = mongoose.model("PatientEmbedding", patientEmbeddingSche
 async function embedAndStorePatient(patient) {
   await connectToDB(process.env.MONGODB_URI);
 
+  // Check if embedding already exists for this patient
+  const existingEmbedding = await PatientEmbedding.findOne({ 
+    patient_id: patient._id,
+    chunk_index: 0 
+  });
+  
+  if (existingEmbedding) {
+    console.log(`✅ Embedding already exists for patient ${patient._id} (${patient.first_name} ${patient.last_name})`);
+    return existingEmbedding;
+  }
+
   const text = `
     First Name: ${patient.first_name}
     Last Name: ${patient.last_name}

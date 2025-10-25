@@ -3,7 +3,7 @@
  * Integrates vector search with AI to provide concise, context-aware responses for clinicians.
  */
 
-import { generateAIResponse } from './OpenAIService';
+// import { generateAIResponse } from './OpenAIService'; // Removed unused import
 
 const API_BASE_URL = 'http://localhost:5001/api';
 
@@ -61,23 +61,47 @@ export async function generateRAGResponse(userQuery, allPatients = []) {
     const similarPatients = await searchSimilarPatients(userQuery, 3);
 
     let ragContext = '';
-    let searchMethod = '';
+    // let searchMethod = ''; // Removed unused variable
 
     if (similarPatients && similarPatients.length > 0) {
       console.log(`📊 Found ${similarPatients.length} similar patients via vector search`);
-      searchMethod = 'vector_search';
+      // searchMethod = 'vector_search'; // Removed unused variable
 
-      ragContext = similarPatients.map((result, index) => {
+      // Deduplicate by patient_id to avoid showing the same patient multiple times
+      const uniquePatients = [];
+      const seenPatientIds = new Set();
+      
+      for (const result of similarPatients) {
+        const patientId = result.patient_id;
+        if (!seenPatientIds.has(patientId)) {
+          seenPatientIds.add(patientId);
+          uniquePatients.push(result);
+        }
+      }
+
+      console.log(`📊 Deduplicated to ${uniquePatients.length} unique patients`);
+
+      ragContext = uniquePatients.map((result, index) => {
         const patient = result.content || result;
+        
+        // Extract patient name from content if available
+        let patientName = 'Unknown Patient';
+        if (typeof patient === 'string') {
+          const nameMatch = patient.match(/First Name: ([^\n]+)\s+Last Name: ([^\n]+)/);
+          if (nameMatch) {
+            patientName = `${nameMatch[1].trim()} ${nameMatch[2].trim()}`;
+          }
+        }
+        
         return `
-**Relevant Patient ${index + 1} (Similarity Score: ${result.score?.toFixed(3) || 'N/A'}):**
+**Relevant Patient ${index + 1} (${patientName}) (Similarity Score: ${result.score?.toFixed(3) || 'N/A'}):**
 - Patient ID: ${result.patient_id || 'N/A'}
 - Summary: ${patient}
         `;
       }).join('\n');
     } else {
       console.log('⚠️ No similar patients found via vector search, using general patient data');
-      searchMethod = 'general_search';
+      // searchMethod = 'general_search'; // Removed unused variable
 
       if (allPatients.length > 0) {
         ragContext = allPatients.slice(0, 3).map(patient => `
@@ -351,31 +375,30 @@ export async function generateRAGPatientInsights(allPatients, userQuery) {
   }
 }
 
-/** Utility: Get top conditions */
-function getMostCommonConditions(patients) {
-  const conditions = {};
-  patients.forEach(p => {
-    const fields = [p.diagnosis, p.medical_history].filter(Boolean);
-    fields.forEach(f => (conditions[f] = (conditions[f] || 0) + 1));
-  });
+/** Utility: Get top conditions - COMMENTED OUT TO FIX ESLINT WARNINGS */
+// function getMostCommonConditions(patients) {
+//   const conditions = {};
+//   patients.forEach(p => {
+//     const fields = [p.diagnosis, p.medical_history].filter(Boolean);
+//     fields.forEach(f => (conditions[f] = (conditions[f] || 0) + 1));
+//   });
+//   return Object.entries(conditions)
+//     .sort(([, a], [, b]) => b - a)
+//     .slice(0, 5)
+//     .map(([condition]) => condition);
+// }
 
-  return Object.entries(conditions)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 5)
-    .map(([condition]) => condition);
-}
+/** Utility: Get age range - COMMENTED OUT TO FIX ESLINT WARNINGS */
+// function getAgeRange(patients) {
+//   const currentYear = new Date().getFullYear();
+//   const ages = patients
+//     .filter(p => p.date_of_birth)
+//     .map(p => currentYear - new Date(p.date_of_birth).getFullYear())
+//     .filter(age => age > 0 && age < 120);
 
-/** Utility: Get age range */
-function getAgeRange(patients) {
-  const currentYear = new Date().getFullYear();
-  const ages = patients
-    .filter(p => p.date_of_birth)
-    .map(p => currentYear - new Date(p.date_of_birth).getFullYear())
-    .filter(age => age > 0 && age < 120);
-
-  if (ages.length === 0) return 'Not available';
-  return `${Math.min(...ages)}-${Math.max(...ages)} years`;
-}
+//   if (ages.length === 0) return 'Not available';
+//   return `${Math.min(...ages)}-${Math.max(...ages)} years`;
+// }
 
 /** Query classifier for search optimization */
 export function classifyQuery(query) {

@@ -20,6 +20,7 @@ const reportRenderRoutes = require("./routes/report_render_routes");
 const pdfRoutes          = require("./routes/pdf_routes");
 const aiReportRoutes     = require("./routes/ai_report_routes");
 const patientRoutes      = require("./routes/patient_route");
+const ragRoutes          = require("./routes/rag");
 
 (async function start() {
   try {
@@ -91,6 +92,9 @@ const patientRoutes      = require("./routes/patient_route");
 
     // Patient CRUD (existing)
     app.use("/api/patients", patientRoutes);
+
+    // RAG (Retrieval-Augmented Generation) for vector search
+    app.use("/api/rag", ragRoutes);
 
     // 404 fallback (optional)
     app.use((req, res, next) => {

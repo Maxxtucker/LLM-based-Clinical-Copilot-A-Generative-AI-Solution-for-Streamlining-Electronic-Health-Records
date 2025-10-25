@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const fetch = require("node-fetch");
 const { plan } = require("../services/promptPlanner");
+const { generateAIResponse } = require("../services/OpenAIService");
 
 /**
  * POST /api/ai/prompt
@@ -53,6 +54,35 @@ router.post("/prompt", async (req, res) => {
   } catch (err) {
     console.error("Error in /api/ai/prompt:", err);
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+/**
+ * POST /api/ai/generate
+ * General AI endpoint for AI assistant
+ */
+router.post("/generate", async (req, res) => {
+  try {
+    const { prompt, systemMessage } = req.body;
+
+    if (!prompt || !prompt.trim()) {
+      return res.status(400).json({ error: "Prompt is required." });
+    }
+
+    console.log('🤖 Backend AI generating response for:', prompt.substring(0, 50) + '...');
+    
+    const response = await generateAIResponse(prompt, systemMessage);
+    
+    res.json({ 
+      response,
+      success: true 
+    });
+  } catch (error) {
+    console.error('Backend AI Error:', error);
+    res.status(500).json({ 
+      error: 'Failed to generate AI response',
+      details: error.message 
+    });
   }
 });
 
