@@ -1,12 +1,14 @@
 // server/src/server.js
 require("dotenv").config();
 
+const mongoose = require("mongoose");
+mongoose.set("debug", true);
+
 const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const compression = require("compression");
-
 const { connectToDB } = require("./config/db");
 const { connection } = require("mongoose");
 
@@ -21,6 +23,23 @@ const pdfRoutes          = require("./routes/pdf_routes");
 const aiReportRoutes     = require("./routes/ai_report_routes");
 const patientRoutes      = require("./routes/patient_route");
 const ragRoutes          = require("./routes/rag");
+const visitRoutes        = require("./routes/visit_routes");
+
+// --- CRON setup ---
+const cron = require("node-cron");
+const { spawn } = require("child_process");
+
+// run migration script daily at 2AM -> ensures that the migration from Patient to Checkup happens on a schedule basis
+const migrationScript = path.resolve(__dirname, "scripts/patientMigration.js");
+cron.schedule("0 2 * * *", () => {
+  console.log(`⏰ [CRON] Running daily vitals migration: ${new Date().toISOString()}`);
+  const proc = spawn("node", [migrationScript], { stdio: "inherit" });
+  proc.on("close", (code) => {
+    console.log(`✅ [CRON] Migration script exited with code ${code}`);
+  });
+});
+// (optional) run immediately on server start if you want to catch missed days
+// spawn("node", [migrationScript, "--test"], { stdio: "inherit" });
 
 (async function start() {
   try {
@@ -46,19 +65,12 @@ const ragRoutes          = require("./routes/rag");
     // Build Express app + middleware
     // ----------------------------
     const app = express();
-
-    // If behind a proxy (local dev via some tools / future deployment)
     app.set("trust proxy", true);
-
-    // Security & performance basics
     app.use(helmet({ contentSecurityPolicy: false }));
     app.use(compression());
 
-    // CORS (allow your frontend)
     const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "*";
     app.use(cors({ origin: FRONTEND_ORIGIN, credentials: true }));
-
-    // Body parsers
     app.use(express.json({ limit: "10mb" }));
     app.use(express.urlencoded({ extended: true }));
 
@@ -75,35 +87,22 @@ const ragRoutes          = require("./routes/rag");
     // ----------------------------
     // Mount routes
     // ----------------------------
-    // Historical vitals + snapshot updates
     app.use("/api/checkups", checkupRoutes);
-
-    // Aggregation APIs used by the preview
     app.use("/api/reports", reportApiRoutes);
-
-    // Server-rendered report preview (HTML)
     app.use("/reports", reportRenderRoutes);
-
-    // PDF export (e.g., /reports/preview.pdf)
     app.use("/", pdfRoutes);
-
-    // Prompt → plan → data (used by your frontend prompt box)
     app.use("/api/ai", aiReportRoutes);
-
-    // Patient CRUD (existing)
     app.use("/api/patients", patientRoutes);
-
-    // RAG (Retrieval-Augmented Generation) for vector search
     app.use("/api/rag", ragRoutes);
+    app.use("/api/visits", visitRoutes);
 
-    // 404 fallback (optional)
+    // 404 fallback
     app.use((req, res, next) => {
       if (res.headersSent) return next();
       res.status(404).json({ error: "Not found", path: req.originalUrl });
     });
 
-    // Central error handler (optional but helpful)
-    // eslint-disable-next-line no-unused-vars
+    // Central error handler
     app.use((err, req, res, _next) => {
       console.error("Unhandled error:", err);
       res.status(err.status || 500).json({ error: err.message || "Internal Server Error" });
@@ -118,16 +117,13 @@ const ragRoutes          = require("./routes/rag");
     });
 
     // Graceful shutdown
-    process.on("SIGINT", async () => {
-      console.log("\n🛑 Shutting down…");
-      try { await connection.close(); } catch {}
-      server.close(() => process.exit(0));
-    });
-    process.on("SIGTERM", async () => {
-      console.log("\n🛑 Shutting down…");
-      try { await connection.close(); } catch {}
-      server.close(() => process.exit(0));
-    });
+    for (const signal of ["SIGINT", "SIGTERM"]) {
+      process.on(signal, async () => {
+        console.log(`\n🛑 Received ${signal}, shutting down…`);
+        try { await connection.close(); } catch {}
+        server.close(() => process.exit(0));
+      });
+    }
 
   } catch (err) {
     console.error("\n[Startup] API failed to start.");

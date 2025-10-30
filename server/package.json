@@ -22,6 +22,7 @@
     "mongodb-memory-server": "^10.2.3",
     "mongoose": "^7.8.7",
     "morgan": "^1.10.0",
+    "node-cron": "^4.2.1",
     "nodemon": "^3.0.1",
     "openai": "^4.20.1",
     "puppeteer": "^24.26.1"

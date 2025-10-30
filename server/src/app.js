@@ -2,9 +2,10 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 
-const patientsRouter = require('./routes/patients');
+
+const patientRouter = require('./routes/patient_route');
 const ragRouter = require('./routes/rag');
-const aiRouter = require('./routes/ai');
+const aiReportRoute = require('./routes/ai_report_routes'); 
 const { speechRoutes } = require('./speech-processing');
 const notFound = require('./middleware/notFound');
 const errorHandler = require('./middleware/errorHandler');
@@ -20,9 +21,10 @@ function createApp() {
 
   app.get('/api/health', (req, res) => res.json({ ok: true }));
 
-  app.use('/api/patients', patientsRouter);
+  
+  app.use('/api/patients', patientRouter);
   app.use('/api/speech', speechRoutes);
-  app.use('/api/ai', aiRouter);
+  app.use('/api/ai', aiReportRoute);
   app.use('/api/rag', ragRouter);
 
   app.use(notFound);

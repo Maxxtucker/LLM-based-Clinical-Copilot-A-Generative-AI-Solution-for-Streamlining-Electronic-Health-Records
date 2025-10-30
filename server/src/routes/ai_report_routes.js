@@ -35,7 +35,7 @@ router.post("/prompt", async (req, res) => {
       sourceUrl = `${base}/api/reports/trends/vitals?bucket=week`;
     }
 
-    // Fetch from backend report API
+    // Fetch data from URL chosen
     const response = await fetch(sourceUrl);
     if (!response.ok) {
       const msg = await response.text();
@@ -63,7 +63,7 @@ router.post("/prompt", async (req, res) => {
  */
 router.post("/generate", async (req, res) => {
   try {
-    const { prompt, systemMessage } = req.body;
+    const { prompt, systemMessage } = req.body; //reads user text input (the question inputted)
 
     if (!prompt || !prompt.trim()) {
       return res.status(400).json({ error: "Prompt is required." });
@@ -71,12 +71,12 @@ router.post("/generate", async (req, res) => {
 
     console.log('🤖 Backend AI generating response for:', prompt.substring(0, 50) + '...');
     
-    const response = await generateAIResponse(prompt, systemMessage);
-    
+    const text = await generateAIResponse(prompt, systemMessage);
+
     res.json({ 
-      response,
+      text,
       success: true 
-    });
+    }); //Send AI answer back to React app
   } catch (error) {
     console.error('Backend AI Error:', error);
     res.status(500).json({ 

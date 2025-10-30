@@ -1,12 +1,13 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
-const Patient = require('../models/Patient');
+const Patient = require('../models/Patient'); // adjust to './src/models/Patient' if file in project root
 
 (async function run() {
   try {
     const uri = process.env.MONGO_URI;
     if (!uri) throw new Error('MONGO_URI not set');
     await mongoose.connect(uri);
+    console.log('✅ Connected to', uri.split('@').pop());
 
     const samples = [
       {
@@ -25,7 +26,6 @@ const Patient = require('../models/Patient');
         diagnosis: 'Healthy adult',
         treatment_plan: 'Annual physical recommended',
         ai_summary: false,
-        vital_signs: { blood_pressure: '118/76', heart_rate: 68, temperature: 36.7, weight: 55, height: 160 },
       },
       {
         first_name: 'Bob',
@@ -34,8 +34,6 @@ const Patient = require('../models/Patient');
         date_of_birth: new Date('1984-07-21'),
         gender: 'male',
         phone: '+1 555 234 5678',
-        email: 'bob.chen@email.com',
-        address: '456 Oak Ave, Springfield, USA',
         status: 'active',
         chief_complaint: 'Diabetes management',
         medical_history: 'Type 2 Diabetes (dx 2020); Obesity',
@@ -45,7 +43,6 @@ const Patient = require('../models/Patient');
         diagnosis: 'Type 2 Diabetes Mellitus, poorly controlled',
         treatment_plan: 'Continue current medications; dietary counseling; HbA1c in 3 months',
         ai_summary: true,
-        vital_signs: { blood_pressure: '142/88', heart_rate: 78, temperature: 36.9, weight: 95, height: 175 },
       },
       {
         first_name: 'Evelyn',
@@ -54,24 +51,15 @@ const Patient = require('../models/Patient');
         date_of_birth: new Date('1978-11-05'),
         gender: 'female',
         phone: '+1 555 987 6543',
-        email: 'evelyn.tan@example.com',
-        address: '1234 Elm St, Springfield, USA',
         status: 'active',
         chief_complaint: 'Shortness of breath and chest tightness for 3 days',
-        medical_history: 'Hypertension (dx 2015); Hyperlipidemia (dx 2018); No prior MI.',
+        medical_history: 'Hypertension (dx 2015); Hyperlipidemia (dx 2018)',
         current_medications: 'Lisinopril 10 mg daily; Atorvastatin 20 mg nightly',
         allergies: 'Penicillin (rash)',
-        symptoms: 'Dyspnea on exertion, mild non-productive cough, fatigue',
-        diagnosis: 'Suspected acute bronchitis; rule out ACS based on presentation',
-        treatment_plan: 'Trial of bronchodilator; chest X-ray; ECG; blood tests incl. troponin; follow-up in 48h',
+        symptoms: 'Dyspnea, mild cough, fatigue',
+        diagnosis: 'Suspected acute bronchitis',
+        treatment_plan: 'Trial of bronchodilator; chest X-ray; follow-up in 48h',
         ai_summary: true,
-        vital_signs: {
-          blood_pressure: '138/86',
-          heart_rate: 92,
-          temperature: 37.8,
-          weight: 68,
-          height: 165,
-        },
       },
       {
         first_name: 'David',
@@ -80,18 +68,15 @@ const Patient = require('../models/Patient');
         date_of_birth: new Date('1965-12-15'),
         gender: 'male',
         phone: '+1 555 345 6789',
-        email: 'david.kim@email.com',
-        address: '789 Pine St, Springfield, USA',
         status: 'active',
         chief_complaint: 'Chest pain during exercise',
-        medical_history: 'Family history of CAD; Hyperlipidemia; Smoking history (quit 2020)',
+        medical_history: 'Family history of CAD; Hyperlipidemia',
         current_medications: 'Atorvastatin 40mg daily; Aspirin 81mg daily',
         allergies: 'None known',
-        symptoms: 'Chest tightness with exertion, occasional palpitations',
-        diagnosis: 'Stable angina; Coronary artery disease',
-        treatment_plan: 'Stress test; Cardiology referral; Continue current medications',
+        symptoms: 'Chest tightness with exertion',
+        diagnosis: 'Stable angina',
+        treatment_plan: 'Stress test; Cardiology referral',
         ai_summary: true,
-        vital_signs: { blood_pressure: '135/82', heart_rate: 85, temperature: 36.8, weight: 88, height: 180 },
       },
       {
         first_name: 'Sarah',
@@ -100,8 +85,6 @@ const Patient = require('../models/Patient');
         date_of_birth: new Date('1992-05-22'),
         gender: 'female',
         phone: '+1 555 456 7890',
-        email: 'sarah.johnson@email.com',
-        address: '321 Maple Dr, Springfield, USA',
         status: 'active',
         chief_complaint: 'Pregnancy follow-up',
         medical_history: 'Gravida 2, Para 1; Previous C-section (2020)',
@@ -109,9 +92,8 @@ const Patient = require('../models/Patient');
         allergies: 'Latex (contact dermatitis)',
         symptoms: 'Mild nausea, fatigue',
         diagnosis: 'Pregnancy, 24 weeks gestation',
-        treatment_plan: 'Regular prenatal care; Glucose tolerance test; Ultrasound at 28 weeks',
+        treatment_plan: 'Regular prenatal care; Ultrasound at 28 weeks',
         ai_summary: false,
-        vital_signs: { blood_pressure: '110/70', heart_rate: 72, temperature: 36.6, weight: 65, height: 165 },
       },
       {
         first_name: 'Michael',
@@ -120,18 +102,15 @@ const Patient = require('../models/Patient');
         date_of_birth: new Date('1973-08-10'),
         gender: 'male',
         phone: '+1 555 567 8901',
-        email: 'michael.rodriguez@email.com',
-        address: '654 Cedar Ln, Springfield, USA',
         status: 'inactive',
         chief_complaint: 'Follow-up for depression',
-        medical_history: 'Major Depressive Disorder (dx 2019); Anxiety disorder',
-        current_medications: 'Sertraline 100mg daily; Lorazepam 0.5mg PRN',
+        medical_history: 'Major Depressive Disorder (dx 2019)',
+        current_medications: 'Sertraline 100mg daily',
         allergies: 'None known',
-        symptoms: 'Improved mood, better sleep, reduced anxiety',
-        diagnosis: 'Major Depressive Disorder, in remission',
-        treatment_plan: 'Continue current medications; Monthly follow-up; Consider therapy',
+        symptoms: 'Improved mood, better sleep',
+        diagnosis: 'MDD, in remission',
+        treatment_plan: 'Continue current meds; Monthly follow-up',
         ai_summary: true,
-        vital_signs: { blood_pressure: '125/78', heart_rate: 70, temperature: 36.7, weight: 82, height: 178 },
       },
       {
         first_name: 'Lisa',
@@ -140,18 +119,15 @@ const Patient = require('../models/Patient');
         date_of_birth: new Date('1988-01-30'),
         gender: 'female',
         phone: '+1 555 678 9012',
-        email: 'lisa.wang@email.com',
-        address: '987 Birch St, Springfield, USA',
         status: 'active',
         chief_complaint: 'Migraine headaches',
-        medical_history: 'Migraine with aura (dx 2015); Family history of migraines',
+        medical_history: 'Migraine with aura (dx 2015)',
         current_medications: 'Sumatriptan 50mg PRN; Propranolol 40mg BID',
         allergies: 'Codeine (nausea)',
-        symptoms: 'Throbbing headache, photophobia, nausea',
-        diagnosis: 'Migraine with aura, acute episode',
-        treatment_plan: 'Increase Propranolol to 60mg BID; Consider Botox if frequency increases',
+        symptoms: 'Throbbing headache, nausea',
+        diagnosis: 'Migraine with aura',
+        treatment_plan: 'Increase Propranolol; consider Botox',
         ai_summary: false,
-        vital_signs: { blood_pressure: '120/75', heart_rate: 68, temperature: 36.5, weight: 58, height: 162 },
       },
       {
         first_name: 'James',
@@ -160,18 +136,15 @@ const Patient = require('../models/Patient');
         date_of_birth: new Date('1955-03-18'),
         gender: 'male',
         phone: '+1 555 789 0123',
-        email: 'james.thompson@email.com',
-        address: '147 Walnut Ave, Springfield, USA',
         status: 'active',
         chief_complaint: 'Memory concerns',
-        medical_history: 'Hypertension; Hyperlipidemia; Family history of dementia',
+        medical_history: 'Hypertension; Hyperlipidemia',
         current_medications: 'Lisinopril 20mg daily; Donepezil 5mg daily',
         allergies: 'ACE inhibitors (cough)',
-        symptoms: 'Mild forgetfulness, difficulty with names',
-        diagnosis: 'Mild Cognitive Impairment; Rule out Alzheimer\'s disease',
-        treatment_plan: 'Neuropsychological testing; MRI brain; Follow-up in 6 months',
+        symptoms: 'Forgetfulness, difficulty with names',
+        diagnosis: 'Mild Cognitive Impairment',
+        treatment_plan: 'MRI brain; follow-up in 6 months',
         ai_summary: true,
-        vital_signs: { blood_pressure: '140/85', heart_rate: 75, temperature: 36.8, weight: 90, height: 175 },
       },
       {
         first_name: 'Maria',
@@ -180,18 +153,15 @@ const Patient = require('../models/Patient');
         date_of_birth: new Date('1995-11-08'),
         gender: 'female',
         phone: '+1 555 890 1234',
-        email: 'maria.garcia@email.com',
-        address: '258 Spruce St, Springfield, USA',
         status: 'active',
         chief_complaint: 'Thyroid follow-up',
         medical_history: 'Hashimoto\'s thyroiditis (dx 2020)',
         current_medications: 'Levothyroxine 75mcg daily',
         allergies: 'None known',
-        symptoms: 'Fatigue, weight gain, cold intolerance',
+        symptoms: 'Fatigue, weight gain',
         diagnosis: 'Hypothyroidism, well-controlled',
-        treatment_plan: 'Continue Levothyroxine; TSH in 3 months; Annual thyroid ultrasound',
+        treatment_plan: 'Continue Levothyroxine; TSH in 3 months',
         ai_summary: false,
-        vital_signs: { blood_pressure: '115/72', heart_rate: 65, temperature: 36.4, weight: 62, height: 158 },
       },
       {
         first_name: 'Robert',
@@ -200,50 +170,31 @@ const Patient = require('../models/Patient');
         date_of_birth: new Date('1960-09-25'),
         gender: 'male',
         phone: '+1 555 901 2345',
-        email: 'robert.brown@email.com',
-        address: '369 Ash Blvd, Springfield, USA',
         status: 'inactive',
         chief_complaint: 'Post-surgical follow-up',
         medical_history: 'Prostate cancer (dx 2022); Radical prostatectomy (2022)',
-        current_medications: 'Tamsulosin 0.4mg daily; Multivitamin',
+        current_medications: 'Tamsulosin 0.4mg daily',
         allergies: 'None known',
-        symptoms: 'Mild urinary incontinence, erectile dysfunction',
-        diagnosis: 'Prostate cancer, post-surgical, in remission',
-        treatment_plan: 'PSA every 3 months; Urology follow-up; Consider ED treatment',
+        symptoms: 'Mild urinary incontinence',
+        diagnosis: 'Post-surgical, in remission',
+        treatment_plan: 'PSA every 3 months; urology follow-up',
         ai_summary: true,
-        vital_signs: { blood_pressure: '130/80', heart_rate: 72, temperature: 36.6, weight: 85, height: 182 },
       },
-      {
-        first_name: 'Jennifer',
-        last_name: 'Davis',
-        medical_record_number: 'MRN-1010',
-        date_of_birth: new Date('1987-04-12'),
-        gender: 'female',
-        phone: '+1 555 012 3456',
-        email: 'jennifer.davis@email.com',
-        address: '741 Poplar Way, Springfield, USA',
-        status: 'active',
-        chief_complaint: 'Rheumatoid arthritis management',
-        medical_history: 'Rheumatoid Arthritis (dx 2019); Osteoporosis',
-        current_medications: 'Methotrexate 15mg weekly; Folic acid 5mg daily; Calcium + D3',
-        allergies: 'Sulfasalazine (rash)',
-        symptoms: 'Joint stiffness, morning stiffness, fatigue',
-        diagnosis: 'Rheumatoid Arthritis, moderate activity',
-        treatment_plan: 'Continue Methotrexate; Consider biologic if not controlled; DEXA scan annually',
-        ai_summary: true,
-        vital_signs: { blood_pressure: '125/78', heart_rate: 70, temperature: 36.7, weight: 60, height: 160 },
-      }
     ];
 
     for (const s of samples) {
       const exists = await Patient.findOne({ medical_record_number: s.medical_record_number });
-      if (!exists) await Patient.create(s);
+      if (!exists) {
+        await Patient.create(s);
+        console.log(`✅ Inserted: ${s.first_name} ${s.last_name}`);
+      } else {
+        console.log(`↺ Skipped (exists): ${s.first_name} ${s.last_name}`);
+      }
     }
 
-    console.log('Seeded patients (idempotent)');
+    console.log('🌱 Seeded all sample patients successfully.');
   } catch (e) {
-    console.error(e);
-    process.exitCode = 1;
+    console.error('❌ Error during seed:', e.message);
   } finally {
     await mongoose.disconnect();
   }

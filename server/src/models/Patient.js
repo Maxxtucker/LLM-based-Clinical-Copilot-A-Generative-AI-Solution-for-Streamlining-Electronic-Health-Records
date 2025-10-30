@@ -26,7 +26,7 @@ const patientSchema = new mongoose.Schema(
 
     // Latest-snapshot only (time-series lives in Checkup)
     vital_signs: {
-      blood_pressure: String,   // e.g. "120/75" (UI convenience)
+      blood_pressure: String,   // "120/75" 
       heart_rate: Number,       // bpm
       temperature: Number,      // °C
       weight: Number,           // kg
@@ -40,8 +40,13 @@ const patientSchema = new mongoose.Schema(
 );
 
 // helpful indexes
-patientSchema.index({ last_name: 1, first_name: 1 });
-patientSchema.index({ gender: 1, date_of_birth: 1 });
+patientSchema.index({
+  first_name: 1,
+  last_name: 1,
+  medical_record_number: 1,
+  email: 1,
+  phone: 1
+});
 
 module.exports = mongoose.model('Patient', patientSchema);
 
