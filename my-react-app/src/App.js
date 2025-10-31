@@ -113,7 +113,7 @@ function App() {
                 {/* Sidebar */}
                 <Sidebar>
                   <SidebarHeader>
-                    <h2 className="text-xl font-bold text-blue-600">BT4103 Grp 10</h2>
+                    <h2 className="text-xl font-bold text-blue-600">MediQuery AI</h2>
                   </SidebarHeader>
                   <SidebarContent>
                     <SidebarMenu>
@@ -144,21 +144,12 @@ function App() {
                         </SidebarMenuButton>
                       </SidebarMenuItem>
 
-                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild>
-                          <Link to="/reports">
-                            <FileText className="mr-2 h-4 w-4" />
-                            Reports
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-
                       {/*  Report Builder (open-ended prompt) */}
                       <SidebarMenuItem>
                         <SidebarMenuButton asChild>
                           <Link to="/report-builder">
                             <FileText className="mr-2 h-4 w-4" />
-                            Report Builder
+                            Report Generator
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
@@ -190,8 +181,6 @@ function App() {
                     <Route path="/ai" element={<AIAssistant />} />
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/patient" element={<PatientDetail />} />
-
-                    {/* ✅ New route: open-ended prompt page */}
                     <Route path="/report-builder" element={<ReportGenerator/>} />
 
                     {/* Catch-all */}

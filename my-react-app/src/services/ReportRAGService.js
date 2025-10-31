@@ -171,11 +171,27 @@ Generate a comprehensive medical report that would be valuable for clinical deci
 
     console.log('🤖 Generating comprehensive report with RAG context...');
     const report = await generateAIResponse(prompt, systemMessage);
-    
-    return report;
+
+    // ✅ Only return success message in chat (not the report itself)
+    if (report && report.trim().length > 0) {
+      console.log('✅ Report generated successfully!');
+      return {
+        message: "✅ **Report generated successfully!** You can view, edit it, and see the visualizations in the preview panel on the right.",
+        report, // still included for backend or preview use
+      };
+    } else {
+      console.warn('⚠️ Empty report generated.');
+      return {
+        message: "I apologize, but I encountered an error while generating your report. Please try again with a different request.",
+        report: null,
+      };
+    }
   } catch (error) {
-    console.error('Error generating comprehensive report:', error);
-    throw new Error(`Failed to generate report: ${error.message}`);
+    console.error('❌ Error generating comprehensive report:', error);
+    return {
+      message: "I apologize, but I encountered an error while generating your report. Please try again with a different request.",
+      report: null,
+    };
   }
 }
 
