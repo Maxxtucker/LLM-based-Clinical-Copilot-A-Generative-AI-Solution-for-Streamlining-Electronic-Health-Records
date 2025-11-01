@@ -29,11 +29,11 @@ const visitRoutes        = require("./routes/visit_routes");
 const cron = require("node-cron");
 const { spawn } = require("child_process");
 
-// ---------- DAILY MIGRATION JOBS ----------
+// ---------- DAILY MIGRATION JOBS ----------; for development purposes, migration occurs at 7 pm SGT, for deployment should change to 2 am or sth
 
 // (1) Patient → Checkup migration (vitals)
 const migrationScriptVitals = path.resolve(__dirname, "scripts/patientMigration.js");
-cron.schedule("0 2 * * *", () => {
+cron.schedule("0 11 * * *", () => {
   console.log(`⏰ [CRON] Running daily vitals migration: ${new Date().toISOString()}`);
   const proc = spawn("node", [migrationScriptVitals], { stdio: "inherit" });
   proc.on("close", (code) => {
@@ -43,13 +43,14 @@ cron.schedule("0 2 * * *", () => {
 
 // (2) Patient → Visit migration (clinical visits)
 const migrationScriptVisits = path.resolve(__dirname, "scripts/visitMigration.js");
-cron.schedule("10 2 * * *", () => {
+cron.schedule("10 11 * * *", () => {
   console.log(`⏰ [CRON] Running daily visit migration: ${new Date().toISOString()}`);
   const proc = spawn("node", [migrationScriptVisits], { stdio: "inherit" });
   proc.on("close", (code) => {
     console.log(`✅ [CRON] Visit migration exited with code ${code}`);
   });
 });
+
 
 // Optional: run both immediately on startup for dev/testing
 // spawn("node", [migrationScriptVitals, "--test"], { stdio: "inherit" });
