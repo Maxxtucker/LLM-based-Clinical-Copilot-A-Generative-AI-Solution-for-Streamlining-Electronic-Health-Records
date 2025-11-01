@@ -35,7 +35,7 @@ checkupSchema.index(
     "vitals.weight": 1,
     "vitals.height": 1
   },
-  { unique: true, sparse: true }
+  { unique: true, sparse: true, background: true  }
 );
 
 

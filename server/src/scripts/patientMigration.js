@@ -32,30 +32,25 @@ function parseBP(bpStr) {
   return { bp_sys: Number(m[1]), bp_dia: Number(m[2]) };
 }
 
-// Detect outliers / suspicious entries without changing them
 function detectAnomalies(vs = {}) {
   const flags = [];
 
-  // Temperature (assuming system intends °C)
   if (typeof vs.temperature === "number") {
     if (vs.temperature > 45 && vs.temperature < 120) flags.push("temp_suspect_fahrenheit_like");
     if (vs.temperature < 30) flags.push("temp_low_c");
     if (vs.temperature > 42) flags.push("temp_high_c");
   }
 
-  // Weight (kg)
   if (typeof vs.weight === "number") {
     if (vs.weight > 200) flags.push("weight_outlier_high_kg");
     if (vs.weight < 2)   flags.push("weight_outlier_low_kg");
   }
 
-  // Height (cm)
   if (typeof vs.height === "number") {
     if (vs.height < 40)  flags.push("height_outlier_low_cm");
     if (vs.height > 250) flags.push("height_outlier_high_cm");
   }
 
-  // Blood pressure plausibility (numbers from parseBP)
   if (typeof vs.blood_pressure === "string") {
     const { bp_sys, bp_dia } = parseBP(vs.blood_pressure);
     if (bp_sys && (bp_sys < 60 || bp_sys > 250)) flags.push("bp_sys_outlier");
@@ -65,7 +60,6 @@ function detectAnomalies(vs = {}) {
   return flags;
 }
 
-// Optional conversion; only if asked via --normalize
 function maybeNormalize(vs = {}) {
   if (!DO_NORMALIZE) {
     return {
@@ -78,13 +72,13 @@ function maybeNormalize(vs = {}) {
 
   let t = vs.temperature;
   if (typeof t === "string") t = parseFloat(t);
-  if (typeof t === "number" && t > 45) t = Math.round(((t - 32) * 5/9) * 10) / 10; // F -> C
+  if (typeof t === "number" && t > 45) t = Math.round(((t - 32) * 5/9) * 10) / 10;
 
   let w = vs.weight;
-  if (typeof w === "number" && w > 140) w = Math.round((w / 2.20462) * 10) / 10;   // lb -> kg
+  if (typeof w === "number" && w > 140) w = Math.round((w / 2.20462) * 10) / 10;
 
   let h = vs.height;
-  if (typeof h === "number" && h >= 50 && h <= 90) h = Math.round((h * 2.54) * 10) / 10; // in -> cm
+  if (typeof h === "number" && h >= 50 && h <= 90) h = Math.round((h * 2.54) * 10) / 10;
 
   return { temperature_c: t, weight: w, height: h, normalized: true };
 }
@@ -100,14 +94,8 @@ async function run() {
   if (process.env.DB_NAME) connectOpts.dbName = process.env.DB_NAME;
 
   await mongoose.connect(process.env.MONGO_URI, connectOpts);
-  console.log(
-    "✅ Connected host:",
-    mongoose.connection.host,
-    "DB:",
-    mongoose.connection.db?.databaseName
-  );
+  console.log("✅ Connected to:", mongoose.connection.host, "DB:", mongoose.connection.db?.databaseName);
 
-  // Candidates: have any vitals + not yet migrated
   const filter = {
     $and: [
       { _migrated_vitals_to_checkups: { $ne: true } },
@@ -135,7 +123,6 @@ async function run() {
     const { bp_sys, bp_dia } = parseBP(p?.vital_signs?.blood_pressure);
     const flags = detectAnomalies(p?.vital_signs || {});
     const norm  = maybeNormalize(p?.vital_signs || {});
-
     const dateVal = p?.updatedAt ? new Date(p.updatedAt) : new Date();
 
     const doc = {
@@ -153,16 +140,7 @@ async function run() {
       normalized: !!norm.normalized,
     };
 
-    // Skip if everything is empty/undefined
-    const allEmpty = [
-      doc.vitals.bp_sys,
-      doc.vitals.bp_dia,
-      doc.vitals.heart_rate,
-      doc.vitals.temperature_c,
-      doc.vitals.weight,
-      doc.vitals.height,
-    ].every(v => v === undefined || v === null);
-
+    const allEmpty = Object.values(doc.vitals).every(v => v === undefined || v === null);
     if (allEmpty) {
       skipped++;
       console.log(`(${i}) skip ${p.medical_record_number || p._id}: no usable vitals`);
@@ -175,23 +153,27 @@ async function run() {
     }
 
     try {
-      // De-dupe: same vitals near same timestamp
+      //Checks if there is a Checkup record with the exact same vitals but skip if it is created within 10 mins
       const exists = await Checkup.findOne({
         patient_id: p._id,
+        date: {
+          $gte: new Date(dateVal.getTime() - 1000 * 60 * 10), // 10 minutes before
+          $lte: new Date(dateVal.getTime() + 1000 * 60 * 10), // 10 minutes after
+        },
         "vitals.bp_sys":        doc.vitals.bp_sys ?? null,
         "vitals.bp_dia":        doc.vitals.bp_dia ?? null,
         "vitals.heart_rate":    doc.vitals.heart_rate ?? null,
         "vitals.temperature_c": doc.vitals.temperature_c ?? null,
         "vitals.weight":        doc.vitals.weight ?? null,
         "vitals.height":        doc.vitals.height ?? null,
-        date: {
-          $gte: new Date(dateVal.getTime() - 60_000),
-          $lte: new Date(dateVal.getTime() + 60_000),
-        },
       }).lean();
+
 
       if (!exists) {
         await Checkup.create(doc);
+        console.log(`(${i}) ✅ migrated ${p.medical_record_number || p._id}`);
+      } else {
+        console.log(`(${i}) ⏭️ skipped duplicate for ${p.medical_record_number || p._id}`);
       }
 
       await Patient.updateOne(
@@ -200,7 +182,6 @@ async function run() {
       );
 
       migrated++;
-      console.log(`(${i}) migrated ${p.medical_record_number || p._id}`);
     } catch (err) {
       skipped++;
       console.warn(`(${i}) ⚠️ Skipped patient ${p._id}: ${err.message}`);
