@@ -29,27 +29,26 @@ const visitRoutes        = require("./routes/visit_routes");
 const cron = require("node-cron");
 const { spawn } = require("child_process");
 
-// ---------- DAILY MIGRATION JOBS ----------; for development purposes, migration occurs at 7 pm SGT, for deployment should change to 2 am or sth
-
-// (1) Patient → Checkup migration (vitals)
+// DAILY MIGRATION FOR VITALS AND VISITS
+// (1) Patient → Checkup migration (vitals) @ 7:00 PM SGT daily
 const migrationScriptVitals = path.resolve(__dirname, "scripts/patientMigration.js");
-cron.schedule("0 11 * * *", () => {
+cron.schedule("0 19 * * *", () => {
   console.log(`⏰ [CRON] Running daily vitals migration: ${new Date().toISOString()}`);
   const proc = spawn("node", [migrationScriptVitals], { stdio: "inherit" });
   proc.on("close", (code) => {
     console.log(`✅ [CRON] Vitals migration exited with code ${code}`);
   });
-});
+}, { timezone: "Asia/Singapore" });
 
-// (2) Patient → Visit migration (clinical visits)
+// (2) Patient → Visit migration (clinical visits) @ 7:10 PM SGT daily
 const migrationScriptVisits = path.resolve(__dirname, "scripts/visitMigration.js");
-cron.schedule("10 11 * * *", () => {
+cron.schedule("10 19 * * *", () => {
   console.log(`⏰ [CRON] Running daily visit migration: ${new Date().toISOString()}`);
   const proc = spawn("node", [migrationScriptVisits], { stdio: "inherit" });
   proc.on("close", (code) => {
     console.log(`✅ [CRON] Visit migration exited with code ${code}`);
   });
-});
+}, { timezone: "Asia/Singapore" });
 
 
 // Optional: run both immediately on startup for dev/testing
