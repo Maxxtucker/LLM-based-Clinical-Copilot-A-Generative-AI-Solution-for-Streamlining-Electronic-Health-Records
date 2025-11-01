@@ -1,59 +1,65 @@
-import OpenAI from 'openai';
+// my-react-app/src/services/OpenAIService.js
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.REACT_APP_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true // Only for development - in production, use backend API
-});
+// Base URL of your backend. In dev, set REACT_APP_API_BASE_URL=http://localhost:5000
+// If you use a CRA proxy (setupProxy.js), you can leave this empty and just use relative paths.
+const API_BASE = process.env.REACT_APP_API_BASE_URL || "";
 
 /**
- * Generate AI response using OpenAI GPT-4o-mini
- * @param {string} prompt - The prompt to send to the AI
- * @param {string} systemMessage - Optional system message to set context
- * @returns {Promise<string>} - The AI generated response
+ * Small helper for POSTing JSON to the backend.
  */
-export async function generateAIResponse(prompt, systemMessage = null) {
-  try {
-    console.log('Using GPT-4o-mini for AI response generation');
-    const messages = [];
-    
-    // Add system message if provided
-    if (systemMessage) {
-      messages.push({
-        role: 'system',
-        content: systemMessage
-      });
-    }
-    
-    // Add user prompt
-    messages.push({
-      role: 'user',
-      content: prompt
-    });
+async function postJSON(path, body) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', // Using GPT-4o-mini for reliable performance
-      messages: messages,
-      max_tokens: 2000,
-      temperature: 0.7,
-      top_p: 1,
-      frequency_penalty: 0,
-      presence_penalty: 0
-    });
-
-    return completion.choices[0].message.content;
-  } catch (error) {
-    console.error('OpenAI API Error:', error);
-    console.error('Error details:', error.message);
-    throw new Error(`Failed to generate AI response: ${error.message}. Please check your API key and try again.`);
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`API ${path} failed (${res.status}): ${text}`);
   }
+  return res.json();
 }
 
 /**
- * Generate patient summary using OpenAI
- * @param {Object} patient - Patient data object
- * @returns {Promise<string>} - Generated patient summary
+ * Generate AI response by calling the backend (which talks to OpenAI securely).
+ * @param {string} prompt
+ * @param {string|null} systemMessage
+ * @returns {Promise<string>}
  */
+export async function generateAIResponse(prompt, systemMessage = null) {
+  // Your backend route should accept { prompt, systemMessage } and return { text } (or similar)
+  const data = await postJSON("/api/ai/generate", { prompt, systemMessage });
+
+  // Be tolerant of different shapes (text, content, choices[0].message.content, etc.)
+  return (
+    data?.text ??
+    data?.content ??
+    data?.message?.content ??
+    data?.choices?.[0]?.message?.content ??
+    JSON.stringify(data)
+  );
+}
+
+/*
+Builds a request to your backend endpoint /api/ai/generate.
+Sends { prompt, systemMessage }.
+Is tolerant of different backend response shapes (some code returns {text}, others return a whole OpenAI payload).
+Returns a single string to the UI.
+*/
+
+/**
+ * Generate patient summary — builds a structured prompt, then calls generateAIResponse()
+ * @param {Object} patient
+ * @returns {Promise<string>}
+ * 
+ * Notes:
+ Prepares a system message (instructions/persona) and a structured prompt using patient data.
+ Calculates derived values (e.g., age; BMI if height/weight exist).
+ Enforces strict output formatting rules (specific headers, sections, concision).
+ Calls generateAIResponse(prompt, systemMessage) to actually get the text from the backend.
+ */
+
 export async function generatePatientSummary(patient) {
   const systemMessage = `You are an expert medical AI assistant specializing in generating comprehensive, structured patient summaries for healthcare professionals. 
 
@@ -73,15 +79,14 @@ Generate summaries that are:
 
 Always maintain HIPAA compliance and provide information that directly supports clinical workflow and patient care.`;
 
-  // Calculate age from date of birth
-  const age = patient.date_of_birth ? 
-    new Date().getFullYear() - new Date(patient.date_of_birth).getFullYear() : 'Unknown';
-  
-  // Calculate BMI if weight and height are available
+  const age = patient.date_of_birth
+    ? new Date().getFullYear() - new Date(patient.date_of_birth).getFullYear()
+    : "Unknown"; 
+
   const weight = patient.vital_signs?.weight;
   const height = patient.vital_signs?.height;
-  const bmi = (weight && height) ? 
-    (weight / ((height / 39.37) ** 2)).toFixed(1) : 'Cannot calculate';
+  const bmi =
+    weight && height ? (weight / ((height / 39.37) ** 2)).toFixed(1) : "Cannot calculate";
 
   const prompt = `Generate a comprehensive, structured medical summary for this patient:
 
@@ -143,26 +148,34 @@ Always maintain HIPAA compliance and provide information that directly supports 
 ---
 
 **MANDATORY FORMATTING RULES:**
-1. Start with exactly: # CLINICAL SUMMARY (with # and space)
-2. Use exactly: ## OVERVIEW (with ## and space)
-3. Use exactly: ## ASSESSMENT (with ## and space)
-4. Use exactly: ## MEDICATIONS & ALLERGIES (with ## and space)
-5. Use exactly: ## RECOMMENDATIONS (with ## and space)
-6. Use exactly: ## ALERTS (with ## and space)
+1. Start with exactly: # CLINICAL SUMMARY
+2. Use exactly: ## OVERVIEW
+3. Use exactly: ## ASSESSMENT
+4. Use exactly: ## MEDICATIONS & ALLERGIES
+5. Use exactly: ## RECOMMENDATIONS
+6. Use exactly: ## ALERTS
 7. Keep each section to 1-3 bullet points maximum
 8. Use **bold** for key terms only (not headers)
 9. Be concise but clinically complete
 10. Total summary should be under 200 words
 11. DO NOT use ** around headers - use standard markdown # and ##`;
 
-  return await generateAIResponse(prompt, systemMessage);
+  return generateAIResponse(prompt, systemMessage);
 }
 
+
 /**
- * Generate AI insights for patient data analysis
- * @param {Array} patients - Array of patient objects
- * @param {string} userQuery - User's specific question or request
- * @returns {Promise<string>} - AI generated insights
+ * Generate AI insights for patient data analysis — builds a multi-patient prompt and calls the backend.
+ * @param {Array} patients
+ * @param {string} userQuery
+ * @returns {Promise<string>}
+ * 
+ * Notes:
+ * Builds an analytical prompt over many patients (maps key fields into a text block).
+   Adds guidance to return findings, risks, recommendations, next steps.
+   Calls generateAIResponse(...) so the backend handles the OpenAI call.
+
+   Takes in an array of patients
  */
 export async function generatePatientInsights(patients, userQuery) {
   const systemMessage = `You are an AI medical assistant helping healthcare professionals analyze patient data and provide clinical insights.
@@ -176,7 +189,8 @@ Your role is to:
 
 Always maintain patient confidentiality and provide evidence-based insights that are clinically relevant and actionable.`;
 
-  const patientDataSummary = patients.map(patient => `
+  const patientDataSummary = patients
+    .map((patient) => `
 Patient: ${patient.first_name} ${patient.last_name} (MRN: ${patient.medical_record_number})
 - Age: ${patient.date_of_birth ? new Date().getFullYear() - new Date(patient.date_of_birth).getFullYear() : 'N/A'}
 - Gender: ${patient.gender || 'N/A'}
@@ -206,13 +220,13 @@ Format your response using markdown for better readability and include:
 - Actionable next steps
 - Any concerns or areas requiring attention`;
 
-  return await generateAIResponse(prompt, systemMessage);
+  return generateAIResponse(prompt, systemMessage);
 }
 
 const OpenAIService = {
   generateAIResponse,
   generatePatientSummary,
-  generatePatientInsights
+  generatePatientInsights,
 };
 
 export default OpenAIService;
