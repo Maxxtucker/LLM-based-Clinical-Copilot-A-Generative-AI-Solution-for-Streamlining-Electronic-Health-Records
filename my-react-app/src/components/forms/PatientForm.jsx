@@ -136,11 +136,19 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
     setIsSearching(true);
     setHasSearched(true);
     try {
+      console.log('🔍 Searching for MRN:', searchMRN);
       const response = await fetch(`/api/patients?q=${encodeURIComponent(searchMRN)}`);
-      const patients = await response.json();
+      const data = await response.json();
+      console.log('📊 API Response:', data);
+      
+      // Handle both array response and paginated response with 'items' field
+      const patients = Array.isArray(data) ? data : (data.items || []);
+      console.log('📋 Processed patients array:', patients);
       
       if (patients && patients.length > 0) {
+        console.log('✅ Found patients in response');
         const patient = patients.find(p => p.medical_record_number === searchMRN);
+        console.log('🔎 Matching patient found:', patient);
         if (patient) {
           setSearchResult(patient);
           setPatientFound(true);
@@ -178,6 +186,7 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
           }));
         } else {
           // Patient not found - clear the form
+          console.log('⚠️ No exact MRN match found');
           setPatientFound(false);
           setSearchResult(null);
           setFormData({
@@ -210,6 +219,7 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
         }
       } else {
         // No patients found - clear the form
+        console.log('⚠️ No patients found in API response');
         setPatientFound(false);
         setSearchResult(null);
         setFormData({
