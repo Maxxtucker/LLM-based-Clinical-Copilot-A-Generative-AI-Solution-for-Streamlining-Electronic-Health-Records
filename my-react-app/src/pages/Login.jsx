@@ -15,30 +15,21 @@ export default function Login({ setIsAuthenticated }) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Mock credentials for both doctor and nurse
-    const mockUsers = [
-      {
-        email: "doctor@hospital.com",
-        password: "doctor123",
-        role: "doctor"
-      },
-      {
-        email: "nurse@hospital.com", 
-        password: "nurse123",
-        role: "nurse"
+    setError("");
+    try {
+      const { login } = await import('../api/auth');
+      await login(email, password);
+      localStorage.setItem('isAuthenticated', 'true');
+      setIsAuthenticated(true);
+      navigate('/dashboard');
+    } catch (err) {
+      if (err && err.status === 401) {
+        window.alert('Invalid email or password');
+      } else {
+        setError(err.message || 'Login failed');
       }
-    ];
-
-    const user = mockUsers.find(u => u.email === email && u.password === password);
-    
-    if (user) {
-      setIsAuthenticated(true); // ✅ tell App.js the user is logged in
-      navigate("/dashboard");   // ✅ redirect to dashboard
-    } else {
-      setError("Invalid email or password");
     }
   };
 

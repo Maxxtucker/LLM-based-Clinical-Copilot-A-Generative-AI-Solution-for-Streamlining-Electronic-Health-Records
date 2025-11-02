@@ -63,21 +63,23 @@ function App() {
     setShowLogoutConfirm(true);
   };
 
-  const handleLogoutConfirm = () => {
+  const handleLogoutConfirm = async () => {
   setShowLogoutConfirm(false);
-  console.log("User confirmed logout");
+  try {
+    const { logout } = await import('./api/auth');
+    await logout();
+  } catch (e) {
+    // ignore
+  }
 
-  // ✅ Clear persisted auth state
+  // Clear persisted auth state
   localStorage.removeItem("isAuthenticated");
 
-  setIsAuthenticated(false); // 👈 reset auth
-  console.log("Authentication set to false, navigating to login");
+  setIsAuthenticated(false);
 
-  // Try navigate first, then fallback to window.location
   try {
     navigate("/", { replace: true });
   } catch (error) {
-    console.log("Navigate failed, using window.location");
     window.location.href = "/";
   }
 };
