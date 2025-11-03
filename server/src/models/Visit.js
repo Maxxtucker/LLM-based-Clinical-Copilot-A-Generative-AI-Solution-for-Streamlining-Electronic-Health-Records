@@ -4,11 +4,25 @@ const { toDateOrNull } = require("../utils/date");
 
 const visitSchema = new Schema(
   {
-    patient_id: { type: Types.ObjectId, ref: "Patient", required: true, index: true },
+    patient_id: {
+      type: Types.ObjectId,
+      ref: "Patient",
+      required: true,
+      index: true,
+    },
+
+    // Optional link to the vitals captured around this visit
+    checkup_id: {
+      type: Types.ObjectId,
+      ref: "Checkup",
+      required: false,
+      index: true,
+    },
+
     visit_date: {
       type: Date,
       required: true,
-      set: toDateOrNull,              // coerces strings/numbers to Date or null
+      set: toDateOrNull,
       validate: {
         validator: (v) => v instanceof Date && !isNaN(v),
         message: "visit_date must be a valid date",
@@ -16,8 +30,8 @@ const visitSchema = new Schema(
       default: Date.now,
       index: true,
     },
-    clinician: String,
 
+    clinician: String,
     chief_complaint: String,
     medical_history: String,
     current_medications: String,
@@ -26,10 +40,28 @@ const visitSchema = new Schema(
     diagnosis: String,
     treatment_plan: String,
     notes: String,
+
+    // --- Migration provenance ---
+    _source: {
+      type: String,
+      enum: ["live", "migrated"],
+      default: "live",
+      index: true,
+    },
+    _migrated_from_patient: {
+      type: Types.ObjectId,
+      ref: "Patient",
+      index: true,
+    },
+    _migrated_at: { type: Date },
+
   },
   { timestamps: true }
 );
 
-visitSchema.index({ patient_id: 1, visit_date: -1 });
+// Useful indexes
+visitSchema.index({ patient_id: 1, visit_date: -1 }); // for patient visit history
+visitSchema.index({ diagnosis: 1 });                  // optional: helps for analytics/search
+visitSchema.index({ _source: 1 });                    // quick filtering by provenance
 
 module.exports = mongoose.model("Visit", visitSchema);

@@ -1,78 +1,117 @@
-// routes/visit_routes.js
+// server/src/routes/visit_routes.js
 const express = require("express");
+const mongoose = require("mongoose");
 const Visit = require("../models/Visit");
+const Patient = require("../models/Patient");
+const Checkup = require("../models/Checkup"); // optional: to link latest vitals
 const { assertValidDateOrThrow } = require("../utils/date");
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 /**
- * POST /api/visits
- * Create a visit record
+ * POST /api/patients/:patientId/visits
+ * Create a visit for an existing patient.
+ * Body (partial allowed):
+ * {
+ *   visit_date?: string|number|Date,
+ *   clinician?: string,
+ *   chief_complaint?: string,
+ *   medical_history?: string,
+ *   current_medications?: string,
+ *   allergies?: string,
+ *   symptoms?: string,
+ *   diagnosis?: string,
+ *   treatment_plan?: string,
+ *   notes?: string,
+ *   checkup_id?: ObjectId   // optional, else we try to use latest checkup
+ * }
  */
 router.post("/", async (req, res) => {
   try {
-    const body = { ...req.body };
+    const { patientId } = req.params;
 
-    if (!body.patient_id) throw new Error("patient_id is required");
-
-    // accept Date | ISO string | epoch ms, throw if invalid
-    body.visit_date = assertValidDateOrThrow(body.visit_date || Date.now(), "visit_date");
-
-    // prevents vitals being recorded in the future
-    const now = Date.now();
-    if (body.visit_date.getTime() > now + 5 * 60 * 1000) {
-      throw new Error("Visit date cannot be in the future");
+    if (!patientId || !mongoose.isValidObjectId(patientId)) {
+      return res.status(400).json({ error: "Invalid patientId" });
     }
-    
 
-    const visit = await Visit.create(body);
-    res.status(201).json(visit);
+    const patientExists = await Patient.exists({ _id: patientId });
+    if (!patientExists) {
+      return res.status(404).json({ error: "Patient not found" });
+    }
+
+    const body = { ...req.body, patient_id: patientId };
+
+    // Validate/normalize date (disallow future)
+    const visitDate = assertValidDateOrThrow(body.visit_date || Date.now(), "visit_date");
+    if (visitDate.getTime() > Date.now() + 5 * 60 * 1000) {
+      return res.status(400).json({ error: "Visit date cannot be in the future" });
+    }
+    body.visit_date = visitDate;
+
+    // If no checkup_id provided, auto-link latest checkup (optional)
+    if (!body.checkup_id) {
+      const latestCheckup = await Checkup.findOne({ patient_id: patientId })
+        .sort({ date: -1, createdAt: -1 })
+        .select("_id")
+        .lean();
+      if (latestCheckup) body.checkup_id = latestCheckup._id;
+    }
+
+    const created = await Visit.create(body);
+
+    // Optionally denormalize last visit for quick reads
+    try {
+      await Patient.updateOne(
+        { _id: patientId },
+        { $set: { last_visit_id: created._id, last_visit_at: created.visit_date } }
+      );
+    } catch (_) {}
+
+    return res.status(201).json({ visit: created });
   } catch (e) {
-    res.status(400).json({ error: e.message });
+    return res.status(400).json({ error: e.message });
   }
 });
 
 /**
- * PUT /api/visits/:id
- * Update a visit record
+ * GET /api/patients/:patientId/visits
+ * List visits newest-first.
  */
-router.put("/:id", async (req, res) => {
+router.get("/", async (req, res) => {
   try {
-    const body = { ...req.body };
-
-    if (body.visit_date !== undefined) {
-      body.visit_date = assertValidDateOrThrow(body.visit_date, "visit_date");
-      const now = Date.now();
-      if (body.visit_date.getTime() > now + 5 * 60 * 1000) {
-        throw new Error("Visit date cannot be in the future");
-      }      
+    const { patientId } = req.params;
+    if (!patientId || !mongoose.isValidObjectId(patientId)) {
+      return res.status(400).json({ error: "Invalid patientId" });
     }
-
-    const updated = await Visit.findByIdAndUpdate(
-      req.params.id,
-      body,
-      { new: true, runValidators: true }
-    );
-
-    if (!updated) return res.status(404).json({ error: "Visit not found" });
-    res.json(updated);
-  } catch (e) {
-    res.status(400).json({ error: e.message });
-  }
-});
-
-/**
- * GET /api/visits/patient/:patientId
- * List visits for a patient (newest first)
- */
-router.get("/patient/:patientId", async (req, res) => {
-  try {
-    const items = await Visit.find({ patient_id: req.params.patientId })
-      .sort({ visit_date: -1 })
+    const limit = Math.min(Number(req.query.limit) || 20, 100);
+    const items = await Visit.find({ patient_id: patientId })
+      .sort({ visit_date: -1, createdAt: -1 })
+      .limit(limit)
       .lean();
-    res.json(items);
+
+    return res.json({ items });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * GET /api/patients/:patientId/visits/latest
+ * Fetch the most recent visit (for quick display).
+ */
+router.get("/latest", async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    if (!patientId || !mongoose.isValidObjectId(patientId)) {
+      return res.status(400).json({ error: "Invalid patientId" });
+    }
+    const latest = await Visit.findOne({ patient_id: patientId })
+      .sort({ visit_date: -1, createdAt: -1 })
+      .lean();
+
+    return res.json({ latest: latest || null });
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
   }
 });
 

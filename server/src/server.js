@@ -11,56 +11,42 @@ const helmet = require("helmet");
 const compression = require("compression");
 const { connectToDB } = require("./config/db");
 const { connection } = require("mongoose");
-
-// View engine for HTML report preview
 const exphbs = require("express-handlebars");
-
-// --- ROUTES (modules)
-const checkupRoutes      = require("./routes/checkup_route");
-const reportApiRoutes    = require("./routes/report_routes");
-const reportRenderRoutes = require("./routes/report_render_routes");
-const pdfRoutes          = require("./routes/pdf_routes");
-const aiReportRoutes     = require("./routes/ai_report_routes");
-const patientRoutes      = require("./routes/patient_route");
-const ragRoutes          = require("./routes/rag");
-const visitRoutes        = require("./routes/visit_routes");
-
-// --- CRON setup ---
 const cron = require("node-cron");
 const { spawn } = require("child_process");
 
-// DAILY MIGRATION FOR VITALS AND VISITS
-// (1) Patient → Checkup migration (vitals) @ 7:00 PM SGT daily
+/* -------------------------- ROUTES -------------------------- */
+const checkupRoutes       = require("./routes/checkup_route");      // supports nested + legacy
+const reportApiRoutes     = require("./routes/report_routes");
+const reportRenderRoutes  = require("./routes/report_render_routes");
+const pdfRoutes           = require("./routes/pdf_routes");
+const aiReportRoutes      = require("./routes/ai_report_routes");
+const patientRoutes       = require("./routes/patient_route");
+const ragRoutes           = require("./routes/rag");
+const visitRoutes         = require("./routes/visit_routes");
+const legacyVisitsBlocker = require("./routes/legacy_visit_blocker"); // optional
+
+/* -------------------------- CRON JOBS -------------------------- */
 const migrationScriptVitals = path.resolve(__dirname, "scripts/patientMigration.js");
-cron.schedule("0 19 * * *", () => {
-  console.log(`⏰ [CRON] Running daily vitals migration: ${new Date().toISOString()}`);
-  const proc = spawn("node", [migrationScriptVitals], { stdio: "inherit" });
-  proc.on("close", (code) => {
-    console.log(`✅ [CRON] Vitals migration exited with code ${code}`);
-  });
-}, { timezone: "Asia/Singapore" });
-
-// (2) Patient → Visit migration (clinical visits) @ 7:10 PM SGT daily
 const migrationScriptVisits = path.resolve(__dirname, "scripts/visitMigration.js");
-cron.schedule("10 19 * * *", () => {
-  console.log(`⏰ [CRON] Running daily visit migration: ${new Date().toISOString()}`);
+
+// hourly vitals migration
+cron.schedule("0 * * * *", () => {
+  console.log(`⏰ [CRON] Running hourly vitals migration: ${new Date().toISOString()}`);
+  const proc = spawn("node", [migrationScriptVitals], { stdio: "inherit" });
+  proc.on("close", (code) => console.log(`✅ [CRON] Vitals migration exited with code ${code}`));
+});
+
+// hourly visit migration (10 min after)
+cron.schedule("10 * * * *", () => {
+  console.log(`⏰ [CRON] Running hourly visit migration: ${new Date().toISOString()}`);
   const proc = spawn("node", [migrationScriptVisits], { stdio: "inherit" });
-  proc.on("close", (code) => {
-    console.log(`✅ [CRON] Visit migration exited with code ${code}`);
-  });
-}, { timezone: "Asia/Singapore" });
+  proc.on("close", (code) => console.log(`✅ [CRON] Visit migration exited with code ${code}`));
+});
 
-
-// Optional: run both immediately on startup for dev/testing
-// spawn("node", [migrationScriptVitals, "--test"], { stdio: "inherit" });
-// spawn("node", [migrationScriptVisits, "--test"], { stdio: "inherit" });
-
-
+/* -------------------------- SERVER START -------------------------- */
 (async function start() {
   try {
-    // ----------------------------
-    // DB connection (Atlas or in-memory)
-    // ----------------------------
     const useInMemory = String(process.env.USE_IN_MEMORY || "").toLowerCase() === "true";
     let uri = process.env.MONGO_URI;
 
@@ -68,24 +54,30 @@ cron.schedule("10 19 * * *", () => {
       const { MongoMemoryServer } = require("mongodb-memory-server");
       const mongod = await MongoMemoryServer.create();
       uri = mongod.getUri();
-      console.log("[DB] Using in-memory MongoDB for development. Data resets on restart.");
+      console.log("[DB] Using in-memory MongoDB for development.");
     }
 
     if (!uri) throw new Error("MONGO_URI not set (or USE_IN_MEMORY=true not configured)");
-
     await connectToDB(uri);
     console.log("✅ DB connected to:", connection.name);
 
-    // ----------------------------
-    // Build Express app + middleware
-    // ----------------------------
     const app = express();
     app.set("trust proxy", true);
     app.use(helmet({ contentSecurityPolicy: false }));
     app.use(compression());
 
-    const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "*";
-    app.use(cors({ origin: FRONTEND_ORIGIN, credentials: true }));
+    // --- CORS ---
+    const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "http://localhost:3000";
+    console.log(`[CORS] Allowing origin: ${FRONTEND_ORIGIN}`);
+    app.use(
+      cors({
+        origin: FRONTEND_ORIGIN,
+        credentials: true,
+      })
+    );
+    // Handle preflight for all routes (helpful when using credentials)
+    app.options("*", cors({ origin: FRONTEND_ORIGIN, credentials: true }));
+
     app.use(express.json({ limit: "10mb" }));
     app.use(express.urlencoded({ extended: true }));
 
@@ -94,44 +86,47 @@ cron.schedule("10 19 * * *", () => {
     app.set("view engine", "hbs");
     app.set("views", path.join(__dirname, "views"));
 
-    // ----------------------------
-    // Health check
-    // ----------------------------
+    /* -------------------------- ROUTE MOUNTING -------------------------- */
     app.get("/healthz", (_req, res) => res.json({ ok: true, db: connection?.name || null }));
+    app.get("/api/ping", (_req, res) => res.json({ ok: true })); // quick FE ping
 
-    // ----------------------------
-    // Mount routes
-    // ----------------------------
+    // Core patients CRUD + AI/RAG
+    app.use("/api/patients", patientRoutes);
+    app.use("/api/ai", aiReportRoutes);
+    app.use("/api/rag", ragRoutes);
+
+    // Checkups (vitals): mount BOTH nested and legacy
+    // - Nested: POST /api/patients/:patientId/checkups   (PatientForm uses this)
+    // - Legacy: POST /api/checkups  { patient_id, vitals }  (curl/tools/backfill)
+    app.use("/api/patients/:patientId/checkups", checkupRoutes);
     app.use("/api/checkups", checkupRoutes);
+
+    // Visits: nested (and keep your legacy blocker at top-level)
+    app.use("/api/patients/:patientId/visits", visitRoutes);
+    app.use("/api/visits", legacyVisitsBlocker);
+
+    // Reporting + PDFs
     app.use("/api/reports", reportApiRoutes);
     app.use("/reports", reportRenderRoutes);
     app.use("/", pdfRoutes);
-    app.use("/api/ai", aiReportRoutes);
-    app.use("/api/patients", patientRoutes);
-    app.use("/api/rag", ragRoutes);
-    app.use("/api/visits", visitRoutes);
 
-    // 404 fallback
+    /* -------------------------- ERROR HANDLERS -------------------------- */
     app.use((req, res, next) => {
       if (res.headersSent) return next();
       res.status(404).json({ error: "Not found", path: req.originalUrl });
     });
 
-    // Central error handler
     app.use((err, req, res, _next) => {
       console.error("Unhandled error:", err);
       res.status(err.status || 500).json({ error: err.message || "Internal Server Error" });
     });
 
-    // ----------------------------
-    // Start server
-    // ----------------------------
-    const port = process.env.PORT || 5000;
+    /* -------------------------- START SERVER -------------------------- */
+    const port = process.env.PORT || 5001; // default to 5001 for clarity
     const server = app.listen(port, () => {
-      console.log(`API running on http://localhost:${port}`);
+      console.log(`🚀 API running on http://localhost:${port}`);
     });
 
-    // Graceful shutdown
     for (const signal of ["SIGINT", "SIGTERM"]) {
       process.on(signal, async () => {
         console.log(`\n🛑 Received ${signal}, shutting down…`);
@@ -139,14 +134,8 @@ cron.schedule("10 19 * * *", () => {
         server.close(() => process.exit(0));
       });
     }
-
   } catch (err) {
-    console.error("\n[Startup] API failed to start.");
-    console.error("Reason:", err?.message || err);
-    console.error("Tips:");
-    console.error("- If using MongoDB Atlas, whitelist your IP or allow 0.0.0.0/0 for testing.");
-    console.error("- Verify MONGO_URI + credentials.");
-    console.error("- Or set USE_IN_MEMORY=true in server/.env to run an in-memory DB for local dev.");
+    console.error("\n[Startup] API failed to start:", err);
     process.exit(1);
   }
 })();

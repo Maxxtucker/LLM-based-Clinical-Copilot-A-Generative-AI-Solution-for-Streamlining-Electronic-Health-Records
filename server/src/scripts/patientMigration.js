@@ -17,11 +17,11 @@ console.log(
 
 // ---------- Dependencies ----------
 const mongoose = require("mongoose");
-const Patient  = require("../models/Patient.js");
-const Checkup  = require("../models/Checkup.js");
+const Patient = require("../models/Patient.js");
+const Checkup = require("../models/Checkup.js");
 
 // Flags
-const DRY          = process.argv.includes("--test");
+const DRY = process.argv.includes("--test");
 const DO_NORMALIZE = process.argv.includes("--normalize");
 
 // ---------- Helpers ----------
@@ -43,11 +43,11 @@ function detectAnomalies(vs = {}) {
 
   if (typeof vs.weight === "number") {
     if (vs.weight > 200) flags.push("weight_outlier_high_kg");
-    if (vs.weight < 2)   flags.push("weight_outlier_low_kg");
+    if (vs.weight < 2) flags.push("weight_outlier_low_kg");
   }
 
   if (typeof vs.height === "number") {
-    if (vs.height < 40)  flags.push("height_outlier_low_cm");
+    if (vs.height < 40) flags.push("height_outlier_low_cm");
     if (vs.height > 250) flags.push("height_outlier_high_cm");
   }
 
@@ -72,7 +72,7 @@ function maybeNormalize(vs = {}) {
 
   let t = vs.temperature;
   if (typeof t === "string") t = parseFloat(t);
-  if (typeof t === "number" && t > 45) t = Math.round(((t - 32) * 5/9) * 10) / 10;
+  if (typeof t === "number" && t > 45) t = Math.round(((t - 32) * 5) / 9 * 10) / 10;
 
   let w = vs.weight;
   if (typeof w === "number" && w > 140) w = Math.round((w / 2.20462) * 10) / 10;
@@ -102,10 +102,10 @@ async function run() {
       {
         $or: [
           { "vital_signs.blood_pressure": { $exists: true, $ne: null } },
-          { "vital_signs.heart_rate":     { $exists: true, $ne: null } },
-          { "vital_signs.temperature":    { $exists: true, $ne: null } },
-          { "vital_signs.weight":         { $exists: true, $ne: null } },
-          { "vital_signs.height":         { $exists: true, $ne: null } },
+          { "vital_signs.heart_rate": { $exists: true, $ne: null } },
+          { "vital_signs.temperature": { $exists: true, $ne: null } },
+          { "vital_signs.weight": { $exists: true, $ne: null } },
+          { "vital_signs.height": { $exists: true, $ne: null } },
         ],
       },
     ],
@@ -115,14 +115,16 @@ async function run() {
   console.log("Candidates:", total);
 
   const cursor = Patient.find(filter).lean().cursor();
-  let migrated = 0, skipped = 0, i = 0;
+  let migrated = 0,
+    skipped = 0,
+    i = 0;
 
   for await (const p of cursor) {
     i++;
 
     const { bp_sys, bp_dia } = parseBP(p?.vital_signs?.blood_pressure);
     const flags = detectAnomalies(p?.vital_signs || {});
-    const norm  = maybeNormalize(p?.vital_signs || {});
+    const norm = maybeNormalize(p?.vital_signs || {});
     const dateVal = p?.updatedAt ? new Date(p.updatedAt) : new Date();
 
     const doc = {
@@ -140,7 +142,7 @@ async function run() {
       normalized: !!norm.normalized,
     };
 
-    const allEmpty = Object.values(doc.vitals).every(v => v === undefined || v === null);
+    const allEmpty = Object.values(doc.vitals).every((v) => v === undefined || v === null);
     if (allEmpty) {
       skipped++;
       console.log(`(${i}) skip ${p.medical_record_number || p._id}: no usable vitals`);
@@ -153,34 +155,44 @@ async function run() {
     }
 
     try {
-      //Checks if there is a Checkup record with the exact same vitals but skip if it is created within 10 mins
-      const exists = await Checkup.findOne({
-        patient_id: p._id,
-        date: {
-          $gte: new Date(dateVal.getTime() - 1000 * 60 * 10), // 10 minutes before
-          $lte: new Date(dateVal.getTime() + 1000 * 60 * 10), // 10 minutes after
-        },
-        "vitals.bp_sys":        doc.vitals.bp_sys ?? null,
-        "vitals.bp_dia":        doc.vitals.bp_dia ?? null,
-        "vitals.heart_rate":    doc.vitals.heart_rate ?? null,
-        "vitals.temperature_c": doc.vitals.temperature_c ?? null,
-        "vitals.weight":        doc.vitals.weight ?? null,
-        "vitals.height":        doc.vitals.height ?? null,
-      }).lean();
-
-
-      if (!exists) {
-        await Checkup.create(doc);
-        console.log(`(${i}) ✅ migrated ${p.medical_record_number || p._id}`);
-      } else {
-        console.log(`(${i}) ⏭️ skipped duplicate for ${p.medical_record_number || p._id}`);
-      }
-
-      await Patient.updateOne(
-        { _id: p._id },
-        { $set: { _migrated_vitals_to_checkups: true } }
+      // Normalize vitals by removing undefined/null keys for cleaner matching
+      const filteredVitals = Object.fromEntries(
+        Object.entries(doc.vitals).filter(([_, v]) => v !== undefined && v !== null)
       );
 
+      // Deduplication: find any Checkup for this patient created within 30 minutes
+      // where at least 4 of 6 vital values match (tolerates missing fields)
+      const recentCheckups = await Checkup.find({
+        patient_id: p._id,
+        date: { $gte: new Date(dateVal.getTime() - 1000 * 60 * 30) }, // last 30 minutes
+      }).lean();
+
+      const isDuplicate = recentCheckups.some((c) => {
+        let matchCount = 0;
+        for (const [k, v] of Object.entries(filteredVitals)) {
+          if (c.vitals?.[k] !== undefined && c.vitals[k] === v) matchCount++;
+        }
+        // Treat as duplicate if ≥4 out of 6 fields match
+        return matchCount >= 4;
+      });
+
+      if (isDuplicate) {
+        console.log(`(${i}) ⏭️ skipped likely duplicate for ${p.medical_record_number || p._id}`);
+      } else {
+        await Checkup.create({
+          ...doc,
+          _source: "migrated",
+          _migrated_from_patient: p._id,
+          _migrated_at: new Date(),
+        });
+        console.log(`(${i}) ✅ migrated ${p.medical_record_number || p._id}`);
+      }
+
+      // Mark patient as migrated
+      await Patient.updateOne(
+        { _id: p._id },
+        { $set: { _migrated_vitals_to_checkups: true, _last_migration_at: new Date() } }
+      );
       migrated++;
     } catch (err) {
       skipped++;
@@ -188,16 +200,17 @@ async function run() {
     }
   }
 
+  // ✅ Moved OUTSIDE the loop
   console.log(
     DRY
       ? `DRY-RUN done. Candidates ${total}; skipped ${skipped}.`
-      : `Done. Migrated ${migrated}; skipped ${skipped}.`
+      : `✅ Done. Migrated ${migrated}; skipped ${skipped}.`
   );
 
   await mongoose.disconnect();
 }
 
-run().catch(err => {
+run().catch((err) => {
   console.error(err);
   process.exit(1);
 });

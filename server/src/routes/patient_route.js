@@ -1,4 +1,4 @@
-// routes/patientRoutes.js
+// routes/patientRoutes.js -> to manage new Patients
 const express = require("express");
 const Patient = require("../models/Patient.js");
 const router = express.Router();

@@ -1,5 +1,5 @@
 // src/pages/PatientDetail.jsx
-// src/pages/PatientDetail.jsx
+
 import React, { useState, useEffect, useCallback } from "react";
 import {
   ArrowLeft, Edit3, User, Calendar, Clipboard, Phone, Activity, Mail,
@@ -64,6 +64,14 @@ function textClassOnly(cls) {
   return m ? m[0] : "";
 }
 
+// parse "120/80" → { bp_sys: 120, bp_dia: 80 }
+function parseBP(bpStr) {
+  if (!bpStr) return {};
+  const [s, d] = String(bpStr).split("/").map((x) => Number(x));
+  if (Number.isFinite(s) && Number.isFinite(d)) return { bp_sys: s, bp_dia: d };
+  return {};
+}
+
 /* ---------- component ---------- */
 export default function PatientDetail() {
   const navigate = useNavigate();
@@ -97,13 +105,15 @@ export default function PatientDetail() {
     }
   }, [patientId]);
 
+  // histories (nested endpoints)
   async function refreshHistory(pid) {
     if (!pid) return;
     try {
-      const res = await fetch(`/api/checkups/patient/${pid}`);
+      const res = await fetch(`/api/patients/${pid}/checkups?limit=50`);
       if (!res.ok) throw new Error(`Failed to load vitals history (${res.status})`);
-      const rows = await res.json();
-      setCheckupHistory(Array.isArray(rows) ? rows : []);
+      const body = await res.json();
+      const rows = Array.isArray(body) ? body : (body.items ?? []);
+      setCheckupHistory(rows);
     } catch (err) {
       console.error("Error loading vitals history:", err);
       setCheckupHistory([]);
@@ -112,10 +122,11 @@ export default function PatientDetail() {
   async function refreshVisits(pid) {
     if (!pid) return;
     try {
-      const res = await fetch(`/api/visits/patient/${pid}`);
+      const res = await fetch(`/api/patients/${pid}/visits?limit=50`);
       if (!res.ok) throw new Error(`Failed to load visits (${res.status})`);
-      const rows = await res.json();
-      setVisitHistory(Array.isArray(rows) ? rows : []);
+      const body = await res.json();
+      const rows = Array.isArray(body) ? body : (body.items ?? []);
+      setVisitHistory(rows);
     } catch (err) {
       console.error("Error loading visit history:", err);
       setVisitHistory([]);
@@ -167,26 +178,113 @@ export default function PatientDetail() {
     }));
   };
 
+  // Utility: pick visit fields from a full patient object
+  function extractVisitFields(source) {
+    return {
+      chief_complaint: source.chief_complaint,
+      symptoms: source.symptoms,
+      diagnosis: source.diagnosis,
+      treatment_plan: source.treatment_plan,
+      medical_history: source.medical_history,
+      current_medications: source.current_medications,
+      allergies: source.allergies,
+      notes: source.notes, // use if your Visit model supports notes
+    };
+  }
+  // Determine if any visit fields have usable content
+  function hasAnyVisitData(obj) {
+    return Object.values(extractVisitFields(obj)).some(
+      (v) => v !== undefined && v !== null && String(v).trim() !== ""
+    );
+  }
+
+  // SAVE: Create Checkup if vitals edited; Create Visit from merged fields; Update patient snapshot
   const handleSaveChanges = async () => {
     try {
-      const updatedVitals = { ...patient.vital_signs, ...editedFields.vital_signs };
-      const updateData = { ...patient, ...editedFields, vital_signs: updatedVitals };
+      const hasVitalsEdits =
+        !!editedFields.vital_signs && Object.keys(editedFields.vital_signs).length > 0;
+
+      // Merge snapshot with edits so we capture voice-filled and doctor-edited values
+      const merged = {
+        ...patient,
+        ...editedFields,
+        vital_signs: { ...patient.vital_signs, ...(editedFields.vital_signs || {}) },
+      };
+
+      // 1) If vitals were edited, create a Checkup via nested route
+      if (hasVitalsEdits) {
+        const vs = merged.vital_signs || {};
+        const { bp_sys, bp_dia } = parseBP(vs.blood_pressure);
+        const checkupPayload = {
+          vitals: {
+            bp_sys: Number.isFinite(bp_sys) ? bp_sys : undefined,
+            bp_dia: Number.isFinite(bp_dia) ? bp_dia : undefined,
+            heart_rate: vs.heart_rate != null ? Number(vs.heart_rate) : undefined,
+            temperature_c: vs.temperature != null ? Number(vs.temperature) : undefined,
+            weight: vs.weight != null ? Number(vs.weight) : undefined,
+            height: vs.height != null ? Number(vs.height) : undefined,
+          },
+        };
+
+        // drop empty vitals to satisfy schema validators
+        Object.keys(checkupPayload.vitals).forEach((k) => {
+          if (checkupPayload.vitals[k] == null || Number.isNaN(checkupPayload.vitals[k])) {
+            delete checkupPayload.vitals[k];
+          }
+        });
+
+        if (Object.keys(checkupPayload.vitals).length > 0) {
+          const createRes = await fetch(`/api/patients/${patient._id}/checkups`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(checkupPayload),
+          });
+          const created = await createRes.json();
+          if (!createRes.ok) throw new Error(created?.error || "Failed to create vitals checkup");
+        }
+      }
+
+      // 2) Create a Visit if we have any visit data (voice-filled + edits)
+      const visitFields = extractVisitFields(merged);
+      const shouldCreateVisit = hasAnyVisitData(merged);
+
+      if (shouldCreateVisit) {
+        const visitPayload = {
+          visit_date: Date.now(), // server will validate and coerce
+          ...visitFields,
+        };
+        const visitRes = await fetch(`/api/patients/${patient._id}/visits`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(visitPayload),
+        });
+        const visitBody = await visitRes.json();
+        if (!visitRes.ok) throw new Error(visitBody?.error || "Failed to create visit");
+      }
+
+      // 3) Update patient snapshot so “latest” fields show up immediately
       const response = await fetch(`/api/patients/${patient._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updateData)
+        body: JSON.stringify(merged),
       });
+
       if (response.ok) {
         const updatedPatient = await response.json();
         setPatient({ ...updatedPatient, id: updatedPatient._id });
         setEditedFields({});
         setIsEditing(false);
-        refreshHistory(updatedPatient._id);
+        // Refresh histories (so it “shows up”)
+        await Promise.all([
+          refreshHistory(updatedPatient._id),
+          refreshVisits(updatedPatient._id),
+        ]);
       } else {
         console.error("Failed to update patient data");
       }
     } catch (error) {
-      console.error("Error updating patient:", error);
+      console.error("Error saving changes:", error);
+      alert(error.message || "Failed to save changes");
     }
   };
 
