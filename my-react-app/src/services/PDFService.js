@@ -12,7 +12,8 @@ export class PDFService {
       tempContainer.style.top = '0';
       tempContainer.style.width = '210mm'; // A4 width
       tempContainer.style.backgroundColor = 'white';
-      tempContainer.style.padding = '20mm';
+      tempContainer.style.padding = '8mm';
+      tempContainer.style.boxSizing = 'border-box';
       tempContainer.style.fontFamily = 'Arial, sans-serif';
       tempContainer.style.fontSize = '12px';
       tempContainer.style.lineHeight = '1.4';
@@ -82,6 +83,7 @@ export class PDFService {
     
     let html = `
       <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 12mm;">
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 12px; border-bottom: 2px solid #2563eb; margin-bottom: 16px;">
           <div style="width: 72px; height: 72px; border: 2px solid #cbd5e1; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 10px;">Logo</div>
           <div style="flex: 1; text-align: right;">
@@ -260,6 +262,7 @@ export class PDFService {
           <p style="font-size: 10px; color: #666; text-align: center;">
             This report was generated electronically and is valid without signature.
           </p>
+        </div>
         </div>
       </div>
     `;

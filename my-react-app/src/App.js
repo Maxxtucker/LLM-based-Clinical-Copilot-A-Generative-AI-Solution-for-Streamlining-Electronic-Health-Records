@@ -56,6 +56,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return localStorage.getItem("isAuthenticated") === "true";
   });
+  const [userRole, setUserRole] = useState(() => localStorage.getItem("userRole") || "nurse");
   const [isSavingPatient, setIsSavingPatient] = useState(false);
 
 
@@ -74,6 +75,7 @@ function App() {
 
   // Clear persisted auth state
   localStorage.removeItem("isAuthenticated");
+  localStorage.removeItem("userRole");
 
   setIsAuthenticated(false);
 
@@ -118,7 +120,7 @@ function App() {
   return (
     <Routes>
       {/* Login route (default) */}
-      <Route path="/" element={<Login setIsAuthenticated={setIsAuthenticated}/>} />
+      <Route path="/" element={<Login setIsAuthenticated={setIsAuthenticated} setUserRole={setUserRole} />} />
 
       {/* Protected routes */}
       <Route
@@ -144,14 +146,16 @@ function App() {
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild>
-                          <Link to="/patients">
-                            <User className="mr-2 h-4 w-4" />
-                            Patients
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
+                      {userRole === 'nurse' && (
+                        <SidebarMenuItem>
+                          <SidebarMenuButton asChild>
+                            <Link to="/patients">
+                              <User className="mr-2 h-4 w-4" />
+                              Patients
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      )}
                       <SidebarMenuItem>
                         <SidebarMenuButton asChild>
                           <Link to="/ai">
@@ -181,22 +185,24 @@ function App() {
 
                     <Route path="/dashboard" element={<Dashboard />} />
 
-                      <Route
-                        path="/patients"
-                        element={
-                          <section className="p-6 mb-6">
-                            <h2 className="text-xl font-bold text-neutral-800 mb-4">
-                              Add New Patient <i>(For Nurse Use)</i>
-                            </h2>
-                            <PatientForm onSubmit={handlePatientSubmit} isLoading={isSavingPatient} />
-                          </section>
-                        }
-                      />
+                      {userRole === 'nurse' && (
+                        <Route
+                          path="/patients"
+                          element={
+                            <section className="p-6 mb-6">
+                              <h2 className="text-xl font-bold text-neutral-800 mb-4">
+                                Add New Patient <i>(For Nurse Use)</i>
+                              </h2>
+                              <PatientForm onSubmit={handlePatientSubmit} isLoading={isSavingPatient} />
+                            </section>
+                          }
+                        />
+                      )}
 
                     <Route path="/reports" element={<Reports />} />
                     <Route path="/ai" element={<AIAssistant />} />
                     <Route path="/profile" element={<Profile />} />
-                    <Route path="/patient" element={<PatientDetail />} />
+                    <Route path="/patient" element={<PatientDetail userRole={userRole} />} />
 
                     {/* Catch-all redirect to dashboard */}
                     <Route path="*" element={<Navigate to="/dashboard" />} />

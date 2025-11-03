@@ -7,8 +7,8 @@ import { Stethoscope, Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
-// Pass `setIsAuthenticated` down from App.js
-export default function Login({ setIsAuthenticated }) {
+// Pass `setIsAuthenticated` and `setUserRole` down from App.js
+export default function Login({ setIsAuthenticated, setUserRole }) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,8 +20,13 @@ export default function Login({ setIsAuthenticated }) {
     setError("");
     try {
       const { login } = await import('../api/auth');
-      await login(email, password);
+      const data = await login(email, password);
+      const roles = (data && data.user && Array.isArray(data.user.roles)) ? data.user.roles : [];
+      // Determine primary role: prefer explicit 'doctor' or 'nurse'
+      let role = roles.includes('doctor') ? 'doctor' : roles.includes('nurse') ? 'nurse' : (roles[0] || 'user');
       localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem('userRole', role);
+      if (typeof setUserRole === 'function') setUserRole(role);
       setIsAuthenticated(true);
       navigate('/dashboard');
     } catch (err) {

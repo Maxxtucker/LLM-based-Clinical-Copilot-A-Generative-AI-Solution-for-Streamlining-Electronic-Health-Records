@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { ArrowLeft, Edit3, User, Calendar, Clipboard, Phone, Activity, Mail, MapPin, Ruler, Dumbbell, Save, X} from "lucide-react";
+import { ArrowLeft, Edit3, User, Calendar, Clipboard, Phone, Activity, Mail, MapPin, Ruler, Dumbbell, Save, X, Trash2} from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Textarea } from "../components/ui/textarea";
@@ -63,13 +63,17 @@ function getVitalSignColor(type, value, age) {
   return "";
 }
 
-export default function PatientDetail() {
+export default function PatientDetail({ userRole = localStorage.getItem("userRole") || "nurse" }) {
   const navigate = useNavigate();
   const [patient, setPatient] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editedFields, setEditedFields] = useState({});
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showDeleteConfirm1, setShowDeleteConfirm1] = useState(false);
+  const [showDeleteConfirm2, setShowDeleteConfirm2] = useState(false);
+  const isDoctor = userRole === "doctor";
+  const canEditMedical = isDoctor;
   
   const urlParams = new URLSearchParams(window.location.search);
   const patientId = urlParams.get('id');
@@ -233,13 +237,34 @@ const handleEditVitalSign = (vitalField, value) => {
     setIsEditing(false);
   };
 
-  const renderEditableField = (fieldName, label, placeholder = "Pending doctor's input") => {
+  const handleDeletePatient = async () => {
+    console.log("handleDeletePatient called for patient:", patient._id);
+    try {
+      const response = await fetch(`/api/patients/${patient._id}`, {
+        method: 'DELETE'
+      });
+
+      console.log("Delete response status:", response.status);
+      if (response.ok) {
+        console.log("Patient deleted successfully");
+        navigate(createPageUrl("Dashboard"));
+      } else {
+        console.error("Failed to delete patient");
+        alert("Failed to delete patient. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error deleting patient:", error);
+      alert("Error deleting patient. Please try again.");
+    }
+  };
+
+  const renderEditableField = (fieldName, label, placeholder = "Pending doctor's input", canEdit = true) => {
     const currentValue = editedFields[fieldName] !== undefined ? editedFields[fieldName] : patient[fieldName];
     
     return (
       <div>
         <h4 className="font-semibold text-neutral-700 mb-2">{label}</h4>
-        {isEditing ? (
+        {isEditing && canEdit ? (
           <Textarea
             value={currentValue || ''}
             onChange={(e) => handleEditField(fieldName, e.target.value)}
@@ -323,14 +348,26 @@ const handleEditVitalSign = (vitalField, value) => {
             </div>
           </div>
           <div className="flex items-center gap-3">
+          {console.log("isEditing:", isEditing)}
           {!isEditing ? (
-            <Button
-              onClick={() => setIsEditing(true)}
-              className="gap-2"
-            >
-              <Edit3 className="w-4 h-4" />
-              Edit Patient
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setIsEditing(true)}
+                className="gap-2"
+              >
+                <Edit3 className="w-4 h-4" />
+                Edit Patient
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  setShowDeleteConfirm1(true);
+                }}
+                className="gap-2 bg-red-600 text-white hover:bg-red-700 relative z-10"
+              >
+                🗑️ Delete Patient
+              </Button>
+            </div>
           ) : (
             <div className="flex gap-2">
               <Button
@@ -485,25 +522,27 @@ const handleEditVitalSign = (vitalField, value) => {
                     <Clipboard className="w-5 h-5 text-emerald-600" />
                     Medical Information
                   </CardTitle>
-                  <div className="absolute top-4 right-4 flex gap-2">
-                    <VoiceRecordingButton
-                      patientId={patient._id}
-                      onProcessingComplete={handleConversationExtracted}
-                      onError={(error) => console.error('Voice processing error:', error)}
-                      size="sm"
-                      variant="outline"
-                    />
-                  </div>
+                  {isDoctor && (
+                    <div className="absolute top-4 right-4 flex gap-2">
+                      <VoiceRecordingButton
+                        patientId={patient._id}
+                        onProcessingComplete={handleConversationExtracted}
+                        onError={(error) => console.error('Voice processing error:', error)}
+                        size="sm"
+                        variant="outline"
+                      />
+                    </div>
+                  )}
                 </CardHeader>
                 <CardContent className="space-y-6 text-sm">
-                  {renderEditableField('chief_complaint', 'Chief Complaint')}
-                  {renderEditableField('medical_history', 'Medical History')}
+                  {renderEditableField('chief_complaint', 'Chief Complaint', 'Pending doctor\'s input', canEditMedical)}
+                  {renderEditableField('medical_history', 'Medical History', 'Pending doctor\'s input', canEditMedical)}
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {renderEditableField('current_medications', 'Current Medications')}
+                    {renderEditableField('current_medications', 'Current Medications', 'Pending doctor\'s input', canEditMedical)}
                     <div>
                       <h4 className="font-semibold text-neutral-700 mb-2">Allergies</h4>
-                      {isEditing ? (
+                      {isEditing && canEditMedical ? (
                         <Textarea
                           value={editedFields.allergies !== undefined ? editedFields.allergies : patient.allergies || ''}
                           onChange={(e) => handleEditField('allergies', e.target.value)}
@@ -520,12 +559,12 @@ const handleEditVitalSign = (vitalField, value) => {
                     </div>
                   </div>
 
-                  {renderEditableField('symptoms', 'Current Symptoms')}
+                  {renderEditableField('symptoms', 'Current Symptoms', 'Pending doctor\'s input', canEditMedical)}
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <h4 className="font-semibold text-neutral-700 mb-2">Diagnosis</h4>
-                      {isEditing ? (
+                      {isEditing && canEditMedical ? (
                         <Textarea
                           value={editedFields.diagnosis !== undefined ? editedFields.diagnosis : patient.diagnosis || ''}
                           onChange={(e) => handleEditField('diagnosis', e.target.value)}
@@ -542,7 +581,7 @@ const handleEditVitalSign = (vitalField, value) => {
                     </div>
                     <div>
                       <h4 className="font-semibold text-neutral-700 mb-2">Treatment Plan</h4>
-                      {isEditing ? (
+                      {isEditing && canEditMedical ? (
                         <Textarea
                           value={editedFields.treatment_plan !== undefined ? editedFields.treatment_plan : patient.treatment_plan || ''}
                           onChange={(e) => handleEditField('treatment_plan', e.target.value)}
@@ -657,7 +696,7 @@ const handleEditVitalSign = (vitalField, value) => {
 
               {patient.past_visits && patient.past_visits.length > 0 ? (
                 <div className="space-y-4 max-h-48 overflow-y-auto text-sm text-neutral-700">
-                  {patient.past_visits.map((visit, index) => (
+                  {patient.past_visits.slice(0,3).map((visit, index) => (
                     <div key={index} className="pb-2 border-b border-neutral-200 last:border-b-0">
                       <p className="font-bold text-neutral-900">{formatDate(visit.visit_date)}</p>
                       <p><span className="font-semibold">Diagnosis:</span> {visit.diagnosis}</p>
@@ -676,7 +715,7 @@ const handleEditVitalSign = (vitalField, value) => {
 
               {patient.past_vital_readings && patient.past_vital_readings.length > 0 ? (
                 <div className="space-y-4 max-h-48 overflow-y-auto text-sm text-neutral-700">
-                  {patient.past_vital_readings.map((reading, index) => {
+                  {patient.past_vital_readings.slice(0,3).map((reading, index) => {
                     const dateObj = new Date(reading.date);
                     const dateTimeFormatted = `${format(dateObj, "dd MMM yyyy")} @ ${format(dateObj, "h:mm a")}`;
 
@@ -720,9 +759,66 @@ const handleEditVitalSign = (vitalField, value) => {
                 <p className="italic text-neutral-400 text-sm">No past vital readings recorded.</p>
               )}
             </div>
+            {/* Past Reports */}
+            <div className="border rounded-lg shadow-sm bg-white p-4 mt-6">
+              <h3 className="flex items-center gap-2 text-lg font-semibold text-neutral-900 mb-4">
+                <Clipboard className="w-5 h-5 text-blue-600" />
+                Past Reports
+              </h3>
+
+              {patient.past_reports && patient.past_reports.length > 0 ? (
+                <div className="space-y-4 max-h-48 overflow-y-auto text-sm text-neutral-700">
+                  {patient.past_reports.slice(0,3).map((report) => (
+                    <div key={report.id} className="pb-2 border-b border-neutral-200 last:border-b-0 flex justify-between items-center">
+                      <div>
+                        <p className="font-bold text-neutral-900">{report.title}</p>
+                        <p className="text-neutral-500">{formatDate(report.date)}</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(report.url, "_blank")}
+                      >
+                        View
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="italic text-neutral-400 text-sm">No past reports recorded.</p>
+              )}
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation (step 1) */}
+      <ConfirmDialog
+        open={showDeleteConfirm1}
+        title="Delete Patient"
+        description={`Are you sure you want to delete ${patient.first_name} ${patient.last_name} (MRN: ${patient.medical_record_number})? This action cannot be undone.`}
+        onConfirm={() => {
+          setShowDeleteConfirm1(false);
+          setShowDeleteConfirm2(true);
+        }}
+        onCancel={() => setShowDeleteConfirm1(false)}
+        confirmLabel="Continue"
+        cancelLabel="Cancel"
+      />
+
+      {/* Delete Confirmation (step 2) */}
+      <ConfirmDialog
+        open={showDeleteConfirm2}
+        title="Final Confirmation"
+        description="This will permanently delete this patient's record. Are you absolutely sure?"
+        onConfirm={() => {
+          setShowDeleteConfirm2(false);
+          handleDeletePatient();
+        }}
+        onCancel={() => setShowDeleteConfirm2(false)}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+      />
     </div>
   );
 }
