@@ -2,7 +2,7 @@
 
 ## Backend Environment Variables
 
-Create a `.env` file in the `server` directory with the following variables:
+Create a `.env` file in the `backend` directory with the following variables:
 
 ```bash
 # Database Configuration
@@ -42,7 +42,7 @@ ENABLE_ONTOLOGY_NORMALIZATION=true
 
 ## Frontend Environment Variables
 
-Create a `.env` file in the `my-react-app` directory:
+Create a `.env` file in the `frontend` directory:
 
 ```bash
 REACT_APP_OPENAI_API_KEY=your_openai_api_key_here
@@ -68,6 +68,5 @@ With this setup, you'll have:
 5. Click "Stop Recording"
 6. The system will automatically transcribe and extract medical information
 7. Patient records will be updated with the extracted data
-
 
 

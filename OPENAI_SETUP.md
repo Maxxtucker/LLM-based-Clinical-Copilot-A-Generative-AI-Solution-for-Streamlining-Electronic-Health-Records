@@ -21,10 +21,10 @@ This guide will help you set up OpenAI GPT-4 integration for your Clinical Copil
 
 1. Copy the example environment file:
    ```bash
-   cp my-react-app/.env.example my-react-app/.env
+   cp frontend/.env.example frontend/.env
    ```
 
-2. Edit `my-react-app/.env` and add your API key:
+2. Edit `frontend/.env` and add your API key:
    ```
    REACT_APP_OPENAI_API_KEY=sk-your-actual-api-key-here
    REACT_APP_API_BASE_URL=http://localhost:5001
@@ -42,7 +42,7 @@ After adding the environment variables, restart both servers:
 cd server && npm start
 
 # Frontend  
-cd my-react-app && npm start
+cd frontend && npm start
 ```
 
 ## Features Enabled
@@ -85,7 +85,7 @@ The application uses the following OpenAI models:
 ### Common Issues
 
 1. **"API Key Not Found" Error**
-   - Ensure `.env` file exists in `my-react-app/` directory
+   - Ensure `.env` file exists in `frontend/` directory
    - Check that `REACT_APP_OPENAI_API_KEY` is set correctly
    - Restart the React development server
 

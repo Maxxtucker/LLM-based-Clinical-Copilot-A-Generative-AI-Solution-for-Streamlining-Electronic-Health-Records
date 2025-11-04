@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "baseUrl": "src",
+    "paths": {
+      "@/*": ["*"],
+      "@/app/*": ["app/*"],
+      "@/components/*": ["components/*"],
+      "@/modules/*": ["modules/*"],
+      "@/shared/*": ["shared/*"],
+      "@/shared/components/*": ["shared/components/*"],
+      "@/shared/utils/*": ["shared/utils/*"],
+      "@/shared/integrations/*": ["shared/integrations/*"]
+    }
+  },
+  "include": [
+    "src/**/*"
+  ]
+}

@@ -1,5 +1,13 @@
 {
-  "dependencies": {
-    "dotenv": "^17.2.3"
+  "name": "clinical-copilot",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "start:frontend": "npm run start --workspace frontend",
+    "start:backend": "npm run dev --workspace backend",
+    "build": "npm run build --workspace frontend"
   }
 }

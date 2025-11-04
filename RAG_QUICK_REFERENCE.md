@@ -10,7 +10,7 @@ npm install
 cp .env.example .env  # Add your MongoDB URI and OpenAI API key
 
 # Frontend  
-cd my-react-app
+cd frontend
 npm install
 ```
 
@@ -29,7 +29,7 @@ npm run create-vector-index
 cd server && npm run dev
 
 # Frontend (Terminal 2)
-cd my-react-app && npm start
+cd frontend && npm start
 ```
 
 ## 🔧 Key Commands
@@ -75,7 +75,7 @@ server/src/
     ├── generateMockData.js   # Mock data generation
     └── createVectorIndex.js  # Vector index creation
 
-my-react-app/src/
+frontend/src/
 ├── services/
 │   └── RAGService.js         # Frontend RAG logic
 ├── pages/

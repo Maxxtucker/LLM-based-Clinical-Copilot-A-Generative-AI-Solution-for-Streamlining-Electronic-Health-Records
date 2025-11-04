@@ -50,23 +50,23 @@ Clinical Copilot is a modern, AI-enhanced healthcare management platform designe
 2. **Install dependencies**
    ```bash
    # Install backend dependencies
-   cd server
+   cd backend
    npm install
    
    # Install frontend dependencies
-   cd ../my-react-app
+   cd ../frontend
    npm install
    ```
 
 3. **Environment Setup**
    ```bash
    # Backend environment
-   cd server
+   cd backend
    cp .env.example .env
    # Edit .env with your MongoDB connection string
    
    # Frontend environment
-   cd ../my-react-app
+   cd ../frontend
    cp .env.example .env
    # Edit .env with your OpenAI API key
    ```
@@ -74,11 +74,11 @@ Clinical Copilot is a modern, AI-enhanced healthcare management platform designe
 4. **Start the application**
    ```bash
    # Terminal 1: Start backend
-   cd server
-   npm start
+   cd backend
+   npm run dev
    
    # Terminal 2: Start frontend
-   cd my-react-app
+   cd frontend
    npm start
    ```
 
@@ -90,29 +90,34 @@ Clinical Copilot is a modern, AI-enhanced healthcare management platform designe
 
 ```
 clinical-copilot/
-├── server/                     # Backend API
+├── backend/                         # Node.js & Express API
 │   ├── src/
-│   │   ├── controllers/        # API route handlers
-│   │   ├── models/            # Database models
-│   │   ├── routes/            # API routes
-│   │   ├── seed/              # Database seeding
-│   │   └── server.js          # Main server file
+│   │   ├── core/                    # Reusable middleware, config, utilities
+│   │   ├── modules/                 # Feature modules
+│   │   │   ├── ai/                  # AI + OpenAI integration
+│   │   │   ├── patients/            # Patient CRUD, visits, and vitals
+│   │   │   ├── rag/                 # Vector search & embeddings
+│   │   │   ├── reports/             # PDF and report generation
+│   │   │   └── speech/              # Speech processing pipeline
+│   │   ├── scripts/                 # Maintenance and migration scripts
+│   │   ├── seed/                    # Database seed data
+│   │   └── server.js                # Server bootstrap (uses modules/app.js)
 │   ├── package.json
 │   └── .env
-├── my-react-app/              # Frontend Application
+├── frontend/                        # React client
 │   ├── src/
-│   │   ├── components/        # React components
-│   │   │   ├── ai/           # AI-related components
-│   │   │   ├── chat/         # Chat interface
-│   │   │   ├── dashboard/    # Dashboard components
-│   │   │   ├── forms/        # Form components
-│   │   │   ├── reports/      # Report components
-│   │   │   └── ui/           # UI components
-│   │   ├── pages/            # Page components
-│   │   ├── services/         # API services
-│   │   └── utils/            # Utility functions
+│   │   ├── app/                     # App shell, routing, top-level providers
+│   │   ├── components/              # Shared UI primitives (buttons, cards, etc.)
+│   │   ├── modules/                 # Feature areas organised by domain
+│   │   │   ├── ai/                  # AI assistant UI & services
+│   │   │   ├── auth/                # Login & profile pages
+│   │   │   ├── patients/            # Patient dashboard, detail views, forms
+│   │   │   ├── reports/             # Report generator UI & services
+│   │   │   └── speech/              # Speech demo & voice capture components
+│   │   └── shared/                  # Shared utilities, integrations, helpers
 │   ├── package.json
 │   └── .env
+├── package.json                     # Workspace-level scripts
 └── README.md
 ```
 
@@ -197,7 +202,7 @@ fetch('http://localhost:5001/api/patients', {
 ### Environment Variables
 
 ```env
-# server/.env
+# backend/.env
 MONGODB_URI=mongodb://localhost:27017/clinicaldb
 PORT=5001
 NODE_ENV=development
@@ -240,7 +245,7 @@ NODE_ENV=development
 ### Environment Variables
 
 ```env
-# my-react-app/.env
+# frontend/.env
 REACT_APP_OPENAI_API_KEY=your_openai_api_key_here
 ```
 
@@ -350,22 +355,22 @@ stopRecording(mediaRecorder);
 ### Development
 ```bash
 # Backend
-cd server
+cd backend
 npm run dev
 
 # Frontend
-cd my-react-app
+cd frontend
 npm start
 ```
 
 ### Production
 ```bash
 # Build frontend
-cd my-react-app
+cd frontend
 npm run build
 
 # Start production server
-cd server
+cd backend
 npm start
 ```
 
@@ -374,9 +379,9 @@ npm start
 # Dockerfile for backend
 FROM node:16
 WORKDIR /app
-COPY server/package*.json ./
+COPY backend/package*.json ./
 RUN npm install
-COPY server/ .
+COPY backend/ .
 EXPOSE 5001
 CMD ["npm", "start"]
 ```
@@ -391,7 +396,7 @@ npm test
 
 ### Frontend Testing
 ```bash
-cd my-react-app
+cd frontend
 npm test
 ```
 
@@ -428,7 +433,7 @@ curl -X POST http://localhost:5001/api/patients/:id/summary
 
 ### Backend Configuration
 ```javascript
-// server/src/config/database.js
+// backend/src/core/config/db.js
 const mongoose = require('mongoose');
 
 const connectDB = async () => {
@@ -444,7 +449,7 @@ const connectDB = async () => {
 
 ### Frontend Configuration
 ```javascript
-// my-react-app/src/config/api.js
+// frontend/src/config/api.js (example)
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
 export const apiClient = {
@@ -481,7 +486,7 @@ mongo --eval "db.adminCommand('ismaster')"
 
 #### 3. CORS Issues
 ```javascript
-// server/src/server.js
+// backend/src/server.js
 app.use(cors({
   origin: 'http://localhost:3000',
   credentials: true
