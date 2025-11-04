@@ -56,11 +56,11 @@ const validateConfig = () => {
   const errors = [];
   
   if (!config.openai.apiKey) {
-    errors.push('OPENAI_API_KEY is required');
+    errors.push('OPENAI_API_KEY is required (will fallback to error on transcription)');
   }
   
   if (!config.huggingface.apiKey) {
-    errors.push('HUGGINGFACE_API_KEY is required');
+    console.warn('HUGGINGFACE_API_KEY not set - will use OpenAI Whisper for transcription');
   }
   
   if (config.audio.maxFileSize > 100 * 1024 * 1024) {
@@ -71,7 +71,8 @@ const validateConfig = () => {
     console.warn('Configuration validation warnings:', errors);
   }
   
-  return errors.length === 0;
+  // Don't fail if HuggingFace key is missing - we can use OpenAI as fallback
+  return true;
 };
 
 // Initialize configuration

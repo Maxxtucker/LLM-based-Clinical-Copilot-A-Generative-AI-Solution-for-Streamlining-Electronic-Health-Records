@@ -8,9 +8,9 @@ import { generateAIResponse } from './OpenAIService';
 // const API_BASE_URL = 'http://localhost:5001/api'; // Removed unused variable
 
 /**
- * Enhanced RAG search for reports with top-k=20 for comprehensive analysis
+ * Enhanced RAG search for reports with top-k=50 for comprehensive analysis
  */
-async function searchSimilarPatientsForReport(query, topK = 20) {
+async function searchSimilarPatientsForReport(query, topK = 50) {
   try {
     const response = await fetch('/api/rag/search', {
       method: 'POST',
@@ -36,8 +36,8 @@ export async function generateComprehensiveReport(userQuery, allPatients) {
   try {
     console.log('🔍 Searching for similar patients for report generation...');
     
-    // Search for similar patients with top-k=20
-    const similarPatients = await searchSimilarPatientsForReport(userQuery, 20);
+    // Search for similar patients with top-k=50 for comprehensive reports
+    const similarPatients = await searchSimilarPatientsForReport(userQuery, 50);
     
     let ragContext = '';
     if (similarPatients && similarPatients.length > 0) {
@@ -66,8 +66,8 @@ ${patientData}`;
       }).join('\n\n');
     } else {
       console.log('⚠️ No similar patients found, using general patient data for report');
-      // Fallback to general patient data
-      ragContext = allPatients.slice(0, 20).map((patient, index) => `
+      // Fallback to general patient data (up to 50 patients)
+      ragContext = allPatients.slice(0, 50).map((patient, index) => `
 **Patient ${index + 1}:**
 - Name: ${patient.first_name} ${patient.last_name}
 - MRN: ${patient.medical_record_number}
@@ -222,6 +222,12 @@ export async function generateHTMLReportWithCharts(reportText, visualizationData
  */
 export function generateVisualizationData(patients, reportType) {
   const visualizations = [];
+  
+  // Safety check: ensure patients is an array
+  if (!Array.isArray(patients)) {
+    console.warn('generateVisualizationData: patients is not an array:', patients);
+    return visualizations;
+  }
   
   // Demographics analysis
   const ageGroups = {

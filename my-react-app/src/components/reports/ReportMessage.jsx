@@ -44,14 +44,14 @@ export default function ChatMessage({ message, isUser }) {
                   strong: ({ node, ...props }) => (
                     <strong className="font-semibold text-neutral-900" {...props} />
                   ),
-                  h1: ({ node, ...props }) => (
-                    <h1 className="text-lg font-bold text-neutral-900 mt-3 mb-2" {...props}>{(node.children && node.children.length > 0) ? node.children[0].value : ''}</h1>
+                  h1: ({ node, children, ...props }) => (
+                    <h1 className="text-lg font-bold text-neutral-900 mt-3 mb-2" {...props}>{children}</h1>
                   ),
-                  h2: ({ node, ...props }) => (
-                    <h2 className="text-base font-bold text-neutral-900 mt-3 mb-2" {...props}>{(node.children && node.children.length > 0) ? node.children[0].value : ''}</h2>
+                  h2: ({ node, children, ...props }) => (
+                    <h2 className="text-base font-bold text-neutral-900 mt-3 mb-2" {...props}>{children}</h2>
                   ),
-                  h3: ({ node, ...props }) => (
-                    <h3 className="text-sm font-bold text-neutral-900 mt-2 mb-1" {...props}>{(node.children && node.children.length > 0) ? node.children[0].value : ''}</h3>
+                  h3: ({ node, children, ...props }) => (
+                    <h3 className="text-sm font-bold text-neutral-900 mt-2 mb-1" {...props}>{children}</h3>
                   ),
                   code: ({ node, inline, ...props }) => 
                     inline ? (
@@ -73,8 +73,8 @@ export default function ChatMessage({ message, isUser }) {
                   td: ({ node, ...props }) => (
                     <td className="border border-neutral-200 px-3 py-2 text-neutral-700" {...props} />
                   ),
-                  a: ({ node, ...props }) => (
-                    <a className="text-red-600 hover:text-red-700 underline" target="_blank" rel="noopener noreferrer" {...props}>{(node.children && node.children.length > 0) ? node.children[0].value : ''}</a>
+                  a: ({ node, children, ...props }) => (
+                    <a className="text-red-600 hover:text-red-700 underline" target="_blank" rel="noopener noreferrer" {...props}>{children}</a>
                   ),
                   hr: ({ node, ...props }) => (
                     <hr className="my-3 border-neutral-200" {...props} />

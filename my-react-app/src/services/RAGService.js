@@ -19,11 +19,22 @@ async function callBackendAI(prompt, systemMessage) {
     });
 
     if (!response.ok) {
-      throw new Error(`Backend AI API error: ${response.status}`);
+      const errorText = await response.text().catch(() => 'Unknown error');
+      throw new Error(`Backend AI API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    return data.response || data.message || 'AI response generated successfully.';
+    console.log('Backend AI response data:', data);
+    
+    // Extract response text - backend returns { response: string, success: boolean }
+    const aiResponseText = data.response || data.message || data.text || data.content;
+    
+    if (!aiResponseText || aiResponseText.trim() === '') {
+      console.error('Empty AI response received:', data);
+      throw new Error('Received empty response from AI service');
+    }
+    
+    return aiResponseText;
   } catch (error) {
     console.error('Backend AI call failed:', error);
     throw new Error(`Failed to get AI response from backend: ${error.message}`);
@@ -33,23 +44,77 @@ async function callBackendAI(prompt, systemMessage) {
 /**
  * Search for similar patients using vector search
  */
-export async function searchSimilarPatients(query, topK = 5) {
+export async function searchSimilarPatients(query, topK = 5, patientId = null) {
   try {
     const response = await fetch('/api/rag/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, topK }),
+      body: JSON.stringify({ query, topK, patientId }),
     });
 
     if (!response.ok) {
       throw new Error(`Vector search failed: ${response.statusText}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    try {
+      console.log('[RAG] vector results',
+        Array.isArray(data)
+          ? data.map((r, i) => ({ i, patient_id: r.patient_id, score: r.score, snippet: String(r.content || '').slice(0, 120) }))
+          : data);
+    } catch {}
+    return data;
   } catch (error) {
     console.error('RAG Search Error:', error);
     return [];
   }
+}
+
+/**
+ * Extract patient name from query (e.g., "temperature for Cathleen" -> "Cathleen")
+ */
+function extractPatientNameFromQuery(query) {
+  // Patterns to match patient names
+  const patterns = [
+    /(?:for|about|of|patient)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,  // "for Cathleen" or "for Cathleen Widjaja"
+    /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)(?:\s+(?:temperature|vitals|history|blood pressure|heart rate))/i,  // "Cathleen temperature"
+    /patient\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,  // "patient Cathleen"
+  ];
+  
+  for (const pattern of patterns) {
+    const match = query.match(pattern);
+    if (match && match[1]) {
+      return match[1].trim();
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Find patient by exact name match in allPatients array
+ */
+function findPatientByName(name, allPatients) {
+  if (!name || !allPatients || allPatients.length === 0) return null;
+  
+  const searchName = name.toLowerCase().trim();
+  
+  for (const patient of allPatients) {
+    const firstName = (patient.first_name || '').toLowerCase();
+    const lastName = (patient.last_name || '').toLowerCase();
+    const fullName = `${firstName} ${lastName}`.trim();
+    
+    // Check if name matches first name, last name, or full name
+    if (firstName === searchName || 
+        lastName === searchName || 
+        fullName === searchName ||
+        firstName.startsWith(searchName) ||
+        fullName.includes(searchName)) {
+      return patient;
+    }
+  }
+  
+  return null;
 }
 
 /**
@@ -58,47 +123,121 @@ export async function searchSimilarPatients(query, topK = 5) {
 export async function generateRAGResponse(userQuery, allPatients = []) {
   try {
     console.log('🔍 Performing vector search for:', userQuery);
-    const similarPatients = await searchSimilarPatients(userQuery, 3);
+    
+    // Try to extract patient name from query and do exact matching first
+    const extractedName = extractPatientNameFromQuery(userQuery);
+    let exactMatchPatient = null;
+    
+    if (extractedName) {
+      console.log(`🔎 Extracted patient name from query: "${extractedName}"`);
+      exactMatchPatient = findPatientByName(extractedName, allPatients);
+      if (exactMatchPatient) {
+        console.log(`✅ Found exact name match: ${exactMatchPatient.first_name} ${exactMatchPatient.last_name}`);
+      }
+    }
+    
+    // Increase topK to get more results from vector search
+    const similarPatients = await searchSimilarPatients(userQuery, 10);
 
     let ragContext = '';
-    // let searchMethod = ''; // Removed unused variable
+    const seenPatientIds = new Set();
 
+    // If we found an exact match, fetch its embedding directly by patient_id (non-semantic, exact lookup)
+    if (exactMatchPatient && exactMatchPatient._id) {
+      console.log(`🔍 Fetching patient embedding directly by patient_id: ${exactMatchPatient._id}`);
+      // Use direct patient_id lookup instead of semantic search for exact matches
+      // Pass empty string as query and patientId for direct lookup
+      const directEmbedding = await searchSimilarPatients(
+        '', // Empty query - backend will use patientId for direct lookup
+        1,
+        exactMatchPatient._id.toString() // Pass patientId for direct lookup
+      );
+      
+      if (directEmbedding && directEmbedding.length > 0) {
+        const patientData = directEmbedding[0];
+        console.log(`✅ Found exact match patient via direct patient_id lookup`);
+        console.log('[RAG] direct embedding snippet:', String(patientData.content || '').slice(0, 200));
+        seenPatientIds.add(exactMatchPatient._id.toString());
+        ragContext = `
+**Relevant Patient: ${exactMatchPatient.first_name} ${exactMatchPatient.last_name}** (Exact Name Match - Direct Lookup)
+- Patient ID: ${exactMatchPatient._id || 'N/A'}
+
+${patientData.content || 'Patient data from vector database'}
+        `;
+      } else {
+        // Try semantic search as fallback if direct lookup fails
+        console.log(`⚠️ Direct lookup failed, trying semantic search with patient name`);
+        const semanticResults = await searchSimilarPatients(
+          `${exactMatchPatient.first_name} ${exactMatchPatient.last_name} ${exactMatchPatient.medical_record_number}`,
+          5
+        );
+        const semanticMatch = semanticResults.find(p => 
+          p.patient_id && p.patient_id.toString() === exactMatchPatient._id?.toString()
+        );
+        
+        if (semanticMatch) {
+          console.log(`✅ Found exact match patient via semantic search fallback`);
+          console.log('[RAG] semantic embedding snippet:', String(semanticMatch.content || '').slice(0, 200));
+          seenPatientIds.add(exactMatchPatient._id.toString());
+          ragContext = `
+**Relevant Patient: ${exactMatchPatient.first_name} ${exactMatchPatient.last_name}** (Exact Name Match - Semantic Search)
+- Patient ID: ${exactMatchPatient._id || 'N/A'}
+
+${semanticMatch.content || 'Patient data from vector search'}
+          `;
+        }
+      }
+    }
+
+    // Add other vector search results (excluding the exact match if already added)
     if (similarPatients && similarPatients.length > 0) {
       console.log(`📊 Found ${similarPatients.length} similar patients via vector search`);
-      // searchMethod = 'vector_search'; // Removed unused variable
 
       // Deduplicate by patient_id to avoid showing the same patient multiple times
       const uniquePatients = [];
-      const seenPatientIds = new Set();
       
       for (const result of similarPatients) {
-        const patientId = result.patient_id;
-        if (!seenPatientIds.has(patientId)) {
+        const patientId = result.patient_id?.toString();
+        if (patientId && !seenPatientIds.has(patientId)) {
           seenPatientIds.add(patientId);
           uniquePatients.push(result);
         }
       }
 
-      console.log(`📊 Deduplicated to ${uniquePatients.length} unique patients`);
+      console.log(`📊 Added ${uniquePatients.length} additional unique patients from vector search`);
 
-      ragContext = uniquePatients.map((result, index) => {
-        const patient = result.content || result;
+      const additionalContext = uniquePatients.map((result, index) => {
+        const patientContent = result.content || '';
         
-        // Extract patient name from content if available
+        // Extract patient name from content - format from patientDataAggregator: "- Name: First Last"
         let patientName = 'Unknown Patient';
-        if (typeof patient === 'string') {
-          const nameMatch = patient.match(/First Name: ([^\n]+)\s+Last Name: ([^\n]+)/);
+        if (typeof patientContent === 'string') {
+          // Match format: "- Name: First Last" (from patientDataAggregator)
+          const nameMatch = patientContent.match(/[-]*\s*Name:\s*([^\n]+)/);
           if (nameMatch) {
-            patientName = `${nameMatch[1].trim()} ${nameMatch[2].trim()}`;
+            patientName = nameMatch[1].trim();
           }
         }
         
+        // The content already includes:
+        // - Patient Summary (demographics, chief complaint, diagnosis, medications, allergies, etc.)
+        // - Past Visits (with visit dates, chief complaints, diagnoses, treatment plans)
+        // - Vital Signs (from checkups with dates and vitals data)
+        // This content is structured and ready to be passed to the AI
         return `
-**Relevant Patient ${index + 1} (${patientName}) (Similarity Score: ${result.score?.toFixed(3) || 'N/A'}):**
+**Relevant Patient ${index + 1}: ${patientName}** (Similarity Score: ${result.score?.toFixed(3) || 'N/A'})
 - Patient ID: ${result.patient_id || 'N/A'}
-- Summary: ${patient}
+
+${patientContent}
         `;
-      }).join('\n');
+      }).join('\n\n---\n\n');
+      
+      // Append additional context to existing ragContext (if exact match was found)
+      if (ragContext) {
+        ragContext += '\n\n---\n\n' + additionalContext;
+      } else {
+        ragContext = additionalContext;
+      }
     } else {
       console.log('⚠️ No similar patients found via vector search, using general patient data');
       // searchMethod = 'general_search'; // Removed unused variable
@@ -259,6 +398,12 @@ Before responding, identify:
 - Extract ONLY the patient data that directly answers the query
 - Ignore irrelevant patient records unless doing a comparison
 - If query mentions specific patients by name/MRN, focus exclusively on those
+- **CRITICAL FOR VITAL SIGNS QUERIES**: When asked about "vitals", "vital signs", "temperature", "blood pressure", "heart rate", or "vital history":
+  - Look for the "## Past Vital Sign Readings" section in the retrieved patient data
+  - This section contains ALL historical vital sign measurements with dates
+  - Each reading includes: Blood Pressure (BP), Heart Rate, Temperature, Weight, Height
+  - If this section exists with data, the patient HAS vital sign history - DO NOT say "no vital signs available"
+  - Quote the exact values and dates from the "Past Vital Sign Readings" section
 - If no relevant data exists, state this clearly upfront
 
 **Step 3: Direct Answer First**
@@ -314,6 +459,12 @@ Ensure your response:
 
 2. **Extract relevant data ONLY**:
    - Review the patient data provided above
+   - **SPECIAL ATTENTION FOR VITAL SIGNS**: If the query asks about vitals, temperature, blood pressure, or vital history:
+     * Check the "## Past Vital Sign Readings" section first
+     * This section lists all historical vital sign measurements with dates
+     * Each entry shows: Blood Pressure (e.g., "140/70 mmHg"), Heart Rate (e.g., "93 bpm"), Temperature (e.g., "39°C"), Weight, Height
+     * If this section contains data, the patient HAS vital sign history - report it with exact values and dates
+     * DO NOT say "no vital signs available" if this section has data
    - Select only the information that directly answers the query
    - If query doesn't match any patient data, state this clearly
 

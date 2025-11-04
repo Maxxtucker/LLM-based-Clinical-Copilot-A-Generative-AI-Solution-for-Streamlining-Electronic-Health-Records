@@ -174,12 +174,13 @@ export default function ReportGenerator() {
     setIsLoading(true);
 
     try {
-      const apiResponse = await fetch('/api/patients');
+      const apiResponse = await fetch('/api/patients?status=active&limit=200');
       let patients = [];
       
       if (apiResponse.ok) {
         const data = await apiResponse.json();
-        patients = data;
+        // Handle paginated response - extract the data array
+        patients = Array.isArray(data) ? data : (data.data || data.patients || []);
       } else {
         // Fallback mock data
         patients = [
@@ -229,6 +230,10 @@ export default function ReportGenerator() {
       const aiResponse = await generateComprehensiveReport(userMessage, patients);
       console.log('✅ Comprehensive report generated with RAG context');
 
+      // Extract message and report from response object
+      const chatMessage = aiResponse.message || aiResponse;
+      const reportContent = aiResponse.report || aiResponse;
+
       // Step 2: Build visualization data JSON
       const vizData = generateVisualizationData(patients, queryClassification);
       console.log('Generated visualization data:', vizData);
@@ -236,15 +241,15 @@ export default function ReportGenerator() {
 
       // Step 3: Ask LLM to render full HTML with embedded charts
       try {
-        const htmlReport = await generateHTMLReportWithCharts(aiResponse, vizData);
-        setMessages(prev => [...prev, { text: aiResponse, isUser: false }]);
+        const htmlReport = await generateHTMLReportWithCharts(reportContent, vizData);
+        setMessages(prev => [...prev, { text: chatMessage, isUser: false }]);
         setGeneratedReport(htmlReport); // now HTML
         setEditedReport(htmlReport);
       } catch (e) {
         console.error('Failed to create HTML report via LLM, falling back to markdown rendering:', e);
-      setMessages(prev => [...prev, { text: aiResponse, isUser: false }]);
-      setGeneratedReport(aiResponse);
-      setEditedReport(aiResponse);
+      setMessages(prev => [...prev, { text: chatMessage, isUser: false }]);
+      setGeneratedReport(reportContent);
+      setEditedReport(reportContent);
       }
 
     } catch (error) {

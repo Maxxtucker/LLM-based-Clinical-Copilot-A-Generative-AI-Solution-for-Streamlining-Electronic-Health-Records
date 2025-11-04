@@ -31,12 +31,15 @@ export default function AIAssistant() {
 
     try {
       // Get all patient data to provide context
-      const apiResponse = await fetch('/api/patients');
+      const apiResponse = await fetch('/api/patients?status=active&limit=200');
       let patients = [];
       
       if (apiResponse.ok) {
         const data = await apiResponse.json();
-        patients = data;
+        // Handle paginated response format: { items, total, page, pages }
+        // or plain array format
+        patients = Array.isArray(data) ? data : (data.items || []);
+        console.log(`📋 Loaded ${patients.length} patients for RAG context`);
       } else {
         // Fallback to mock data if API fails
         patients = [
@@ -94,13 +97,19 @@ export default function AIAssistant() {
       // Use RAG-enhanced AI to generate insights with vector search context
       console.log('🔍 Using RAG-enhanced AI with vector search for:', userMessage);
       const aiResponse = await generateRAGPatientInsights(patients, userMessage);
-      console.log('✅ RAG-enhanced AI response received');
+      console.log('✅ RAG-enhanced AI response received:', aiResponse?.substring(0, 100) + '...');
+      
+      if (!aiResponse || aiResponse.trim() === '') {
+        throw new Error('Received empty response from AI service');
+      }
+      
       setMessages(prev => [...prev, { text: aiResponse, isUser: false }]);
       
     } catch (error) {
       console.error('Error getting AI response:', error);
+      const errorMessage = error.message || 'Unknown error occurred';
       setMessages(prev => [...prev, { 
-        text: "I apologize, but I encountered an error while processing your request. Please try again.", 
+        text: `I apologize, but I encountered an error while processing your request: ${errorMessage}\n\nPlease check the browser console for more details or try again.`, 
         isUser: false 
       }]);
     }

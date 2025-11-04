@@ -25,6 +25,7 @@ const patientRoutes       = require("./routes/patient_route");
 const ragRoutes           = require("./routes/rag");
 const visitRoutes         = require("./routes/visit_routes");
 const legacyVisitsBlocker = require("./routes/legacy_visit_blocker"); // optional
+const { speechRoutes } = require("./speech-processing");
 
 /* -------------------------- CRON JOBS -------------------------- */
 const migrationScriptVitals = path.resolve(__dirname, "scripts/patientMigration.js");
@@ -101,6 +102,7 @@ cron.schedule("10 * * * *", () => {
     app.use("/api/patients", patientRoutes);
     app.use("/api/ai", aiReportRoutes);
     app.use("/api/rag", ragRoutes);
+    app.use("/api/speech", speechRoutes);
 
     // Checkups (vitals): mount BOTH nested and legacy
     // - Nested: POST /api/patients/:patientId/checkups   (PatientForm uses this)

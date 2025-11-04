@@ -14,8 +14,14 @@ const {
 
 class SpeechProcessingService {
   constructor() {
-    this.hf = new HfInference(config.huggingface.apiKey);
-    this.model = config.huggingface.model;
+    // Only initialize HuggingFace if API key is provided
+    if (config.huggingface.apiKey) {
+      this.hf = new HfInference(config.huggingface.apiKey);
+      this.model = config.huggingface.model;
+    } else {
+      this.hf = null;
+      console.warn('HuggingFace API key not configured - using OpenAI Whisper only');
+    }
     
     // Fallback to OpenAI Whisper if HF fails
     this.openai = new (require('openai'))({
@@ -28,6 +34,12 @@ class SpeechProcessingService {
    */
   async transcribeWithMedicalWhisper(audioBuffer, options = {}) {
     try {
+      // If HuggingFace is not configured, use OpenAI directly
+      if (!this.hf) {
+        logProcessing('info', 'HuggingFace not configured, using OpenAI Whisper directly...');
+        return await this.transcribeWithOpenAIWhisper(audioBuffer, options);
+      }
+      
       logProcessing('info', 'Starting Medical Whisper transcription...');
       
       // Convert buffer to file for HF API
