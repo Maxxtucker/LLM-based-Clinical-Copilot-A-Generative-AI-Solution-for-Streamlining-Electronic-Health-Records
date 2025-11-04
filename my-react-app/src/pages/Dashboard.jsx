@@ -1,9 +1,9 @@
 // pages/Dashboard.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
-import { Search, Plus, Users, Brain, TrendingUp } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Search, Plus, Users, Brain, TrendingUp, RefreshCw } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import StatsCards from "../components/dashboard/StatsCards";
 import PatientCard from "../components/dashboard/PatientCard";
@@ -14,6 +14,7 @@ import { listPatients } from "../services/PatientService.ts";
 export default function Dashboard() {
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
 
   // server-reported totals (from backend pagination response)
   const [totalFromServer, setTotalFromServer] = useState(0);
@@ -26,68 +27,79 @@ export default function Dashboard() {
   const [showAllPatients, setShowAllPatients] = useState(false);
 
   // --- Load patients from backend (uses ?q= and returns {items,total}) ---
-  useEffect(() => {
+  const loadPatients = useCallback(async () => {
     let cancelled = false;
 
-    (async () => {
-      try {
-        setLoading(true);
-        // sort matches your previous UI ordering; pull a big page so cards fill out
-        const { items, total } = await listPatients(
-          "last_name first_name",
-          debouncedQ,
-          1,
-          200
-        );
+    try {
+      setLoading(true);
+      // sort matches your previous UI ordering; pull a big page so cards fill out
+      // Only fetch active patients (exclude inactive and discharged)
+      const { items, total } = await listPatients(
+        "last_name first_name",
+        debouncedQ,
+        1,
+        200,
+        "active"
+      );
 
-        if (!cancelled) {
-          // map _id -> id for PatientCard component
-          setPatients(items.map((p) => ({ ...p, id: p._id })));
-          setTotalFromServer(total);
-        }
-      } catch (e) {
-        console.warn("Falling back to demo patients:", e);
-        if (!cancelled) {
-          const demo = [
-            {
-              id: "demo-1",
-              first_name: "Alice",
-              last_name: "Tan",
-              gender: "female",
-              date_of_birth: "1988-05-12",
-              phone: "+65 9123 4567",
-              status: "active",
-              medical_record_number: "MRN001",
-              chief_complaint: "Frequent headaches for the past 2 weeks",
-              ai_summary: true,
-              createdAt: new Date().toISOString(),
-            },
-            {
-              id: "demo-2",
-              first_name: "John",
-              last_name: "Lim",
-              gender: "male",
-              date_of_birth: "1975-09-23",
-              phone: "+65 9876 5432",
-              status: "inactive",
-              medical_record_number: "MRN002",
-              chief_complaint: "Chest pain when exercising",
-              ai_summary: false,
-              createdAt: new Date().toISOString(),
-            },
-          ];
-          setPatients(demo);
-          setTotalFromServer(demo.length);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
+      if (!cancelled) {
+        // map _id -> id for PatientCard component
+        setPatients(items.map((p) => ({ ...p, id: p._id })));
+        setTotalFromServer(total);
       }
-    })();
+    } catch (e) {
+      console.warn("Falling back to demo patients:", e);
+      if (!cancelled) {
+        const demo = [
+          {
+            id: "demo-1",
+            first_name: "Alice",
+            last_name: "Tan",
+            gender: "female",
+            date_of_birth: "1988-05-12",
+            phone: "+65 9123 4567",
+            status: "active",
+            medical_record_number: "MRN001",
+            chief_complaint: "Frequent headaches for the past 2 weeks",
+            ai_summary: true,
+            createdAt: new Date().toISOString(),
+          },
+          {
+            id: "demo-2",
+            first_name: "John",
+            last_name: "Lim",
+            gender: "male",
+            date_of_birth: "1975-09-23",
+            phone: "+65 9876 5432",
+            status: "inactive",
+            medical_record_number: "MRN002",
+            chief_complaint: "Chest pain when exercising",
+            ai_summary: false,
+            createdAt: new Date().toISOString(),
+          },
+        ];
+        setPatients(demo);
+        setTotalFromServer(demo.length);
+      }
+    } finally {
+      if (!cancelled) setLoading(false);
+    }
 
     return () => {
       cancelled = true;
     };
   }, [debouncedQ]);
+
+  useEffect(() => {
+    loadPatients();
+  }, [loadPatients]);
+
+  // Refresh when navigating to dashboard (e.g., after creating a patient)
+  useEffect(() => {
+    if (location.pathname === "/dashboard") {
+      loadPatients();
+    }
+  }, [location.pathname, loadPatients]);
 
   // Handle patient updates from voice processing
   const handlePatientUpdate = async (_patientId, _updateData) => {
@@ -96,14 +108,7 @@ export default function Dashboard() {
       // setPatients(prev => prev.map(p => p.id === patientId ? { ...p, ...updateData.medicalExtraction?.extractedData } : p));
 
       // Refresh from server to stay canonical
-      const { items, total } = await listPatients(
-        "last_name first_name",
-        debouncedQ,
-        1,
-        200
-      );
-      setPatients(items.map((p) => ({ ...p, id: p._id })));
-      setTotalFromServer(total);
+      await loadPatients();
     } catch (error) {
       console.error("Error updating patient:", error);
     }
@@ -116,7 +121,13 @@ export default function Dashboard() {
   }
 
   // Client-side filtering for date + name/MRN (UI behavior preserved)
+  // Note: Backend already filters by status="active", but we keep this as a safety check
   const filteredPatients = patients.filter((patient) => {
+    // Exclude inactive/discharged patients (safety check, backend should already filter)
+    if (patient.status === "inactive" || patient.status === "discharged") {
+      return false;
+    }
+
     const matchesSearch =
       `${patient.first_name} ${patient.last_name}`
         .toLowerCase()
@@ -127,10 +138,27 @@ export default function Dashboard() {
 
     if (showAllPatients) return matchesSearch;
 
-    const created = patient.createdAt ? new Date(patient.createdAt) : null;
-    if (!created) return matchesSearch;
+    // Check multiple dates to determine if patient should appear on selected date:
+    // 1. last_checkup_at (most recent vital reading)
+    // 2. last_visit_at (most recent visit)
+    // 3. updatedAt (any patient record update)
+    // 4. createdAt (fallback to original creation date)
+    const relevantDates = [
+      patient.last_checkup_at,
+      patient.last_visit_at,
+      patient.updatedAt,
+      patient.createdAt,
+    ].filter(Boolean).map(d => new Date(d));
 
-    return matchesSearch && isSameDay(created, selectedDate);
+    if (relevantDates.length === 0) return matchesSearch;
+
+    // Find the most recent activity date
+    const mostRecentDate = relevantDates.reduce((latest, current) => 
+      current > latest ? current : latest
+    );
+
+    // Use isSameDay for date comparison (handles timezone differences)
+    return matchesSearch && isSameDay(mostRecentDate, selectedDate);
   });
 
   // Show backend total when "View All Patients" is ON (matches search across entire DB).
@@ -259,6 +287,15 @@ export default function Dashboard() {
                 className="pl-10 py-3 border-neutral-200 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
+            <Button
+              onClick={loadPatients}
+              disabled={loading}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
           </div>
         </motion.div>
 

@@ -28,11 +28,13 @@ export async function listPatients(
   sortBy: string,
   q: string = "",
   page: number = 1,
-  limit: number = 20
+  limit: number = 20,
+  status?: string
 ): Promise<PaginatedResponse> {
   const params = new URLSearchParams();
   if (sortBy) params.set("sort", sortBy);
   if (q) params.set("q", q);
+  if (status) params.set("status", status);
   params.set("page", String(page));
   params.set("limit", String(limit));
 
