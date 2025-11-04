@@ -1,30 +1,44 @@
 require("dotenv").config();
-const mongoose = require("mongoose");
 const { connectToDB } = require("../config/db");
-const { embedAndStorePatient } = require("../services/embeddingService");
+const Patient = require("../models/Patient");
+const { PatientEmbedding, embedAndStorePatient } = require("../services/embeddingService");
+const { aggregatePatientData } = require("../services/patientDataAggregator");
 
-// Import your Patient model
-const Patient = require("../models/Patient"); // relative path from scripts folder
-
-async function embedAllPatients() {
+(async function embedAllPatients() {
   try {
     await connectToDB(process.env.MONGO_URI);
-    console.log("Connected to MongoDB.");
+    console.log("✅ Connected to MongoDB.");
 
-    const patients = await Patient.find({}); // fetch all patients
-    console.log(`Found ${patients.length} patients.`);
+    // Fetch only active patients
+    const patients = await Patient.find({ status: "active" });
+    console.log(`📋 Found ${patients.length} active patients.`);
 
     for (const patient of patients) {
-      console.log(`Embedding patient: ${patient._id} - ${patient.first_name}, ${patient.last_name}`);
-      await embedAndStorePatient(patient);
+      console.log(`\n📍 Processing patient: ${patient._id} - ${patient.first_name} ${patient.last_name}`);
+
+      // Aggregate patient data (visits + vitals)
+      const aggregatedText = await aggregatePatientData(patient._id);
+      if (!aggregatedText) {
+        console.log(`⚠️ No data found for patient ${patient._id}, skipping.`);
+        continue;
+      }
+
+      // Delete previous embeddings for freshness (optional)
+      await PatientEmbedding.deleteMany({ patient_id: patient._id });
+
+      // Generate & store new embedding
+      await embedAndStorePatient({
+        ...patient.toObject(),
+        ai_summary_content: aggregatedText,
+      });
+
+      console.log(`✅ Updated embedding for ${patient.first_name} ${patient.last_name}`);
     }
 
-    console.log("All patients have been embedded and stored!");
+    console.log("\n🎯 All patient embeddings updated successfully.");
     process.exit(0);
   } catch (err) {
-    console.error("Error embedding patients:", err);
+    console.error("❌ Error embedding patients:", err);
     process.exit(1);
   }
-}
-
-embedAllPatients();
+})();

@@ -29,6 +29,13 @@ const legacyVisitsBlocker = require("./routes/legacy_visit_blocker"); // optiona
 /* -------------------------- CRON JOBS -------------------------- */
 const migrationScriptVitals = path.resolve(__dirname, "scripts/patientMigration.js");
 const migrationScriptVisits = path.resolve(__dirname, "scripts/visitMigration.js");
+const embeddingsScript = path.resolve(__dirname, "scripts/embedAllPatients.js");
+
+cron.schedule("0 0 * * *", () => {
+  console.log(`🌙 [CRON] Running daily patient embeddings update: ${new Date().toISOString()}`);
+  const proc = spawn("node", [embeddingsScript], { stdio: "inherit" });
+  proc.on("close", (code) => console.log(`✅ [CRON] Embeddings update exited with code ${code}`));
+});
 
 // hourly vitals migration
 cron.schedule("0 * * * *", () => {
