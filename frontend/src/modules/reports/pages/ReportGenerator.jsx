@@ -42,8 +42,7 @@ ChartJS.register(
 export default function ReportGenerator() {
   const [messages, setMessages] = useState([
     {
-      text: "👋 Welcome to the **Enhanced AI Report Generator**!\n\nI can help you generate comprehensive macro-level analysis reports about your patient population with **RAG-enhanced insights** and **data visualizations**.\n\n**Enhanced Features:**\n- 🔍 **RAG-powered analysis** with top-20 similar patients\n- 📊 **Data visualizations** and statistical insights\n- 📈 **Comprehensive reports** with demographics, patterns, and trends\n- 📄 **Enhanced PDF export** with visualizations\n\n**Try asking:**\n- \"Analyze disease distribution by age group\"\n- \"Generate demographic overview report\"\n- \"Show treatment outcomes analysis\"\n- \"Create cardiovascular risk assessment report\"\n\nWhat comprehensive report would you like me to generate?",
-      isUser: false
+      text: "👋 Welcome to the **Enhanced AI Report Generator**!\n\nI can help you generate comprehensive macro-level analysis reports about your patient population with **RAG-enhanced insights** and **data visualizations**.\n\n**Enhanced Features:**\n- 🔍 **RAG-powered analysis** with top-20 similar patients\n- 📊 **Data visualizations** and statistical insights\n- 📈 **Comprehensive reports** with demographics, patterns, and trends\n- 📄 **Enhanced PDF export** with visualizations\n\n**Try asking the quick prompts above!**",
     }
   ]);
   const [isLoading, setIsLoading] = useState(false);

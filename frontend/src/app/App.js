@@ -3,7 +3,6 @@ import { Routes, Route, Navigate, Link, useNavigate } from "react-router-dom";
 
 import Dashboard from "@/modules/patients/pages/Dashboard";
 import PatientDetail from "@/modules/patients/pages/PatientDetail";
-import Reports from "@/modules/reports/pages/Reports";
 import AIAssistant from "@/modules/ai/pages/AIAssistant";
 import PatientForm from "@/modules/patients/components/forms/PatientForm";
 import Profile from "@/modules/auth/pages/Profile";
@@ -218,7 +217,6 @@ function App() {
                         </section>
                       }
                     />
-                    <Route path="/reports" element={<Reports />} />
                     <Route path="/ai" element={<AIAssistant />} />
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/patient" element={<PatientDetail />} />
