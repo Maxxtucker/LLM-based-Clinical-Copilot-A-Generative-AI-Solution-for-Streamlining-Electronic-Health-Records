@@ -31,57 +31,71 @@ async function searchSimilarPatientsForReport(query, topK = 50) {
 
 /**
  * Generate comprehensive report with RAG context and visualizations
+ * IMPORTANT: Uses allPatients for both report AND visualizations to ensure consistency
  */
 export async function generateComprehensiveReport(userQuery, allPatients) {
   try {
-    console.log('🔍 Searching for similar patients for report generation...');
+    console.log(`🔍 Generating report for ${allPatients.length} patients...`);
     
-    // Search for similar patients with top-k=50 for comprehensive reports
-    const similarPatients = await searchSimilarPatientsForReport(userQuery, 50);
+    // Calculate exact statistics for the AI to reference
+    const ageGroups = { '0-18': 0, '19-35': 0, '36-50': 0, '51-65': 0, '65+': 0 };
+    const genderCount = { male: 0, female: 0, other: 0 };
+    const diagnosisCount = {};
     
-    let ragContext = '';
-    if (similarPatients && similarPatients.length > 0) {
-      console.log(`✅ Found ${similarPatients.length} similar patients for report context`);
+    allPatients.forEach(patient => {
+      const age = new Date().getFullYear() - new Date(patient.date_of_birth).getFullYear();
+      if (age <= 18) ageGroups['0-18']++;
+      else if (age <= 35) ageGroups['19-35']++;
+      else if (age <= 50) ageGroups['36-50']++;
+      else if (age <= 65) ageGroups['51-65']++;
+      else ageGroups['65+']++;
       
-      // Deduplicate by patient_id to avoid showing the same patient multiple times
-      const uniquePatients = [];
-      const seenPatientIds = new Set();
+      genderCount[patient.gender] = (genderCount[patient.gender] || 0) + 1;
       
-      for (const patient of similarPatients) {
-        const patientId = patient.patient_id;
-        if (!seenPatientIds.has(patientId)) {
-          seenPatientIds.add(patientId);
-          uniquePatients.push(patient);
-        }
+      if (patient.diagnosis) {
+        const diagnoses = patient.diagnosis.split(',').map(d => d.trim());
+        diagnoses.forEach(d => {
+          diagnosisCount[d] = (diagnosisCount[d] || 0) + 1;
+        });
       }
+    });
+    
+    // Build data summary for AI
+    const dataSummary = `
+## DATA SUMMARY (Use these exact numbers in your report)
 
-      console.log(`📊 Deduplicated to ${uniquePatients.length} unique patients for report`);
-      
-      // Format patient data for report context
-      ragContext = uniquePatients.map((patient, index) => {
-        const patientData = patient.content || patient;
-        return `
-**Patient ${index + 1}:**
-${patientData}`;
-      }).join('\n\n');
-    } else {
-      console.log('⚠️ No similar patients found, using general patient data for report');
-      // Fallback to general patient data (up to 50 patients)
-      ragContext = allPatients.slice(0, 50).map((patient, index) => `
+**Total Patients:** ${allPatients.length}
+
+**Age Distribution:**
+${Object.entries(ageGroups).map(([range, count]) => `- ${range}: ${count} patients (${((count/allPatients.length)*100).toFixed(1)}%)`).join('\n')}
+
+**Gender Distribution:**
+${Object.entries(genderCount).map(([gender, count]) => `- ${gender.charAt(0).toUpperCase() + gender.slice(1)}: ${count} patients (${((count/allPatients.length)*100).toFixed(1)}%)`).join('\n')}
+
+**Top Diagnoses:**
+${Object.entries(diagnosisCount).sort(([,a], [,b]) => b - a).slice(0, 5).map(([diagnosis, count]) => `- ${diagnosis}: ${count} patients`).join('\n')}
+`;
+    
+    // Use ALL active patients for the report (same dataset used for visualizations)
+    // This ensures the report text matches the charts exactly
+    const patientDetails = allPatients.map((patient, index) => {
+      const age = new Date().getFullYear() - new Date(patient.date_of_birth).getFullYear();
+      return `
 **Patient ${index + 1}:**
 - Name: ${patient.first_name} ${patient.last_name}
 - MRN: ${patient.medical_record_number}
-- Age: ${new Date().getFullYear() - new Date(patient.date_of_birth).getFullYear()}
+- Age: ${age} years
 - Gender: ${patient.gender}
-- Chief Complaint: ${patient.chief_complaint || 'N/A'}
-- Medical History: ${patient.medical_history || 'N/A'}
-- Diagnosis: ${patient.diagnosis || 'N/A'}
-- Current Medications: ${patient.current_medications || 'N/A'}
-- Allergies: ${patient.allergies || 'None known'}
-- Treatment Plan: ${patient.treatment_plan || 'N/A'}
-- Vital Signs: ${JSON.stringify(patient.vital_signs || {})}
-- AI Summary: ${patient.ai_summary_content || 'N/A'}`).join('\n\n');
-    }
+- Chief Complaint: ${patient.chief_complaint || 'Not specified'}
+- Medical History: ${patient.medical_history || 'None documented'}
+- Diagnosis: ${patient.diagnosis || 'Under evaluation'}
+- Current Medications: ${patient.current_medications || 'None listed'}
+- Allergies: ${patient.allergies || 'No known allergies'}
+- Treatment Plan: ${patient.treatment_plan || 'To be determined'}
+- Status: ${patient.status}`;
+    }).join('\n\n');
+    
+    const ragContext = dataSummary + '\n\n---\n\n## DETAILED PATIENT DATA\n' + patientDetails;
 
     // Enhanced system message for comprehensive reports
     const systemMessage = `You are **MedReport AI**, a specialized clinical report generator that creates comprehensive, data-driven medical reports with visualizations and insights.
@@ -137,37 +151,41 @@ ${systemMessage}
 
 **Report Request:** "${userQuery}"
 
-**Patient Database Context (${allPatients.length} total patients):**
+**IMPORTANT: You must analyze EXACTLY these ${allPatients.length} patients. All statistics in your report MUST match this exact dataset.**
+
+**Patient Database (${allPatients.length} patients):**
 ${ragContext}
 
 ---
 
-## CRITICAL: Comprehensive Report Generation
+## CRITICAL: Data-Accurate Report Generation
 
-**Step 1: Data Analysis**
-- Analyze the patient data for patterns, trends, and insights
-- Calculate relevant statistics and percentages
-- Identify high-risk patients and concerning patterns
-- Note demographic distributions and clinical correlations
+**REQUIREMENT: Calculate EXACT statistics from the provided patient data**
+
+**Step 1: Count and Calculate**
+- Count EXACT numbers from the patient list above
+- Calculate age distribution: How many in 0-18, 19-35, 36-50, 51-65, 65+ groups
+- Count gender distribution: How many male, female, other
+- Count diagnoses: List each unique diagnosis and its count
+- Calculate percentages based on TOTAL = ${allPatients.length}
 
 **Step 2: Report Structure**
-- Create a professional executive summary
-- Organize findings into logical sections
-- Include specific data points and statistics
-- Provide clear, actionable recommendations
+- Use ONLY the calculated statistics from Step 1
+- State "Total Patients Analyzed: ${allPatients.length}"
+- For each statistic, provide: Count (${allPatients.length > 0 ? 'XX%' : '0%'})
+- Do NOT estimate or approximate - use exact counts only
 
-**Step 3: Visualization Planning**
-- Suggest 3-5 key visualizations that would enhance the report
-- Specify what data each chart should show
-- Explain the clinical value of each visualization
+**Step 3: Accuracy Check**
+- Verify all numbers add up to ${allPatients.length}
+- Verify all percentages are calculated from ${allPatients.length}
+- Do NOT make up data or estimate statistics
 
 **Step 4: Clinical Insights**
-- Identify patterns across the patient population
-- Highlight risk factors and concerning trends
-- Provide evidence-based recommendations
-- Suggest areas for further investigation
+- Base ALL insights on the ACTUAL data provided
+- Cite specific patients by their number when relevant
+- Only recommend actions based on real patterns observed
 
-Generate a comprehensive medical report that would be valuable for clinical decision-making, quality improvement, and patient care optimization.`;
+Generate a report where EVERY NUMBER matches the actual patient data provided above. The visualizations will show the exact same data, so accuracy is critical.`;
 
     console.log('🤖 Generating comprehensive report with RAG context...');
     const report = await generateAIResponse(prompt, systemMessage);
@@ -275,7 +293,7 @@ export function generateVisualizationData(patients, reportType) {
     type: 'demographics',
     title: 'Patient Age Distribution',
     data: ageGroups,
-    chartType: 'bar',
+    chartType: 'Bar Chart',
     description: 'Distribution of patients across age groups'
   });
   
@@ -283,7 +301,7 @@ export function generateVisualizationData(patients, reportType) {
     type: 'demographics',
     title: 'Gender Distribution',
     data: genderDistribution,
-    chartType: 'pie',
+    chartType: 'Pie Chart',
     description: 'Gender breakdown of patient population'
   });
   
@@ -294,7 +312,7 @@ export function generateVisualizationData(patients, reportType) {
       .sort(([,a], [,b]) => b - a)
       .slice(0, 10)
       .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {}),
-    chartType: 'bar',
+    chartType: 'Bar Chart',
     description: 'Most common diagnoses in the patient population'
   });
   
@@ -307,6 +325,7 @@ export function generateVisualizationData(patients, reportType) {
       topConditions: Object.entries(conditionDistribution)
         .sort(([,a], [,b]) => b - a)
         .slice(0, 5)
+        .map(([condition, count]) => ({ condition, count }))
     }
   };
 }

@@ -50,34 +50,39 @@ Returns a single string to the UI.
 
 /**
  * Generate patient summary — builds a structured prompt, then calls generateAIResponse()
- * @param {Object} patient
+ * @param {Object} patient - Patient data
+ * @param {Array} visits - Recent visit history (optional)
+ * @param {Array} checkups - Recent checkup/vitals history (optional)
  * @returns {Promise<string>}
  * 
  * Notes:
  Prepares a system message (instructions/persona) and a structured prompt using patient data.
  Calculates derived values (e.g., age; BMI if height/weight exist).
+ Includes visit history for longitudinal context.
  Enforces strict output formatting rules (specific headers, sections, concision).
  Calls generateAIResponse(prompt, systemMessage) to actually get the text from the backend.
  */
 
-export async function generatePatientSummary(patient) {
-  const systemMessage = `You are an expert medical AI assistant specializing in generating comprehensive, structured patient summaries for healthcare professionals. 
+export async function generatePatientSummary(patient, visits = [], checkups = []) {
+  const systemMessage = `You are an expert medical AI assistant specializing in longitudinal patient care analysis and generating actionable clinical summaries.
 
 Your expertise includes:
-- Clinical assessment and risk stratification
-- Medication management and drug interactions
-- Vital signs interpretation and clinical significance
-- Evidence-based treatment recommendations
-- Patient safety and quality of care optimization
+- Analyzing patient trajectories across multiple visits
+- Identifying clinically significant trends and patterns
+- Risk stratification based on historical data
+- Medication management and interaction analysis
+- Evidence-based treatment evaluation
 
-Generate summaries that are:
-- Clinically accurate and evidence-based
-- Structured for quick clinical decision-making
-- Actionable with specific recommendations
-- Professional and concise
-- Focused on patient safety and outcomes
+Generate summaries that:
+- Provide both per-visit analysis AND overall synthesis
+- Highlight changes, improvements, or deteriorations over time
+- Identify concerning patterns across visits
+- Are actionable with specific next steps
+- Include quantitative vital trends
+- Consider medication-allergy interactions
+- Are concise yet comprehensive (max 200 words)
 
-Always maintain HIPAA compliance and provide information that directly supports clinical workflow and patient care.`;
+Always maintain HIPAA compliance and focus on patient safety.`;
 
   const age = patient.date_of_birth
     ? new Date().getFullYear() - new Date(patient.date_of_birth).getFullYear()
@@ -86,79 +91,127 @@ Always maintain HIPAA compliance and provide information that directly supports 
   const weight = patient.vital_signs?.weight;
   const height = patient.vital_signs?.height;
   const bmi =
-    weight && height ? (weight / ((height / 39.37) ** 2)).toFixed(1) : "Cannot calculate";
+    weight && height ? (weight / ((height / 39.37) ** 2)).toFixed(1) : "N/A";
 
-  const prompt = `Generate a comprehensive, structured medical summary for this patient:
+  // Format visit history with detailed summaries for each visit
+  const visitHistory = visits && visits.length > 0
+    ? visits.slice(0, 5).map((v, idx) => {
+        const date = new Date(v.visit_date).toLocaleDateString();
+        const complaint = v.chief_complaint || v.reason || 'Not specified';
+        const diagnosis = v.diagnosis || 'N/A';
+        const treatment = v.treatment_plan || 'N/A';
+        const symptoms = v.symptoms || 'None documented';
+        
+        return `
+### Visit ${idx + 1}: ${date}
+- **Chief Complaint:** ${complaint}
+- **Symptoms:** ${symptoms}
+- **Diagnosis:** ${diagnosis}
+- **Treatment:** ${treatment}`;
+      }).join('\n')
+    : 'No recent visits documented';
+
+  // Get latest vital trends across multiple checkups
+  const latestVitals = checkups && checkups.length > 0 ? checkups[0]?.vitals : patient.vital_signs;
+  
+  // Calculate vital trends
+  let vitalTrend = '';
+  if (checkups && checkups.length > 1) {
+    const latest = checkups[0]?.vitals;
+    const previous = checkups[1]?.vitals;
+    
+    const trends = [];
+    if (latest?.bp_sys && previous?.bp_sys) {
+      const bpChange = latest.bp_sys - previous.bp_sys;
+      trends.push(`BP ${previous.bp_sys}/${previous.bp_dia} → ${latest.bp_sys}/${latest.bp_dia} (${bpChange > 0 ? '+' : ''}${bpChange})`);
+    }
+    if (latest?.heart_rate && previous?.heart_rate) {
+      const hrChange = latest.heart_rate - previous.heart_rate;
+      trends.push(`HR ${previous.heart_rate} → ${latest.heart_rate} bpm (${hrChange > 0 ? '+' : ''}${hrChange})`);
+    }
+    if (latest?.weight && previous?.weight) {
+      const wtChange = (latest.weight - previous.weight).toFixed(1);
+      trends.push(`Weight ${previous.weight} → ${latest.weight} kg (${wtChange > 0 ? '+' : ''}${wtChange})`);
+    }
+    
+    if (trends.length > 0) {
+      vitalTrend = '\n**Trends:** ' + trends.join('; ');
+    }
+  }
+
+  const prompt = `Analyze this patient's longitudinal clinical data and generate a comprehensive summary:
 
 ## PATIENT DEMOGRAPHICS
-**Name:** ${patient.first_name} ${patient.last_name}
+**Name:** ${patient.first_name} ${patient.last_name} (${age}y ${patient.gender})
 **MRN:** ${patient.medical_record_number}
-**Age:** ${age} years | **Gender:** ${patient.gender}
 **Status:** ${patient.status}
-**Contact:** ${patient.phone}
 
-## CLINICAL PRESENTATION
-**Chief Complaint:** ${patient.chief_complaint || 'Not specified'}
-**Current Symptoms:** ${patient.symptoms || 'Not documented'}
+## CURRENT CLINICAL STATE
 **Primary Diagnosis:** ${patient.diagnosis || 'Under evaluation'}
+**Chief Complaint:** ${patient.chief_complaint || 'Not specified'}
+**Current Symptoms:** ${patient.symptoms || 'None documented'}
+**Active Treatment:** ${patient.treatment_plan || 'To be determined'}
 
-## MEDICAL HISTORY & RISK FACTORS
-**Medical History:** ${patient.medical_history || 'No significant history documented'}
-**Current Medications:** ${patient.current_medications || 'No medications listed'}
-**Known Allergies:** ${patient.allergies || 'No known allergies'}
+## MEDICAL BACKGROUND
+**Medical History:** ${patient.medical_history || 'None documented'}
+**Current Medications:** ${patient.current_medications || 'None listed'}
+**Known Allergies:** ${patient.allergies || 'NKDA'}
 
-## VITAL SIGNS & ASSESSMENT
-**Blood Pressure:** ${patient.vital_signs?.blood_pressure || 'Not recorded'} mmHg
-**Heart Rate:** ${patient.vital_signs?.heart_rate || 'Not recorded'} bpm
-**Temperature:** ${patient.vital_signs?.temperature || 'Not recorded'}°F
-**Weight:** ${patient.vital_signs?.weight || 'Not recorded'} lbs
-**Height:** ${patient.vital_signs?.height || 'Not recorded'} inches
-**BMI:** ${bmi}
+## VISIT HISTORY (Last 5 Visits - Most Recent First)
+${visitHistory}
 
-## TREATMENT PLAN
-**Current Treatment:** ${patient.treatment_plan || 'To be determined'}
+## VITAL SIGNS PROGRESSION
+**Latest Vitals:**
+- BP: ${latestVitals?.bp_sys && latestVitals?.bp_dia ? `${latestVitals.bp_sys}/${latestVitals.bp_dia}` : patient.vital_signs?.blood_pressure || 'N/A'} mmHg
+- HR: ${latestVitals?.heart_rate || 'N/A'} bpm
+- Temp: ${latestVitals?.temperature_c || patient.vital_signs?.temperature || 'N/A'}°C
+- Weight: ${latestVitals?.weight || patient.vital_signs?.weight || 'N/A'} kg | BMI: ${bmi}
+${vitalTrend}
 
 ---
 
-**INSTRUCTIONS:** Generate a concise, structured clinical summary. You MUST use this EXACT format with proper markdown headers:
+**INSTRUCTIONS:** Generate a comprehensive summary that includes both individual visit summaries AND an overall patient summary. Use this EXACT format:
 
 # CLINICAL SUMMARY
 
-## OVERVIEW
-[1-2 sentences: Patient status and primary concern]
+## OVERALL PATIENT STATUS
+[2-3 sentences synthesizing the patient's condition across all visits, highlighting progression, improvements, or deteriorations]
 
-## ASSESSMENT
-- **Condition:** [Chief complaint/symptoms]
-- **Risk Level:** [Low/Moderate/High with key factors]
-- **Vitals:** [Notable vital signs with interpretation]
+## VISIT-BY-VISIT ANALYSIS
+[For each visit provided, create a 1-2 sentence summary highlighting the key clinical event, any changes from previous visits, and outcome. Format as:
+- **Visit 1 (Date):** [Summary]
+- **Visit 2 (Date):** [Summary]
+etc.]
 
-## MEDICATIONS & ALLERGIES
-- **Current:** [Key medications and dosing]
-- **Allergies:** [Known allergies and reactions]
-- **Interactions:** [Any notable drug interactions]
+## LONGITUDINAL TRENDS
+- **Clinical Progress:** [How has the patient's condition evolved? Better/Worse/Stable?]
+- **Vital Trends:** [Key changes in BP, HR, weight with numbers]
+- **Treatment Response:** [How effective has treatment been based on visit progression?]
 
-## RECOMMENDATIONS
-- **Immediate:** [Priority actions for next 24-48h]
-- **Treatment:** [Key treatment adjustments]
-- **Follow-up:** [Monitoring schedule and next steps]
+## CURRENT MEDICAL PROFILE
+- **Active Diagnoses:** [List current conditions]
+- **Medications:** [Current meds]
+- **Allergies:** [List or NKDA]
+- **Risk Level:** [Low/Moderate/High with key risk factors]
 
-## ALERTS
-[Any red flags, contraindications, or safety concerns]
+## ACTION PLAN
+- **Immediate (24-48h):** [Top 1-2 priority actions]
+- **Follow-up:** [When and what to monitor based on visit patterns]
+- **Concerns:** [Any patterns from visits requiring attention]
+
+## ⚠️ ALERTS
+[Critical safety concerns, contraindications, or red flags from visit history. Consider: medication interactions with allergies, worsening trends, missed follow-ups, etc.]
 
 ---
 
-**MANDATORY FORMATTING RULES:**
-1. Start with exactly: # CLINICAL SUMMARY
-2. Use exactly: ## OVERVIEW
-3. Use exactly: ## ASSESSMENT
-4. Use exactly: ## MEDICATIONS & ALLERGIES
-5. Use exactly: ## RECOMMENDATIONS
-6. Use exactly: ## ALERTS
-7. Keep each section to 1-3 bullet points maximum
-8. Use **bold** for key terms only (not headers)
-9. Be concise but clinically complete
-10. Total summary should be under 200 words
-11. DO NOT use ** around headers - use standard markdown # and ##`;
+**RULES:**
+1. MAX 200 words total
+2. Each visit summary: 1-2 sentences max
+3. Focus on CHANGES and TRENDS across visits
+4. Highlight any concerning patterns
+5. Include specific numbers for vital trends
+6. Bold critical terms only
+7. Be actionable and clinically focused`;
 
   return generateAIResponse(prompt, systemMessage);
 }

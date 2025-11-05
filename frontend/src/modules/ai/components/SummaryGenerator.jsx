@@ -6,6 +6,7 @@ import { Brain, Wand2, Loader2, Save, RefreshCw, Edit3 } from "lucide-react";
 import { motion } from "framer-motion";
 import ReactMarkdown from 'react-markdown';
 import { generatePatientSummary } from "@/modules/ai/services/OpenAIService";
+import { getVisits, getCheckups } from "@/modules/patients/services/PatientService.ts";
 
 export default function SummaryGenerator({ patient, onSummaryGenerated }) {
   const [summary, setSummary] = useState(patient?.ai_summary_content || '');
@@ -16,7 +17,13 @@ export default function SummaryGenerator({ patient, onSummaryGenerated }) {
   const generateSummary = async () => {
     setIsGenerating(true);
     try {
-      const response = await generatePatientSummary(patient);
+      // Fetch recent visits and checkups for comprehensive context
+      const [visits, checkups] = await Promise.all([
+        getVisits(patient._id || patient.id, 5), // Get last 5 visits
+        getCheckups(patient._id || patient.id, 5) // Get last 5 checkups
+      ]);
+      
+      const response = await generatePatientSummary(patient, visits, checkups);
       setSummary(response);
     } catch (error) {
       console.error('Error generating summary:', error);
@@ -44,7 +51,7 @@ export default function SummaryGenerator({ patient, onSummaryGenerated }) {
         throw new Error('Failed to save summary');
       }
 
-      const updatedPatient = await response.json();
+      await response.json();
       console.log('Summary saved successfully');
       
       // Show success message
@@ -146,14 +153,33 @@ export default function SummaryGenerator({ patient, onSummaryGenerated }) {
               {summary && !isGenerating && (
                 <div className="flex justify-end gap-3">
                   {!isEditing ? (
-                    <Button
-                      onClick={() => setIsEditing(true)}
-                      variant="outline"
-                      className="gap-2 border-neutral-300 hover:bg-neutral-50 hover:border-neutral-400 transition-all duration-200"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                      Edit
-                    </Button>
+                    <>
+                      <Button
+                        onClick={() => setIsEditing(true)}
+                        variant="outline"
+                        className="gap-2 border-neutral-300 hover:bg-neutral-50 hover:border-neutral-400 transition-all duration-200"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                        Edit
+                      </Button>
+                      <Button
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-md hover:shadow-lg transition-all duration-200 gap-2"
+                      >
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="w-4 h-4" />
+                            Save Summary
+                          </>
+                        )}
+                      </Button>
+                    </>
                   ) : (
                     <>
                       <Button

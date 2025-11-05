@@ -183,8 +183,18 @@ export default function ReportGenerator() {
       
       if (apiResponse.ok) {
         const data = await apiResponse.json();
-        // Handle paginated response - extract the data array
-        patients = Array.isArray(data) ? data : (data.data || data.patients || []);
+        // Handle paginated response - extract the data array (supports { items, total, page } shape)
+        if (Array.isArray(data)) {
+          patients = data;
+        } else if (Array.isArray(data.items)) {
+          patients = data.items;
+        } else if (Array.isArray(data.data)) {
+          patients = data.data;
+        } else if (Array.isArray(data.patients)) {
+          patients = data.patients;
+        } else {
+          patients = [];
+        }
       } else {
         // Fallback mock data
         patients = [
@@ -607,20 +617,23 @@ export default function ReportGenerator() {
                           <div className="border border-gray-300 p-4">
                             <h5 className="font-bold text-black mb-4 uppercase tracking-wide border-b border-gray-400 pb-1">TOP MEDICAL CONDITIONS</h5>
                             <div className="space-y-2">
-                              {visualizationData.summary.topConditions.map((condition, idx) => (
-                                <div key={idx} className="flex items-center justify-between border border-gray-200 p-2 bg-gray-50">
-                                  <span className="font-bold text-black capitalize">{condition}</span>
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-16 bg-gray-300 h-2">
-                                      <div 
-                                        className="bg-gray-600 h-2" 
-                                        style={{ width: `${((idx + 1) / visualizationData.summary.topConditions.length) * 100}%` }}
-                                      ></div>
+                              {visualizationData.summary.topConditions.map((item, idx) => {
+                                const maxCount = visualizationData.summary.topConditions[0]?.count || 1;
+                                return (
+                                  <div key={idx} className="flex items-center justify-between border border-gray-200 p-2 bg-gray-50">
+                                    <span className="font-bold text-black capitalize">{item.condition}</span>
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-16 bg-gray-300 h-2">
+                                        <div 
+                                          className="bg-gray-600 h-2" 
+                                          style={{ width: `${(item.count / maxCount) * 100}%` }}
+                                        ></div>
+                                      </div>
+                                      <span className="text-sm font-bold text-black w-8 text-right">{item.count}</span>
                                     </div>
-                                    <span className="text-sm font-bold text-black w-8 text-right">{idx + 1}</span>
                                   </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           </div>
                         </div>
