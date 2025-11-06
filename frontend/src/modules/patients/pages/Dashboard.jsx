@@ -8,7 +8,7 @@ import StatsCards from "@/modules/patients/components/dashboard/StatsCards";
 import PatientCard from "@/modules/patients/components/dashboard/PatientCard";
 import DateDisplay from "@/modules/patients/components/dashboard/DateDisplay";
 import { isSameDay } from "date-fns";
-import { listPatients } from "@/modules/patients/services/PatientService.ts";
+import { listPatients, getVisits } from "@/modules/patients/services/PatientService.ts";
 
 export default function Dashboard() {
   const [patients, setPatients] = useState([]);
@@ -43,7 +43,22 @@ export default function Dashboard() {
 
       if (!cancelled) {
         // map _id -> id for PatientCard component
-        setPatients(items.map((p) => ({ ...p, id: p._id })));
+        const patientsWithIds = items.map((p) => ({ ...p, id: p._id }));
+        
+        // Fetch visits for each patient
+        const patientsWithVisits = await Promise.all(
+          patientsWithIds.map(async (patient) => {
+            try {
+              const visits = await getVisits(patient.id, 100); // Get up to 100 visits
+              return { ...patient, visits: visits || [] };
+            } catch (error) {
+              console.warn(`Failed to fetch visits for patient ${patient.id}:`, error);
+              return { ...patient, visits: [] };
+            }
+          })
+        );
+        
+        setPatients(patientsWithVisits);
         setTotalFromServer(total);
       }
     } catch (e) {
@@ -62,6 +77,7 @@ export default function Dashboard() {
             chief_complaint: "Frequent headaches for the past 2 weeks",
             ai_summary: true,
             createdAt: new Date().toISOString(),
+            visits: [],
           },
           {
             id: "demo-2",
@@ -75,6 +91,7 @@ export default function Dashboard() {
             chief_complaint: "Chest pain when exercising",
             ai_summary: false,
             createdAt: new Date().toISOString(),
+            visits: [],
           },
         ];
         setPatients(demo);
@@ -137,27 +154,32 @@ export default function Dashboard() {
 
     if (showAllPatients) return matchesSearch;
 
-    // Check multiple dates to determine if patient should appear on selected date:
-    // 1. last_checkup_at (most recent vital reading)
-    // 2. last_visit_at (most recent visit)
-    // 3. updatedAt (any patient record update)
-    // 4. createdAt (fallback to original creation date)
-    const relevantDates = [
-      patient.last_checkup_at,
-      patient.last_visit_at,
-      patient.updatedAt,
-      patient.createdAt,
-    ].filter(Boolean).map(d => new Date(d));
+    // Only check visit dates - filter based on actual visit dates only
+    // Use visit_date field specifically (not createdAt) for accurate filtering
+    const visitDates = (patient.visits || [])
+      .map(visit => visit.visit_date)
+      .filter(Boolean) // Only include visits that have a visit_date
+      .map(d => {
+        try {
+          return new Date(d);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean); // Remove any invalid dates
 
-    if (relevantDates.length === 0) return matchesSearch;
+    // If patient has no visits, don't show them when filtering by date
+    if (visitDates.length === 0) {
+      return false; // Don't show patients without visits when date filtering is active
+    }
 
-    // Find the most recent activity date
-    const mostRecentDate = relevantDates.reduce((latest, current) => 
-      current > latest ? current : latest
+    // Check if ANY visit date matches the selected date
+    // This allows patients with visits on multiple days to appear when filtering for any of those days
+    const hasMatchingVisitDate = visitDates.some(date => 
+      isSameDay(date, selectedDate)
     );
 
-    // Use isSameDay for date comparison (handles timezone differences)
-    return matchesSearch && isSameDay(mostRecentDate, selectedDate);
+    return matchesSearch && hasMatchingVisitDate;
   });
 
   // Show backend total when "View All Patients" is ON (matches search across entire DB).

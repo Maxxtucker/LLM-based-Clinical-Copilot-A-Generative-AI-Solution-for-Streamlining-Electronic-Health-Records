@@ -74,8 +74,13 @@ async function updatePatient(id, data) {
   );
 }
 
+// Soft delete: Set status to 'inactive' instead of removing from database
 async function deletePatient(id) {
-  return Patient.findByIdAndDelete(id);
+  return Patient.findByIdAndUpdate(
+    id,
+    { status: 'inactive' },
+    { new: true, runValidators: true }
+  );
 }
 
 module.exports = {

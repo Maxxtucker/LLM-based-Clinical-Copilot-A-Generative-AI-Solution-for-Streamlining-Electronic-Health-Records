@@ -40,5 +40,9 @@ exports.update = async (req, res, next) => {
 exports.remove = async (req, res) => {
   const result = await patientService.deletePatient(req.params.id);
   if (!result) return res.status(404).json({ message: 'Not Found' });
-  res.status(204).send();
+  res.json({ 
+    message: 'Patient marked as inactive (soft delete)',
+    patient: result,
+    status: 'inactive'
+  });
 };
