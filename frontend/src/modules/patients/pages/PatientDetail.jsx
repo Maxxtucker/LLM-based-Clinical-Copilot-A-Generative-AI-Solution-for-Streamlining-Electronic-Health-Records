@@ -851,42 +851,42 @@ export default function PatientDetail() {
                       const hrColor = textClassOnly(getVitalSignColor("heart_rate", row?.vitals?.heart_rate));
                       const tColor  = textClassOnly(getVitalSignColor("temperature", row?.vitals?.temperature_c));
                       return (
-                        <div key={key} className="rounded-xl border border-neutral-100 bg-white p-3 hover:shadow-sm transition">
-                          <div className="flex items-center justify-between">
-                            <div className="font-semibold text-neutral-900">{when}</div>
+                        <div key={key} className="rounded-xl border border-neutral-200 bg-white p-4 hover:shadow-md transition-all overflow-hidden">
+                          <div className="flex items-center justify-between mb-3 pb-2 border-b border-neutral-100">
+                            <div className="font-semibold text-sm text-neutral-900">{when}</div>
                             {row.nurse_id && (
-                              <span className="text-xs px-2 py-1 rounded-full bg-neutral-100 text-neutral-700">
+                              <span className="text-xs px-2 py-1 rounded-full bg-neutral-100 text-neutral-700 flex-shrink-0">
                                 Nurse: {row.nurse_id}
                               </span>
                             )}
                           </div>
-                          <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-                            <div className="flex items-center gap-2">
-                              <span className="text-neutral-500 w-24">BP</span>
-                              <span className={`font-semibold ${bpColor || "text-neutral-800"}`}>{bpStr}</span>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                            <div className="flex flex-col gap-1">
+                              <span className="text-neutral-500 text-xs font-medium">Blood Pressure</span>
+                              <span className={`font-semibold text-sm ${bpColor || "text-neutral-800"}`}>{bpStr}</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-neutral-500 w-24">Heart Rate</span>
-                              <span className={`font-semibold ${hrColor || "text-neutral-800"}`}>
-                                {row?.vitals?.heart_rate ?? "-"} bpm
+                            <div className="flex flex-col gap-1">
+                              <span className="text-neutral-500 text-xs font-medium">Heart Rate</span>
+                              <span className={`font-semibold text-sm ${hrColor || "text-neutral-800"}`}>
+                                {row?.vitals?.heart_rate ?? "-"} <span className="text-xs font-normal">bpm</span>
                               </span>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-neutral-500 w-24">Temperature</span>
-                              <span className={`font-semibold ${tColor || "text-neutral-800"}`}>
-                                {row?.vitals?.temperature_c ?? "-"} °C
+                            <div className="flex flex-col gap-1">
+                              <span className="text-neutral-500 text-xs font-medium">Temperature</span>
+                              <span className={`font-semibold text-sm ${tColor || "text-neutral-800"}`}>
+                                {row?.vitals?.temperature_c ?? "-"} <span className="text-xs font-normal">°C</span>
                               </span>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-neutral-500 w-24">Weight</span>
-                              <span className="font-semibold text-neutral-800">
-                                {row?.vitals?.weight ?? "-"} kg
+                            <div className="flex flex-col gap-1">
+                              <span className="text-neutral-500 text-xs font-medium">Weight</span>
+                              <span className="font-semibold text-sm text-neutral-800">
+                                {row?.vitals?.weight ?? "-"} <span className="text-xs font-normal">kg</span>
                               </span>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-neutral-500 w-24">Height</span>
-                              <span className="font-semibold text-neutral-800">
-                                {row?.vitals?.height ?? "-"} cm
+                            <div className="flex flex-col gap-1">
+                              <span className="text-neutral-500 text-xs font-medium">Height</span>
+                              <span className="font-semibold text-sm text-neutral-800">
+                                {row?.vitals?.height ?? "-"} <span className="text-xs font-normal">cm</span>
                               </span>
                             </div>
                           </div>
