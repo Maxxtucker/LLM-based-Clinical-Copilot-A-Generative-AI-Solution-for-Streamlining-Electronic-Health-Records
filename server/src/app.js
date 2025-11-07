@@ -7,6 +7,7 @@ const patientsRouter = require('./routes/patients');
 const ragRouter = require('./routes/rag');
 const aiRouter = require('./routes/ai');
 const authRouter = require('./routes/auth');
+const usersRouter = require('./routes/users');
 const notFound = require('./middleware/notFound');
 const errorHandler = require('./middleware/errorHandler');
 
@@ -24,6 +25,7 @@ function createApp() {
   app.get('/api/health', (req, res) => res.json({ ok: true }));
 
   app.use('/api/auth', authRouter);
+  app.use('/api/users', usersRouter);
   app.use('/api/patients', patientsRouter);
 
   // Mount speech routes only if enabled and dependencies are available

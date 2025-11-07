@@ -32,3 +32,20 @@ export async function logout() {
     credentials: 'include',
   });
 }
+
+export async function changePassword({ currentPassword, newPassword, confirmPassword }) {
+  const res = await fetch(`${API_BASE}/api/auth/change-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
+  });
+  if (!res.ok) {
+    let msg = 'Failed to change password';
+    try { const data = await res.json(); msg = data.error || data.message || msg; } catch {}
+    const error = new Error(msg);
+    error.status = res.status;
+    throw error;
+  }
+  return res.json();
+}
