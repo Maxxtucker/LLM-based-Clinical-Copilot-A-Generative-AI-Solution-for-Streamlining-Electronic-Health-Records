@@ -76,7 +76,7 @@ export default function Dashboard() {
         )
       );
       
-      // Optionally refresh the patient list from the server
+      // Optionally refresh the patient list from the backend
       const res = await fetch('/api/patients');
       if (res.ok) {
         const data = await res.json();

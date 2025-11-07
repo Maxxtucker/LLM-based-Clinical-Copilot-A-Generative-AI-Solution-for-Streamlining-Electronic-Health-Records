@@ -5,12 +5,12 @@
 ### 1. Setup Environment
 ```bash
 # Backend
-cd server
+cd backend
 npm install
 cp .env.example .env  # Add your MongoDB URI and OpenAI API key
 
 # Frontend  
-cd my-react-app
+cd frontend
 npm install
 ```
 
@@ -26,10 +26,10 @@ npm run create-vector-index
 ### 3. Start Services
 ```bash
 # Backend (Terminal 1)
-cd server && npm run dev
+cd backend && npm run dev
 
 # Frontend (Terminal 2)
-cd my-react-app && npm start
+cd frontend && npm start
 ```
 
 ## 🔧 Key Commands

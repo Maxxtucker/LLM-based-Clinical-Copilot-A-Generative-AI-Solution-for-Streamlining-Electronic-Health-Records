@@ -10,13 +10,13 @@ const {connection} = require("mongoose");
 
     if (useInMemory) {
       try {
-        const { MongoMemoryServer } = require('mongodb-memory-server');
+        const { MongoMemoryServer } = require('mongodb-memory-backend');
         const mongod = await MongoMemoryServer.create();
         uri = mongod.getUri();
         console.log('[DB] Using in-memory MongoDB for development. Data will reset on restart.');
       } catch (e) {
-        console.error('[DB] USE_IN_MEMORY enabled but mongodb-memory-server is not installed.');
-        console.error('      Install it with: npm i -D mongodb-memory-server');
+        console.error('[DB] USE_IN_MEMORY enabled but mongodb-memory-backend is not installed.');
+        console.error('      Install it with: npm i -D mongodb-memory-backend');
         throw e;
       }
     }
@@ -35,7 +35,7 @@ const {connection} = require("mongoose");
     console.error('Tips:');
     console.error('- If using MongoDB Atlas, whitelist your current IP or allow 0.0.0.0/0 temporarily for testing.');
     console.error('- Verify MONGO_URI credentials and target database name.');
-    console.error('- Alternatively set USE_IN_MEMORY=true in server/.env to run with an in-memory MongoDB for local dev.');
+    console.error('- Alternatively set USE_IN_MEMORY=true in backend/.env to run with an in-memory MongoDB for local dev.');
     process.exit(1);
   }
 })();

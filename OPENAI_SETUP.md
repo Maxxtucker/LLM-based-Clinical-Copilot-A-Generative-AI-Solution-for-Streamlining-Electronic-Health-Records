@@ -21,7 +21,7 @@ This guide will help you set up OpenAI GPT-4 integration for your Clinical Copil
 
 1. Copy the example environment file:
    ```bash
-   cp my-react-app/.env.example my-react-app/.env
+   cp frontend/.env.example frontend/.env
    ```
 
 2. Edit `my-react-app/.env` and add your API key:
@@ -39,10 +39,10 @@ After adding the environment variables, restart both servers:
 # Then restart:
 
 # Backend
-cd server && npm start
+cd backend && npm start
 
 # Frontend  
-cd my-react-app && npm start
+cd frontend && npm start
 ```
 
 ## Features Enabled

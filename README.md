@@ -50,23 +50,23 @@ Clinical Copilot is a modern, AI-enhanced healthcare management platform designe
 2. **Install dependencies**
    ```bash
    # Install backend dependencies
-   cd server
+   cd backend
    npm install
    
    # Install frontend dependencies
-   cd ../my-react-app
+   cd ../frontend
    npm install
    ```
 
 3. **Environment Setup**
    ```bash
    # Backend environment
-   cd server
+   cd backend
    cp .env.example .env
    # Edit .env with your MongoDB connection string
    
    # Frontend environment
-   cd ../my-react-app
+   cd ../frontend
    cp .env.example .env
    # Edit .env with your OpenAI API key
    ```
@@ -74,11 +74,11 @@ Clinical Copilot is a modern, AI-enhanced healthcare management platform designe
 4. **Start the application**
    ```bash
    # Terminal 1: Start backend
-   cd server
+   cd backend
    npm start
    
    # Terminal 2: Start frontend
-   cd my-react-app
+   cd frontend
    npm start
    ```
 
@@ -350,33 +350,34 @@ stopRecording(mediaRecorder);
 ### Development
 ```bash
 # Backend
-cd server
+cd backend
 npm run dev
 
 # Frontend
-cd my-react-app
+cd frontend
 npm start
 ```
 
 ### Production
 ```bash
 # Build frontend
-cd my-react-app
+cd frontend
 npm run build
 
-# Start production server
-cd server
+# Start production backend
+cd backend
 npm start
 ```
 
 ### Docker Deployment (Optional)
+
 ```dockerfile
 # Dockerfile for backend
 FROM node:16
 WORKDIR /app
-COPY server/package*.json ./
+COPY backend/package*.json ./
 RUN npm install
-COPY server/ .
+COPY backend/ .
 EXPOSE 5001
 CMD ["npm", "start"]
 ```
@@ -385,13 +386,13 @@ CMD ["npm", "start"]
 
 ### Backend Testing
 ```bash
-cd server
+cd backend
 npm test
 ```
 
 ### Frontend Testing
 ```bash
-cd my-react-app
+cd frontend
 npm test
 ```
 
@@ -428,7 +429,7 @@ curl -X POST http://localhost:5001/api/patients/:id/summary
 
 ### Backend Configuration
 ```javascript
-// server/src/config/database.js
+// backend/src/config/database.js
 const mongoose = require('mongoose');
 
 const connectDB = async () => {
@@ -444,7 +445,7 @@ const connectDB = async () => {
 
 ### Frontend Configuration
 ```javascript
-// my-react-app/src/config/api.js
+// frontend/src/config/api.js
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
 export const apiClient = {
@@ -481,7 +482,7 @@ mongo --eval "db.adminCommand('ismaster')"
 
 #### 3. CORS Issues
 ```javascript
-// server/src/server.js
+// backend/src/backend.js
 app.use(cors({
   origin: 'http://localhost:3000',
   credentials: true

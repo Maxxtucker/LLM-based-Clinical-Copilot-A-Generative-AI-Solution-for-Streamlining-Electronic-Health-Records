@@ -152,7 +152,7 @@ class SpeechController {
       console.error('Speech processing controller error:', error);
       res.status(500).json({
         success: false,
-        error: 'Internal server error',
+        error: 'Internal backend error',
         details: error.message
       });
     }
@@ -234,7 +234,7 @@ class SpeechController {
       console.error('Transcription controller error:', error);
       res.status(500).json({
         success: false,
-        error: 'Internal server error',
+        error: 'Internal backend error',
         details: error.message
       });
     }
@@ -310,7 +310,7 @@ class SpeechController {
       console.error('Text extraction controller error:', error);
       res.status(500).json({
         success: false,
-        error: 'Internal server error',
+        error: 'Internal backend error',
         details: error.message
       });
     }
