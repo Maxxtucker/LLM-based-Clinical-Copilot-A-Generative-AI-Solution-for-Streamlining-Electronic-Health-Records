@@ -239,20 +239,11 @@ ${patientContent}
         ragContext = additionalContext;
       }
     } else {
-      console.log('⚠️ No similar patients found via vector search, using general patient data');
-      // searchMethod = 'general_search'; // Removed unused variable
-
-      if (allPatients.length > 0) {
-        ragContext = allPatients.slice(0, 3).map(patient => `
-**Patient: ${patient.first_name} ${patient.last_name} (MRN: ${patient.medical_record_number})**
-- Age: ${patient.date_of_birth ? new Date().getFullYear() - new Date(patient.date_of_birth).getFullYear() : 'N/A'}
-- Chief Complaint: ${patient.chief_complaint || 'None'}
-- Medical History: ${patient.medical_history || 'None'}
-- Diagnosis: ${patient.diagnosis || 'None'}
-- Treatment Plan: ${patient.treatment_plan || 'None'}
-- Current Medications: ${patient.current_medications || 'None'}
-- Allergies: ${patient.allergies || 'None'}
-        `).join('\n');
+      console.log('⚠️ No similar patients found via vector search');
+      // Don't use fallback - if no relevant patients found, leave ragContext empty
+      // The AI will inform the user that no relevant patient data was found
+      if (!ragContext) {
+        ragContext = '**No relevant patient records found for this query.**';
       }
     }
 
@@ -275,6 +266,13 @@ You are **MedGPT**, an AI clinical decision support assistant integrated into an
 - Identify trends over time rather than isolated findings
 - Note when findings align with or deviate from clinical guidelines
 - Acknowledge when data is insufficient for meaningful analysis
+- If no relevant patient records are found, clearly inform the user
+
+**Handling No Results:**
+- If the context shows "No relevant patient records found", inform the user politely
+- Explain that the search didn't find matching patients in the database
+- Suggest the user try a different search query or patient name
+- Do NOT make up patient data or use examples from your training data
 
 **Structured Clinical Reasoning:**
 1. **Assessment**: What the data shows

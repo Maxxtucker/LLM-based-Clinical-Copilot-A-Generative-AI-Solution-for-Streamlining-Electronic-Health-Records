@@ -31,7 +31,7 @@ async function searchSimilarPatients(query, topK = 5) {
           path: "embedding",
           numCandidates: 100,
           limit: topK,
-          index: "default", // use your Atlas vector index name here
+          index: "vector_index", // matches the Atlas vector index name
         },
       },
       {
@@ -44,28 +44,16 @@ async function searchSimilarPatients(query, topK = 5) {
     ]);
   } catch (error) {
     console.warn(`⚠️ Vector search failed (index may not exist): ${error.message}`);
-    console.log(`📝 Falling back to returning all embeddings (limited to ${topK})`);
+    console.log(`📝 Returning empty results - no fallback`);
   }
 
-  // Fallback: if vector search returns 0 results (index doesn't exist or no matches),
-  // return recent embeddings instead of empty array
+  // If vector search returns 0 results, return empty array (no fallback)
   if (results.length === 0) {
-    console.log(`⚠️ Vector search returned 0 results, using fallback: returning ${topK} recent embeddings`);
-    results = await PatientEmbedding.find()
-      .select('patient_id content')
-      .sort({ last_updated: -1 })
-      .limit(topK)
-      .lean();
-    
-    // Add a fallback score
-    results = results.map(r => ({
-      patient_id: r.patient_id,
-      content: r.content,
-      score: 0.5, // Fallback score
-    }));
+    console.log(`⚠️ Vector search returned 0 results - no matches found for query "${query}"`);
+  } else {
+    console.log(`✅ Found ${results.length} similar patients for query "${query}"`);
   }
-
-  console.log(`📊 Found ${results.length} similar patients for query "${query}"`);
+  
   return results;
 }
 

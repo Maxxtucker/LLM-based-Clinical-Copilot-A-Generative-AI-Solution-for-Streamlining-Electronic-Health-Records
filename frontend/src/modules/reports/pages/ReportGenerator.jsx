@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Brain, Sparkles, FileText, Edit3, Download, Save, X } from "lucide-react";
+import { Brain, FileText, Edit3, Download, Save, X, Zap, TrendingUp, Info } from "lucide-react";
 import { motion } from "framer-motion";
 import ReportMessage from "@/modules/reports/components/ReportMessage";
 import ReportInput from "@/modules/reports/components/ReportInput";
@@ -42,10 +42,11 @@ ChartJS.register(
 export default function ReportGenerator() {
   const [messages, setMessages] = useState([
     {
-      text: "👋 Welcome to the **Enhanced AI Report Generator**!\n\nI can help you generate comprehensive macro-level analysis reports about your patient population with **RAG-enhanced insights** and **data visualizations**.\n\n**Enhanced Features:**\n- 🔍 **RAG-powered analysis** with top-20 similar patients\n- 📊 **Data visualizations** and statistical insights\n- 📈 **Comprehensive reports** with demographics, patterns, and trends\n- 📄 **Enhanced PDF export** with visualizations\n\n**Try asking the quick prompts above!**",
+      text: "👋 Welcome to the **Enhanced AI Report Generator**!\n\nI can help you generate comprehensive macro-level analysis reports about your patient population with **RAG-enhanced insights** and **data visualizations**.\n\n**Enhanced Features:**\n- 🔍 **Smart patient filtering** using RAG and keyword matching to find relevant patients\n- 📊 **Data visualizations** and statistical insights\n- 📈 **Comprehensive reports** with demographics, patterns, and trends\n- 📄 **Enhanced PDF export** with visualizations\n\n**Try asking the quick prompts above!**",
     }
   ]);
   const [isLoading, setIsLoading] = useState(false);
+  const [reportMode, setReportMode] = useState('fast'); // 'fast' or 'deep'
   
   // Report editing state
   const [generatedReport, setGeneratedReport] = useState("");
@@ -239,17 +240,42 @@ export default function ReportGenerator() {
       const queryClassification = classifyQuery(userMessage);
       console.log('Query classified as:', queryClassification);
 
-      // Step 1: Get analytical text (markdown) from LLM via RAG
-      const aiResponse = await generateComprehensiveReport(userMessage, patients);
-      console.log('✅ Comprehensive report generated with RAG context');
+      // Step 1: Get analytical text (markdown) from LLM via RAG (or direct in deep mode)
+      const aiResponse = await generateComprehensiveReport(userMessage, patients, reportMode);
+      console.log(`✅ Comprehensive report generated with ${reportMode} mode`);
 
-      // Extract message and report from response object
+      // Extract message, report, and relevantPatients from response object
       const chatMessage = aiResponse.message || aiResponse;
       const reportContent = aiResponse.report || aiResponse;
+      const relevantPatients = aiResponse.relevantPatients || patients; // fallback to all patients if not filtered
 
-      // Step 2: Build visualization data JSON
-      const vizData = generateVisualizationData(patients, queryClassification);
-      console.log('Generated visualization data:', vizData);
+      console.log(`📊 Using ${relevantPatients.length} patients for visualization (filtered from ${patients.length} total)`);
+
+      // ✅ If no patients found (report is null), just show the error message
+      if (!reportContent || relevantPatients.length === 0) {
+        console.warn('⚠️ No report generated - no matching patients found');
+        setMessages(prev => [...prev, { text: chatMessage, isUser: false }]);
+        setGeneratedReport(null);
+        setEditedReport(null);
+        setVisualizationData(null);
+        return;
+      }
+
+      // Step 2: Build visualization data
+      let vizData;
+      
+      if (reportMode === 'deep') {
+        // Deep Mode: Use LLM-generated visualization data
+        console.log('🌊 DEEP MODE: Using LLM-generated visualization data');
+        vizData = aiResponse.visualizationData || null;
+        console.log('LLM-generated visualization data:', vizData);
+      } else {
+        // Fast Mode: Use template-based visualization data
+        console.log('⚡ FAST MODE: Using template-based visualization data');
+        vizData = generateVisualizationData(relevantPatients, queryClassification);
+        console.log('Template-generated visualization data:', vizData);
+      }
+      
       setVisualizationData(vizData);
 
       // Step 3: Ask LLM to render full HTML with embedded charts
@@ -379,11 +405,61 @@ export default function ReportGenerator() {
             <h1 className="text-2xl font-bold text-neutral-900">AI Report Generator</h1>
             <p className="text-neutral-600">Generate custom macro-level patient analysis reports</p>
           </div>
-          <div className="ml-auto flex items-center gap-2 bg-gradient-to-r from-red-100 to-pink-100 px-3 py-1 rounded-full">
-            <Sparkles className="w-4 h-4 text-red-600" />
-            <span className="text-sm font-medium bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent">
-              To be filled up
-            </span>
+          {/* Mode Toggle */}
+          <div className="ml-auto flex items-center gap-2">
+            <div className="relative group">
+              <div className="flex items-center gap-2 bg-white border border-neutral-200 rounded-lg p-1 shadow-sm">
+                {/* Fast Mode Button */}
+                <button
+                  onClick={() => setReportMode('fast')}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-all ${
+                    reportMode === 'fast'
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-sm'
+                      : 'text-neutral-600 hover:bg-neutral-50'
+                  }`}
+                >
+                  <Zap className="w-4 h-4" />
+                  <span className="text-sm font-medium">Fast</span>
+                </button>
+
+                {/* Deep Mode Button */}
+                <button
+                  onClick={() => setReportMode('deep')}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-all ${
+                    reportMode === 'deep'
+                      ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-sm'
+                      : 'text-neutral-600 hover:bg-neutral-50'
+                  }`}
+                >
+                  <TrendingUp className="w-4 h-4" />
+                  <span className="text-sm font-medium">Deep</span>
+                </button>
+              </div>
+
+              {/* Tooltip */}
+              <div className="absolute right-0 top-full mt-2 w-72 bg-neutral-900 text-white text-xs rounded-lg p-3 shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
+                <div className="flex items-start gap-2 mb-2">
+                  <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold mb-1">Analysis Modes:</p>
+                  </div>
+                </div>
+                <div className="space-y-2 text-neutral-200">
+                  <div className="flex items-start gap-2">
+                    <Zap className="w-3 h-3 text-green-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-medium text-green-400">Fast Mode:</span> Uses RAG + vector search (semantic similarity) for quick, efficient, filtered analysis. Best for most queries.
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <TrendingUp className="w-3 h-3 text-blue-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-medium text-blue-400">Deep Mode:</span> Sends ALL patient data directly to LLM with no filtering or restrictions. Let AI decide what's relevant. ⚠️ <span className="text-yellow-300">More costly & slower</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </motion.div>
