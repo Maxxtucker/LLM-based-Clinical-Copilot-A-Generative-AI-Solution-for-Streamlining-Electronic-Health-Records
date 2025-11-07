@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,30 +26,123 @@ import {
 export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  
-  // Mock user data - in a real app, this would come from authentication context
-  const [userData, setUserData] = useState({
-    name: "Dr. Sarah Johnson",
-    email: "doctor@hospital.com",
-    phone: "+65 9123 4567",
-    role: "doctor",
-    department: "Emergency Medicine",
-    employeeId: "EMP001",
-    joinDate: "2020-03-15",
-    address: "123 Medical Center, Singapore 123456",
-    avatar: null
-  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const [editData, setEditData] = useState({ ...userData });
+  const [userData, setUserData] = useState(null);
+  const [editData, setEditData] = useState(null);
+
+  // Change password state
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [cpLoading, setCpLoading] = useState(false);
+  const [cpError, setCpError] = useState("");
+  const [cpSuccess, setCpSuccess] = useState("");
+
+  function deriveRole(u) {
+    if (!u) return "user";
+    if (u.role) return u.role;
+    const roles = Array.isArray(u.roles) ? u.roles : [];
+    if (roles.includes("doctor")) return "doctor";
+    if (roles.includes("nurse")) return "nurse";
+    return roles[0] || "user";
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadProfile() {
+      setLoading(true);
+      setError("");
+      try {
+        const res = await fetch(`${process.env.REACT_APP_API_BASE_URL || ""}/api/users/me`, {
+          credentials: "include",
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json?.error || "Failed to load profile");
+        const u = json.user || json; // backend wraps in { user }
+        const merged = {
+          _id: u._id,
+          name: u.name || "",
+          email: u.email || "",
+          phone: u.phone || "",
+          department: u.department || "",
+          employeeId: u.employeeId || "",
+          joinDate: u.joinDate || "",
+          address: u.address || "",
+          avatarUrl: u.avatarUrl || null,
+          roles: Array.isArray(u.roles) ? u.roles : [],
+        };
+        merged.role = deriveRole({ ...u, roles: merged.roles });
+        if (!cancelled) {
+          setUserData(merged);
+          setEditData(merged);
+        }
+      } catch (e) {
+        if (!cancelled) setError(e.message || "Unexpected error");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    loadProfile();
+    return () => { cancelled = true; };
+  }, []);
 
   const handleEdit = () => {
     setIsEditing(true);
     setEditData({ ...userData });
   };
 
-  const handleSave = () => {
-    setUserData({ ...editData });
-    setIsEditing(false);
+  const handleSave = async () => {
+    if (!editData) return;
+    setError("");
+    try {
+      const payload = {
+        name: editData.name || "",
+        phone: editData.phone || "",
+        department: editData.department || "",
+        employeeId: editData.employeeId || "",
+        joinDate: editData.joinDate || "",
+        address: editData.address || "",
+        email: editData.email || "",
+        avatarUrl: editData.avatarUrl || null,
+      };
+      const res = await fetch(`${process.env.REACT_APP_API_BASE_URL || ""}/api/users/me`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || "Failed to save changes");
+      // merge server response to ensure consistency
+      const u = json.user || json;
+      const merged = {
+        _id: u._id,
+        name: u.name || "",
+        email: u.email || "",
+        phone: u.phone || "",
+        department: u.department || "",
+        employeeId: u.employeeId || "",
+        joinDate: u.joinDate || "",
+        address: u.address || "",
+        avatarUrl: u.avatarUrl || null,
+        roles: Array.isArray(u.roles) ? u.roles : userData?.roles || [],
+      };
+      merged.role = (function(){
+        const roles = merged.roles || [];
+        if (u.role) return u.role;
+        if (roles.includes("doctor")) return "doctor";
+        if (roles.includes("nurse")) return "nurse";
+        return roles[0] || "user";
+      })();
+      setUserData(merged);
+      setEditData(merged);
+      setIsEditing(false);
+    } catch (e) {
+      setError(e.message || "Unexpected error");
+    }
   };
 
   const handleCancel = () => {
@@ -62,12 +155,22 @@ export default function Profile() {
   };
 
   const getRoleIcon = () => {
-    return userData.role === "doctor" ? <Shield className="w-5 h-5" /> : <Heart className="w-5 h-5" />;
+    const role = userData?.role;
+    return role === "doctor" ? <Shield className="w-5 h-5" /> : <Heart className="w-5 h-5" />;
   };
 
   const getRoleColor = () => {
-    return userData.role === "doctor" ? "bg-blue-100 text-blue-800 border-blue-200" : "bg-green-100 text-green-800 border-green-200";
+    const role = userData?.role;
+    return role === "doctor" ? "bg-blue-100 text-blue-800 border-blue-200" : "bg-green-100 text-green-800 border-green-200";
   };
+
+  if (loading) {
+    return <div className="min-h-screen p-6 flex items-center justify-center">Loading…</div>;
+  }
+  if (error) {
+    return <div className="min-h-screen p-6 flex items-center justify-center text-red-600">{error}</div>;
+  }
+  const initials = (userData?.name || "").split(' ').filter(Boolean).map(n => n[0]).join('') || 'U';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-neutral-100 p-6">
@@ -94,7 +197,7 @@ export default function Profile() {
               <CardHeader className="text-center pb-4">
                 <div className="relative inline-block">
                   <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-teal-500 rounded-full flex items-center justify-center text-white font-bold text-2xl mx-auto mb-4">
-                    {userData.name.split(' ').map(n => n[0]).join('')}
+                    {initials}
                   </div>
                   <button className="absolute bottom-0 right-0 w-8 h-8 bg-white rounded-full border-2 border-blue-500 flex items-center justify-center hover:bg-blue-50 transition-colors">
                     <Camera className="w-4 h-4 text-blue-600" />
@@ -115,7 +218,7 @@ export default function Profile() {
                 <div className="pt-4 border-t">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-neutral-600">Member since</span>
-                    <span className="font-medium">{new Date(userData.joinDate).toLocaleDateString()}</span>
+                    <span className="font-medium">{userData.joinDate ? new Date(userData.joinDate).toLocaleDateString() : '—'}</span>
                   </div>
                 </div>
               </CardContent>
@@ -273,10 +376,97 @@ export default function Profile() {
                     </button>
                   </div>
                 </div>
-                <Button variant="outline" size="sm">
-                  <Key className="w-4 h-4 mr-2" />
-                  Change Password
-                </Button>
+
+                {!showChangePassword && (
+                  <Button variant="outline" size="sm" onClick={() => { setShowChangePassword(true); setCpError(""); setCpSuccess(""); }}>
+                    <Key className="w-4 h-4 mr-2" />
+                    Change Password
+                  </Button>
+                )}
+
+                {showChangePassword && (
+                  <div className="mt-2 space-y-3">
+                    {cpError && <div className="text-sm text-red-600">{cpError}</div>}
+                    {cpSuccess && <div className="text-sm text-green-600">{cpSuccess}</div>}
+
+                    <div className="space-y-2">
+                      <Label htmlFor="currentPassword">Current password</Label>
+                      <Input
+                        id="currentPassword"
+                        type="password"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        className="h-10"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="newPassword">New password</Label>
+                      <Input
+                        id="newPassword"
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="h-10"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">Confirm new password</Label>
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="h-10"
+                      />
+                    </div>
+                    <div className="flex gap-3 pt-1">
+                      <Button
+                        onClick={async () => {
+                          setCpError("");
+                          setCpSuccess("");
+                          if (!currentPassword || !newPassword || !confirmPassword) {
+                            setCpError("Please fill in all password fields.");
+                            return;
+                          }
+                          if (newPassword.length < 8) {
+                            setCpError("New password must be at least 8 characters.");
+                            return;
+                          }
+                          if (newPassword !== confirmPassword) {
+                            setCpError("New passwords do not match.");
+                            return;
+                          }
+                          try {
+                            setCpLoading(true);
+                            const res = await fetch(`${process.env.REACT_APP_API_BASE_URL || ""}/api/auth/change-password`, {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              credentials: "include",
+                              body: JSON.stringify({ currentPassword, newPassword })
+                            });
+                            const data = await res.json();
+                            if (!res.ok) throw new Error(data?.error || "Failed to change password");
+                            setCpSuccess("Password updated successfully.");
+                            setCurrentPassword("");
+                            setNewPassword("");
+                            setConfirmPassword("");
+                          } catch (e) {
+                            setCpError(e.message || "Unexpected error");
+                          } finally {
+                            setCpLoading(false);
+                          }
+                        }}
+                        disabled={cpLoading}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        {cpLoading ? "Updating…" : "Save New Password"}
+                      </Button>
+                      <Button variant="outline" onClick={() => { setShowChangePassword(false); setCpError(""); setCpSuccess(""); setCurrentPassword(""); setNewPassword(""); setConfirmPassword(""); }}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

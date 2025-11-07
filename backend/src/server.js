@@ -9,6 +9,7 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const compression = require("compression");
+const cookieParser = require("cookie-parser");
 const { connectToDB } = require("./core/config/db");
 const { connection } = require("mongoose");
 const exphbs = require("express-handlebars");
@@ -26,6 +27,8 @@ const { aiRouter } = require("./modules/ai");
 const { ragRouter } = require("./modules/rag");
 const { reportRouter, reportRenderRouter, pdfRouter } = require("./modules/reports");
 const { speechRoutes } = require("./modules/speech");
+const { authRouter } = require("./modules/auth/auth.routes");
+const { usersRouter } = require("./modules/auth/users.routes");
 
 /* -------------------------- CRON JOBS -------------------------- */
 const migrationScriptVitals = path.resolve(__dirname, "scripts/patientMigration.js");
@@ -75,7 +78,7 @@ cron.schedule("10 * * * *", () => {
     app.use(compression());
 
     // --- CORS ---
-    const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "http://localhost:3000";
+    const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || process.env.CLIENT_ORIGIN || "http://localhost:3000";
     console.log(`[CORS] Allowing origin: ${FRONTEND_ORIGIN}`);
     app.use(
       cors({
@@ -86,6 +89,8 @@ cron.schedule("10 * * * *", () => {
     // Handle preflight for all routes (helpful when using credentials)
     app.options("*", cors({ origin: FRONTEND_ORIGIN, credentials: true }));
 
+    // Parse
+    app.use(cookieParser());
     app.use(express.json({ limit: "10mb" }));
     app.use(express.urlencoded({ extended: true }));
 
@@ -97,6 +102,10 @@ cron.schedule("10 * * * *", () => {
     /* -------------------------- ROUTE MOUNTING -------------------------- */
     app.get("/healthz", (_req, res) => res.json({ ok: true, db: connection?.name || null }));
     app.get("/api/ping", (_req, res) => res.json({ ok: true })); // quick FE ping
+
+    // Auth & Users
+    app.use("/api/auth", authRouter);
+    app.use("/api/users", usersRouter);
 
     // Core patients CRUD + AI/RAG
     app.use("/api/patients", patientRouter);

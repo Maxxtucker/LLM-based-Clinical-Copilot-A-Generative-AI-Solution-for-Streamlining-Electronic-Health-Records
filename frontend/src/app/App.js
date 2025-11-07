@@ -51,8 +51,16 @@ function App() {
   const [isSavingPatient, setIsSavingPatient] = useState(false);
 
   const handleLogoutClick = () => setShowLogoutConfirm(true);
-  const handleLogoutConfirm = () => {
+  const handleLogoutConfirm = async () => {
     setShowLogoutConfirm(false);
+    try {
+      await fetch(`${process.env.REACT_APP_API_BASE_URL || ""}/api/auth/logout`, {
+        method: "POST",
+        credentials: "include"
+      });
+    } catch (e) {
+      console.warn("Logout request failed (continuing)", e);
+    }
     localStorage.removeItem("isAuthenticated");
     setIsAuthenticated(false);
     try { navigate("/", { replace: true }); } catch { window.location.href = "/"; }

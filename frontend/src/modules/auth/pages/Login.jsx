@@ -15,30 +15,28 @@ export default function Login({ setIsAuthenticated }) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Mock credentials for both doctor and nurse
-    const mockUsers = [
-      {
-        email: "doctor@hospital.com",
-        password: "doctor123",
-        role: "doctor"
-      },
-      {
-        email: "nurse@hospital.com", 
-        password: "nurse123",
-        role: "nurse"
+    setError("");
+    try {
+      const res = await fetch(`${process.env.REACT_APP_API_BASE_URL || ""}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include", // send/receive auth cookie
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data?.error || "Login failed");
+        return;
       }
-    ];
-
-    const user = mockUsers.find(u => u.email === email && u.password === password);
-    
-    if (user) {
-      setIsAuthenticated(true); // ✅ tell App.js the user is logged in
-      navigate("/dashboard");   // ✅ redirect to dashboard
-    } else {
-      setError("Invalid email or password");
+      // mark authenticated locally for route guards
+      localStorage.setItem("isAuthenticated", "true");
+      setIsAuthenticated(true);
+      navigate("/dashboard");
+    } catch (err) {
+      console.error("login error", err);
+      setError("Network error. Please try again.");
     }
   };
 
