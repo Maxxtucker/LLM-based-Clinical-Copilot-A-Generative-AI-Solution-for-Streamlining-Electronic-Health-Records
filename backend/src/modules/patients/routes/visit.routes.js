@@ -115,4 +115,53 @@ router.get("/latest", async (req, res) => {
   }
 });
 
+/**
+ * DELETE /api/patients/:patientId/visits/:visitId
+ * Delete a specific visit.
+ */
+router.delete("/:visitId", async (req, res) => {
+  try {
+    const { patientId, visitId } = req.params;
+
+    if (!patientId || !mongoose.isValidObjectId(patientId)) {
+      return res.status(400).json({ error: "Invalid patientId" });
+    }
+    if (!visitId || !mongoose.isValidObjectId(visitId)) {
+      return res.status(400).json({ error: "Invalid visitId" });
+    }
+
+    // Verify the visit exists and belongs to the patient
+    const visit = await Visit.findOne({ _id: visitId, patient_id: patientId });
+    if (!visit) {
+      return res.status(404).json({ error: "Visit not found" });
+    }
+
+    // Delete the visit
+    await Visit.deleteOne({ _id: visitId });
+
+    // Update patient's last_visit_id if this was the latest visit
+    const latestVisit = await Visit.findOne({ patient_id: patientId })
+      .sort({ visit_date: -1, createdAt: -1 })
+      .select("_id visit_date")
+      .lean();
+
+    if (latestVisit) {
+      await Patient.updateOne(
+        { _id: patientId },
+        { $set: { last_visit_id: latestVisit._id, last_visit_at: latestVisit.visit_date } }
+      );
+    } else {
+      // No more visits, clear the last visit fields
+      await Patient.updateOne(
+        { _id: patientId },
+        { $unset: { last_visit_id: "", last_visit_at: "" } }
+      );
+    }
+
+    return res.json({ message: "Visit deleted successfully" });
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   ArrowLeft, Edit3, User, Calendar, Clipboard, Phone, Activity, Mail,
-  MapPin, Ruler, Dumbbell, Save, X, Trash2, FileText, Stethoscope, Pill
+  MapPin, Ruler, Dumbbell, Save, X, Trash2, FileText, Stethoscope, Pill, CheckCircle2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import ConfirmDialog from "@/components/ui/confirmdialog";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/shared/utils";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 
 import SummaryGenerator from "@/modules/ai/components/SummaryGenerator";
@@ -82,6 +82,9 @@ export default function PatientDetail() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showDeleteConfirm1, setShowDeleteConfirm1] = useState(false);
   const [showDeleteConfirm2, setShowDeleteConfirm2] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [visitToDelete, setVisitToDelete] = useState(null);
+  const [showDeleteVisitConfirm, setShowDeleteVisitConfirm] = useState(false);
 
   // History states
   const [checkupHistory, setCheckupHistory] = useState([]); // vitals
@@ -274,11 +277,17 @@ export default function PatientDetail() {
         setPatient({ ...updatedPatient, id: updatedPatient._id });
         setEditedFields({});
         setIsEditing(false);
-        // Refresh histories (so it “shows up”)
+        // Refresh histories (so it "shows up")
         await Promise.all([
           refreshHistory(updatedPatient._id),
           refreshVisits(updatedPatient._id),
         ]);
+        // Show success dialog
+        setShowSuccessDialog(true);
+        // Auto-dismiss after 3 seconds
+        setTimeout(() => {
+          setShowSuccessDialog(false);
+        }, 3000);
       } else {
         console.error("Failed to update patient data");
       }
@@ -303,6 +312,27 @@ export default function PatientDetail() {
     } catch (error) {
       console.error("Error deleting patient:", error);
       alert("Error deleting patient. Please try again.");
+    }
+  };
+
+  const handleDeleteVisit = async () => {
+    if (!visitToDelete) return;
+    try {
+      const response = await fetch(`/api/patients/${patient._id}/visits/${visitToDelete._id}`, {
+        method: "DELETE"
+      });
+      if (response.ok) {
+        // Refresh visit history
+        await refreshVisits(patient._id);
+        setShowDeleteVisitConfirm(false);
+        setVisitToDelete(null);
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || "Failed to delete visit. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error deleting visit:", error);
+      alert("Error deleting visit. Please try again.");
     }
   };
 
@@ -742,11 +772,26 @@ export default function PatientDetail() {
                             <div className="rounded-xl border border-neutral-100 bg-white hover:shadow-sm transition p-3">
                               <div className="flex items-center justify-between gap-2">
                                 <div className="font-semibold text-neutral-900">{dateStr}</div>
-                                {v.clinician && (
-                                  <span className="text-xs px-2 py-1 rounded-full bg-neutral-100 text-neutral-700">
-                                    {v.clinician}
-                                  </span>
-                                )}
+                                <div className="flex items-center gap-2">
+                                  {v.clinician && (
+                                    <span className="text-xs px-2 py-1 rounded-full bg-neutral-100 text-neutral-700">
+                                      {v.clinician}
+                                    </span>
+                                  )}
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setVisitToDelete(v);
+                                      setShowDeleteVisitConfirm(true);
+                                    }}
+                                    className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    title="Delete visit"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
                               </div>
 
                               <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
@@ -902,6 +947,64 @@ export default function PatientDetail() {
           </div>
         </div>
       </div>
+
+      {/* Success Dialog */}
+      <AnimatePresence>
+        {showSuccessDialog && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => setShowSuccessDialog(false)}
+            />
+            {/* Popup Content */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 30 }}
+              className="relative bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 z-10"
+            >
+              <div className="flex flex-col items-center text-center space-y-4">
+                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
+                  <CheckCircle2 className="w-12 h-12 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-neutral-900 mb-2">Patient Saved!</h3>
+                  <p className="text-lg text-neutral-700">
+                    Patient information has been successfully saved.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowSuccessDialog(false)}
+                  className="mt-4 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                >
+                  OK
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Visit Confirmation */}
+      <ConfirmDialog
+        open={showDeleteVisitConfirm}
+        title="Delete Visit"
+        description={`Are you sure you want to delete the patient with MRN (${patient?.medical_record_number || ""}) for the visit on ${visitToDelete ? format(new Date(visitToDelete.visit_date), "dd MMM yyyy") : ""}? This action cannot be undone.`}
+        onConfirm={handleDeleteVisit}
+        onCancel={() => {
+          setShowDeleteVisitConfirm(false);
+          setVisitToDelete(null);
+        }}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+      />
 
       {/* Delete confirmations */}
       <ConfirmDialog

@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save, Loader2, User, Activity, Search, RefreshCw } from "lucide-react";
-import { motion } from "framer-motion";
+import { Save, Loader2, User, Activity, Search, RefreshCw, CheckCircle2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
   const [searchMRN, setSearchMRN] = useState('');
@@ -13,6 +13,7 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
   const [searchResult, setSearchResult] = useState(null);
   const [patientFound, setPatientFound] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   
   const [formData, setFormData] = useState({
     first_name: '',
@@ -291,13 +292,69 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
     setHasSearched(false);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSubmit(formData);
+    try {
+      await onSubmit(formData);
+      // Show success dialog after successful save
+      setShowSuccessDialog(true);
+      // Auto-dismiss after 3 seconds
+      setTimeout(() => {
+        setShowSuccessDialog(false);
+      }, 3000);
+    } catch (error) {
+      console.error('Error saving patient:', error);
+      // Error handling is done by the parent component
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <>
+      {/* Success Dialog */}
+      <AnimatePresence>
+        {showSuccessDialog && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => setShowSuccessDialog(false)}
+            />
+            {/* Popup Content */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 30 }}
+              className="relative bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 z-10"
+            >
+              <div className="flex flex-col items-center text-center space-y-4">
+                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
+                  <CheckCircle2 className="w-12 h-12 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-neutral-900 mb-2">Patient Saved!</h3>
+                  <p className="text-lg text-neutral-700">
+                    Patient information has been successfully saved.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowSuccessDialog(false)}
+                  className="mt-4 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                >
+                  OK
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
       {/* Patient Search Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -618,5 +675,6 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
         </Button>
       </motion.div>
     </form>
+    </>
   );
 }

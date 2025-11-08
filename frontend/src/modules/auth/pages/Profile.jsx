@@ -15,7 +15,6 @@ import {
   Edit3, 
   Save, 
   X, 
-  Camera,
   Key,
   Bell,
   ShieldCheck,
@@ -199,9 +198,6 @@ export default function Profile() {
                   <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-teal-500 rounded-full flex items-center justify-center text-white font-bold text-2xl mx-auto mb-4">
                     {initials}
                   </div>
-                  <button className="absolute bottom-0 right-0 w-8 h-8 bg-white rounded-full border-2 border-blue-500 flex items-center justify-center hover:bg-blue-50 transition-colors">
-                    <Camera className="w-4 h-4 text-blue-600" />
-                  </button>
                 </div>
                 <CardTitle className="text-xl">{userData.name}</CardTitle>
                 <Badge className={`${getRoleColor()} border font-medium`}>

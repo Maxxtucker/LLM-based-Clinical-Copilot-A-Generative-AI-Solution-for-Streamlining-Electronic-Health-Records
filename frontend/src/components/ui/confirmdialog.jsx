@@ -5,7 +5,9 @@ export default function ConfirmDialog({
   title, 
   description, 
   onConfirm, 
-  onCancel 
+  onCancel,
+  confirmLabel = "Confirm",
+  cancelLabel = "Cancel"
 }) {
   if (!open) return null;
 
@@ -19,13 +21,13 @@ export default function ConfirmDialog({
             onClick={onCancel}
             className="px-4 py-2 rounded border border-gray-300 hover:bg-gray-100"
           >
-            Cancel
+            {cancelLabel}
           </button>
           <button
             onClick={onConfirm}
             className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
           >
-            Confirm
+            {confirmLabel}
           </button>
         </div>
       </div>
