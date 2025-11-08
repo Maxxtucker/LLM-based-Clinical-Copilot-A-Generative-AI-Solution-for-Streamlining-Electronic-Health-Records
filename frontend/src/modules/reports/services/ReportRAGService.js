@@ -145,7 +145,7 @@ Choose visualizations that are MOST RELEVANT to the query. Respond with ONLY val
       // Continue without visualizations
     }
     
-    return { report, visualizationData };
+    return {report, visualizationData };
     
   } catch (error) {
     console.error('❌ Deep Mode Report Error:', error);
@@ -189,7 +189,7 @@ export async function generateComprehensiveReport(userQuery, allPatients, mode =
       const { report, visualizationData } = await generateDeepModeReport(userQuery, relevantPatients, patientContext);
       
       return {
-        message: report,
+        message: '✅ **Report generated successfully!** You can view, edit it, and see the visualizations in the preview panel on the right.',
         report: report,
         relevantPatients: relevantPatients,
         visualizationData: visualizationData, // LLM-generated visualizations
@@ -531,13 +531,11 @@ Generate a report where EVERY NUMBER and EVERY PATIENT NAME matches the actual p
       console.log('✅ Report generated successfully!');
       
       // Determine if this was a population query or filtered query
-      const isFullPopulation = relevantPatients.length === allPatients.length;
-      const message = isFullPopulation
-        ? `✅ **Report generated successfully!** Analyzing all ${relevantPatients.length} active patients. You can view, edit it, and see the visualizations in the preview panel on the right.`
-        : `✅ **Report generated successfully!** Found ${relevantPatients.length} patient${relevantPatients.length !== 1 ? 's' : ''} matching "${userQuery}" (filtered from ${allPatients.length} total). You can view, edit it, and see the visualizations in the preview panel on the right.`;
+      // const isFullPopulation = relevantPatients.length === allPatients.length;
+      // const message = `✅ **Report generated successfully!** You can view, edit it, and see the visualizations in the preview panel on the right.`
       
       return {
-        message,
+        message: `✅ **Report generated successfully!** You can view, edit it, and see the visualizations in the preview panel on the right.`,
         report, // still included for backend or preview use
         relevantPatients, // return the filtered patients for visualization
       };

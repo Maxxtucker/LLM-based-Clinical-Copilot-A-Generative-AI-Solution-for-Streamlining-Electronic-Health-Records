@@ -467,8 +467,8 @@ export default function ReportGenerator() {
       {/* Main Split View */}
       <div className="flex-1 flex max-w-[1800px] mx-auto w-full gap-6 p-6">
         {/* Left Side - Chat */}
-        <div className="w-1/2 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <div className="w-1/2 flex flex-col h-full overflow-hidden">
+          <div className="flex-1 overflow-y-auto p-6 pr-2 space-y-4">
             {messages.length === 1 && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }}>
                 <ReportPrompts onPromptSelect={handleSendMessage} isLoading={isLoading} />
@@ -520,7 +520,7 @@ export default function ReportGenerator() {
               <button onClick={exportToPDF}><Download /></button>
             </div>
           </div>
-            <div className="p-6 flex-1 overflow-y-auto overflow-x-auto">
+            <div className="p-6 flex-1 overflow-auto" style={{ maxHeight: 'calc(100vh - 80px)' }}>
               {!generatedReport ? (
                 <div className="h-full flex flex-col items-center justify-center text-center text-neutral-400">
                   <FileText className="w-16 h-16 mb-4 opacity-50" />
@@ -541,14 +541,14 @@ export default function ReportGenerator() {
                   {/* Report Content */}
                   {/* A4 Medical Report Format */}
                   <div id="report-a4" className="bg-white shadow-lg mx-auto" style={{ 
-                    width: '210mm', 
-                    minHeight: '297mm', 
+                    width: '100%',       // make width responsive
+                    maxWidth: '210mm',   // cap to A4 width
+                    minHeight: '297mm',  // keep A4 height
                     fontFamily: 'Arial, sans-serif',
                     fontSize: '12pt',
                     lineHeight: '1.4',
                     color: '#000',
-                    minWidth: '210mm',
-                    maxWidth: '100%'
+                    boxSizing: 'border-box',
                   }}>
                     {!(typeof generatedReport === 'string' && (generatedReport.trim().startsWith('<!DOCTYPE html') || generatedReport.trim().startsWith('<html')) ) && (
                       <div className="text-center mb-8 border-b-2 border-gray-300 pb-4 px-8">
