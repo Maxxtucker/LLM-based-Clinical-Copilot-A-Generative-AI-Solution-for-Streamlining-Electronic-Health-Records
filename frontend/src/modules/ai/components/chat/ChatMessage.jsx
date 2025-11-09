@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from "framer-motion";
 import { User, Bot, Brain } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export default function ChatMessage({ message, isUser }) {
   return (
@@ -28,6 +29,7 @@ export default function ChatMessage({ message, isUser }) {
           ) : (
             <div className="text-sm leading-relaxed text-neutral-700 markdown-content">
               <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
                 components={{
                   ul: ({ node, ...props }) => (
                     <ul className="list-disc pl-5 space-y-1.5 my-2" {...props} />
@@ -63,15 +65,24 @@ export default function ChatMessage({ message, isUser }) {
                     <blockquote className="border-l-4 border-blue-500 pl-4 py-1 my-2 text-neutral-600 italic" {...props} />
                   ),
                   table: ({ node, ...props }) => (
-                    <div className="overflow-x-auto my-2">
-                      <table className="min-w-full border border-neutral-200 rounded-lg" {...props} />
+                    <div className="overflow-x-auto my-4 w-full">
+                      <table className="min-w-full border-collapse border border-neutral-300 rounded-lg bg-white shadow-sm" {...props} />
                     </div>
                   ),
+                  thead: ({ node, ...props }) => (
+                    <thead className="bg-neutral-50" {...props} />
+                  ),
+                  tbody: ({ node, ...props }) => (
+                    <tbody {...props} />
+                  ),
+                  tr: ({ node, ...props }) => (
+                    <tr className="hover:bg-neutral-50 transition-colors" {...props} />
+                  ),
                   th: ({ node, ...props }) => (
-                    <th className="border border-neutral-200 bg-neutral-50 px-3 py-2 text-left font-semibold text-neutral-900" {...props} />
+                    <th className="border border-neutral-300 bg-neutral-100 px-4 py-3 text-left font-semibold text-neutral-900 text-sm" {...props} />
                   ),
                   td: ({ node, ...props }) => (
-                    <td className="border border-neutral-200 px-3 py-2 text-neutral-700" {...props} />
+                    <td className="border border-neutral-300 px-4 py-2.5 text-neutral-700 text-sm" {...props} />
                   ),
                   a: ({ node, ...props }) => (
                     <a className="text-blue-600 hover:text-blue-700 underline" target="_blank" rel="noopener noreferrer" {...props} />

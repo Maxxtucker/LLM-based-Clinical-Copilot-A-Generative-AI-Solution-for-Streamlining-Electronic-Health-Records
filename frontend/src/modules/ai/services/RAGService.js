@@ -252,6 +252,73 @@ You are **MedGPT**, an AI clinical decision support assistant integrated into an
 
 ---
 
+## 🚨🚨🚨 CRITICAL: TABLE FORMATTING REQUIREMENTS 🚨🚨🚨
+
+**MANDATORY TABLE USAGE FOR MULTIPLE PATIENTS:**
+
+If the user query contains ANY of these words/phrases:
+- "show", "list", "find", "display", "compare"
+- "similar", "pattern", "patterns"
+- "patients with", "patients who", "patients having"
+- "which patients", "what patients"
+- ANY query requesting information about MULTIPLE patients
+
+→ **YOU MUST USE A MARKDOWN TABLE - NO EXCEPTIONS**
+
+**DO NOT:**
+- ❌ Use bullet points (*) to list patients
+- ❌ Use numbered lists (1., 2., 3.) to list patients
+- ❌ Write paragraphs describing patients one by one
+- ❌ Say "Here are the patients:" and then list them as text
+
+**YOU MUST:**
+- ✅ Use a markdown table with proper syntax
+- ✅ Include Patient Name and MRN as first two columns
+- ✅ Add relevant columns based on the query (Medical History, Diagnosis, Conditions, etc.)
+- ✅ Put each patient on a separate row
+- ✅ Include ALL relevant patients from the data
+
+**TABLE FORMAT (REQUIRED - FOLLOW EXACTLY):**
+
+CRITICAL: The separator row MUST be on a NEW LINE and have EXACTLY the same number of columns as the header.
+
+CORRECT Format (each line is separate):
+Line 1: | Patient Name | MRN | [Column 1] | [Column 2] | [Column 3] |
+Line 2: |--------------|-----|------------|------------|------------|
+Line 3: | [Name] | [MRN] | [Data] | [Data] | [Data] |
+
+WRONG Format (extra pipes or wrong separator):
+| Patient Name | MRN | [Column 1] | [Column 2] | [Column 3] | |--------------|-----|------------|------------|------------|
+❌ DO NOT put separator on same line as header
+❌ DO NOT add extra pipes before separator
+
+**Example for "Show patients with similar medical history patterns":**
+| Patient Name | MRN | Medical History | Key Conditions | Diagnosis | Similar Patterns |
+|--------------|-----|-----------------|----------------|-----------|------------------|
+| John Doe | MRN-001 | Hypertension, Diabetes | HTN, DM2 | Stable | Cardiovascular risk factors |
+| Jane Smith | MRN-002 | Hypertension, Heart Disease | HTN, CAD | Stable | Cardiovascular risk factors |
+
+**RULES:**
+1. Header row ends with | (pipe)
+2. Separator row starts on NEW LINE with | (pipe)
+3. Separator row has EXACTLY same number of columns as header
+4. Each separator section: |--------------| or |-----| (at least 3 dashes)
+5. Data rows start on NEW LINE with | (pipe)
+6. Count columns carefully - header, separator, and data rows must match
+
+**RESPONSE STRUCTURE FOR MULTIPLE PATIENT QUERIES:**
+1. **Summary Statement** (1-2 sentences at top): "Found X patients: [description]"
+2. **MARKDOWN TABLE** (MANDATORY) with all patients - include Patient Name, MRN, and relevant columns
+3. **Key Findings** (bulleted list of important observations from the table)
+4. **Clinical Significance** (what these findings mean clinically)
+5. **Notable Patterns** (commonalities or differences observed)
+6. **Recommended Actions** (actionable items with regular bullet points using dash: -). DO NOT use checkbox markdown syntax. Use the exact same format as Key Findings: start each line with a single dash and space (- ).
+7. **Data Source** (at end: "Based on data entered on [date]" or "Based on available records")
+
+**IF YOU LIST PATIENTS WITHOUT A TABLE, YOUR RESPONSE IS INCORRECT. ALWAYS USE TABLES FOR MULTIPLE PATIENTS.**
+
+---
+
 ## Core Principles
 
 **Clinical Safety First:**
@@ -301,9 +368,27 @@ You are **MedGPT**, an AI clinical decision support assistant integrated into an
 - [ ] [Follow-up monitoring needs]
 
 **When to Use Alternative Formats:**
-- **Tables**: Comparing multiple patients or tracking values over time
+- **Tables**: REQUIRED for queries asking to "show", "list", "find", or "compare" multiple patients. Examples:
+  - "Show patients with similar medical history patterns" → Use a table with columns: Patient Name, MRN, Medical History, Similar Patterns, Key Conditions
+  - "Find patients with hypertension" → Use a table with columns: Patient Name, MRN, BP Readings, Medications, Status
+  - "Compare patients with diabetes" → Use a table comparing key metrics across patients
+  - Always include Patient Name/MRN as the first column(s)
+  - Include relevant medical data columns (medical history, diagnoses, medications, vitals, etc.)
+  - Format tables using proper markdown table syntax: | Column 1 | Column 2 | Column 3 |
 - **Numbered lists**: Sequential protocols or step-by-step workflows  
 - **Paragraphs**: Complex clinical narratives requiring context
+
+**CRITICAL: Table Format Requirements:**
+- For ANY query asking to "show", "display", "list", "find", or "compare" multiple patients, you MUST use a markdown table
+- Table format example:
+\`\`\`
+| Patient Name | MRN | Medical History | Key Conditions | Similar Patterns |
+|--------------|-----|-----------------|----------------|------------------|
+| John Doe | MRN-001 | Hypertension, Diabetes | HTN, DM2 | Similar to Patient X |
+| Jane Smith | MRN-002 | Hypertension, Heart Disease | HTN, CAD | Similar to Patient Y |
+\`\`\`
+- Include a brief explanation before the table (1-2 sentences)
+- After the table, add clinical insights or patterns observed
 
 **Always Include:**
 - Severity indicators: 🔴 Critical | 🟡 Monitor | 🟢 Stable
@@ -391,6 +476,7 @@ Before responding, identify:
 - **Specific Focus**: What exact information is being requested? (e.g., specific patient, condition, vital sign, medication)
 - **Scope**: Single patient, multiple patients, or general clinical knowledge?
 - **Urgency Level**: Is this about immediate concerns, routine review, or educational inquiry?
+- **Table Requirement**: If query contains "show", "list", "find", "display", "compare", "similar", "patterns" → MUST use table format
 
 **Step 2: Validate Data Relevance**
 - Extract ONLY the patient data that directly answers the query
@@ -435,11 +521,30 @@ Ensure your response:
 3. **Clinical Significance** (what these findings mean)
 4. **Recommendations** (actionable next steps)
 
-**For Comparison Queries:**
-11. **Summary Statement** (how many patients, main finding)
-12. **Comparison Table** or **Side-by-side bullets**
-13. **Notable Patterns** (commonalities or concerning differences)
-14. **Priority Ranking** (if applicable - who needs attention first)
+**For Comparison Queries (including "show", "list", "find", "compare" queries):**
+🚨 **TABLE IS MANDATORY - NO EXCEPTIONS** 🚨
+
+1. **Summary Statement** (how many patients, main finding) - 1-2 sentences at the top
+2. **MARKDOWN TABLE** - REQUIRED - Must use this exact format:
+   \`\`\`markdown
+   | Patient Name | MRN | [Column 1] | [Column 2] | [Column 3] |
+   |--------------|-----|------------|------------|------------|
+   | [Name] | [MRN] | [Data] | [Data] | [Data] |
+   \`\`\`
+   - Patient Name (first column) - REQUIRED
+   - MRN (second column) - REQUIRED  
+   - Relevant medical data columns based on query (medical history, diagnoses, medications, vitals, patterns, etc.)
+   - For "similar medical history patterns": Include columns: Medical History, Key Conditions, Diagnosis, Similar Patterns
+   - Each row = one patient
+   - Include ALL relevant patients from the data
+3. **Key Findings** (bulleted list of most important observations from the table data)
+4. **Clinical Significance** (what these findings mean clinically, why they matter)
+5. **Notable Patterns** (commonalities or concerning differences observed in the table)
+6. **Recommended Actions** (actionable items for the care team, use regular bullet points with dash: -). DO NOT use checkbox syntax (- [ ] or - [x]). Use the same format as Key Findings and Notable Patterns.
+7. **Priority Ranking** (if applicable - who needs attention first)
+8. **Data Source** (at the end: "Based on data entered on [date]" or "Based on available records as of [date]")
+
+**CRITICAL: If you list patients using bullets (*) or paragraphs instead of a table, your response is INCORRECT. Always use a table for multiple patients.**
 
 **For General Clinical Questions (no specific patient):**
 1. **Clear upfront statement**: "No specific patient data applies to this general question."
@@ -454,6 +559,8 @@ Ensure your response:
 1. **Parse the user query**: "${userQuery}"
    - Identify what specific information is being requested
    - Determine which patients (if any) are relevant
+   - **CRITICAL**: If the query contains words like "show", "list", "find", "display", "compare", or asks for multiple patients → YOU MUST USE A TABLE FORMAT
+   - For "similar medical history patterns" queries → Create a table with: Patient Name | MRN | Medical History | Key Conditions | Similar Patterns
 
 2. **Extract relevant data ONLY**:
    - Review the patient data provided above
@@ -471,11 +578,23 @@ Ensure your response:
    - Be specific with numbers, names, and values
 
 4. **Support with clinical insights**:
-   - Use structured format (headers, bullets, tables as appropriate)
-   - Include severity indicators (🔴🟡🟢) and time-sensitivity (**STAT**, **Today**, etc.)
-   - Cite specific patient data (names, MRNs, values)
-   - Add clinical correlations and patterns
-   - Provide actionable recommendations with checkboxes
+   - **FOR QUERIES ASKING TO "SHOW", "LIST", "FIND", OR "COMPARE" PATIENTS**: 
+     🚨 **YOU MUST USE A MARKDOWN TABLE - THIS IS NOT OPTIONAL** 🚨
+     - Start with: **Summary Statement** (1-2 sentences): "Found X patients: [brief description]"
+     - Then provide: **Comparison Table** (markdown table with columns: Patient Name | MRN | [relevant columns])
+     - Each patient gets one row in the table
+     - DO NOT use bullet points, numbered lists, or paragraphs to list patients
+     - After the table, provide these sections in order:
+       * **Key Findings** (bulleted list of important observations from the table)
+       * **Clinical Significance** (what these findings mean clinically)
+       * **Notable Patterns** (commonalities or differences observed)
+       * **Recommended Actions** (actionable items with regular bullet points: -). DO NOT use checkbox syntax (- [ ]). Use the same format as Key Findings: single dash followed by space (- ).
+       * **Data Source** (at end: "Based on data entered on [date]" or "Based on available records")
+   - Table should include: Patient Name (first), MRN (second), and relevant data columns based on the query
+   - Include severity indicators (🔴🟡🟢) and time-sensitivity (**STAT**, **Today**, etc.) where applicable
+   - Cite specific patient data (names, MRNs, values) in the table
+   - Add clinical correlations and patterns in the appropriate sections
+   - Provide actionable recommendations with bullet points in Recommended Actions section
 
 5. **Validate accuracy**:
    - Ensure every statement is supported by the data provided
@@ -488,6 +607,146 @@ Ensure your response:
 ---
 
 **Your Clinical Response (Must Directly Answer the Query):**
+
+${(() => {
+  const queryLower = userQuery.toLowerCase();
+  const requiresTable = queryLower.includes('show') || 
+                        queryLower.includes('list') || 
+                        queryLower.includes('find') || 
+                        queryLower.includes('compare') || 
+                        queryLower.includes('similar') || 
+                        queryLower.includes('pattern') ||
+                        queryLower.includes('patients with') ||
+                        queryLower.includes('patients who') ||
+                        queryLower.includes('patients having') ||
+                        queryLower.includes('which patients') ||
+                        queryLower.includes('what patients') ||
+                        queryLower.includes('analyze') && queryLower.includes('treatment') ||
+                        queryLower.includes('treatments') && (queryLower.includes('worked') || queryLower.includes('successful')) ||
+                        queryLower.includes('outcomes') ||
+                        queryLower.includes('elderly patients') ||
+                        queryLower.includes('heart conditions');
+  
+  if (!requiresTable) return '';
+  
+  // Determine table columns based on query type
+  let tableColumns = 'Patient Name | MRN | [Relevant columns based on query]';
+  let exampleTable = '';
+  
+  if (queryLower.includes('similar') && queryLower.includes('medical history')) {
+    tableColumns = 'Patient Name | MRN | Medical History | Key Conditions | Diagnosis | Similar Patterns';
+    exampleTable = `
+| Patient Name | MRN | Medical History | Key Conditions | Diagnosis | Similar Patterns |
+|--------------|-----|-----------------|----------------|-----------|------------------|
+| John Doe | MRN-001 | Hypertension, Diabetes, Hyperlipidemia | HTN, DM2, High Cholesterol | Stable | Cardiovascular risk factors |
+| Jane Smith | MRN-002 | Hypertension, Heart Disease, Diabetes | HTN, CAD, DM2 | Stable | Cardiovascular risk factors |`;
+  } else if (queryLower.includes('hypertension') || queryLower.includes('high blood pressure')) {
+    tableColumns = 'Patient Name | MRN | Blood Pressure | Medications | Status';
+    exampleTable = `
+| Patient Name | MRN | Blood Pressure | Medications | Status |
+|--------------|-----|----------------|-------------|--------|
+| John Doe | MRN-001 | 140/90 | Lisinopril | Stable |
+| Jane Smith | MRN-002 | 135/85 | Amlodipine | Stable |`;
+  } else if (queryLower.includes('diabetes') || queryLower.includes('diabetic')) {
+    tableColumns = 'Patient Name | MRN | Blood Glucose | Medications | HbA1c | Status';
+    exampleTable = `
+| Patient Name | MRN | Blood Glucose | Medications | HbA1c | Status |
+|--------------|-----|---------------|-------------|-------|--------|
+| John Doe | MRN-001 | 120 mg/dL | Metformin | 7.2% | Controlled |
+| Jane Smith | MRN-002 | 135 mg/dL | Insulin | 8.1% | Monitoring |`;
+  }
+  
+  return `
+🚨🚨🚨 **CRITICAL: THIS QUERY REQUIRES A TABLE** 🚨🚨🚨
+
+**YOU MUST RESPOND WITH A MARKDOWN TABLE. DO NOT USE BULLET POINTS OR PARAGRAPHS TO LIST PATIENTS.**
+
+**FEW-SHOT EXAMPLE (FOLLOW THIS EXACT FORMAT):**
+
+User Query: "Show patients with similar medical history patterns"
+
+CORRECT Response Format:
+
+**Summary Statement:**
+Found 2 patients with similar medical history patterns showing cardiovascular risk factors.
+
+**Comparison Table:**
+
+| Patient Name | MRN | Medical History | Key Conditions | Diagnosis | Similar Patterns |
+|--------------|-----|-----------------|----------------|-----------|------------------|
+| John Doe | MRN-001 | Hypertension, Diabetes, Hyperlipidemia | HTN, DM2, High Cholesterol | Stable | Cardiovascular risk factors |
+| Jane Smith | MRN-002 | Hypertension, Heart Disease, Diabetes | HTN, CAD, DM2 | Stable | Cardiovascular risk factors |
+
+**Key Findings:**
+- Both patients have hypertension and diabetes as common conditions
+- Both are on stable management with medications
+- Shared cardiovascular risk profile requiring similar monitoring approaches
+
+**Clinical Significance:**
+These patterns suggest a cohort of patients with similar cardiovascular risk factors who may benefit from standardized monitoring protocols and medication management strategies. The presence of multiple risk factors (HTN, DM2, hyperlipidemia/CAD) indicates higher cardiovascular risk requiring comprehensive management.
+
+**Notable Patterns:**
+- Common presence of hypertension across both patients
+- Diabetes (DM2) is a shared comorbidity
+- Both patients are currently stable on medication management
+- Similar medication classes may be effective (ACE inhibitors, statins, glucose-lowering agents)
+
+**Recommended Actions:**
+- Regular monitoring of blood pressure and glucose levels for both patients
+- Consider cardiovascular risk assessment and lipid panel monitoring
+- Evaluate medication adherence and effectiveness
+- Schedule follow-up visits to assess treatment response
+
+**CRITICAL FORMATTING RULE:** Recommended Actions MUST use the EXACT SAME bullet point format as Key Findings and Notable Patterns above. Use single dash followed by space: `- Action item`. DO NOT use checkbox syntax like `- [ ] Action item` or `- [x] Action item`. The format should be identical to the Key Findings section.
+
+**Priority Ranking:**
+Both patients require routine monitoring. No immediate urgent intervention needed based on current stable status.
+
+Based on data entered on 03 November 2025.
+
+**CRITICAL TABLE FORMATTING RULES:**
+1. The separator row (second row) MUST have the EXACT same number of columns as the header row
+2. Each column separator should be at least 3 dashes: |---|
+3. The separator row format is: |--------------|-----|-----------------| (one separator per column)
+4. DO NOT add extra pipes or columns
+5. Ensure proper alignment - count columns carefully
+6. Example of CORRECT separator: |--------------|-----|-----------------|----------------|-----------|------------------|
+7. Example of WRONG separator: |-------------------|--------------|---------------------| (wrong number of columns)
+
+---
+
+**Required Response Format for THIS Query:**
+1. **Summary Statement** (1-2 sentences at top): "Found X patients: [brief description]"
+2. **Comparison Table** (MANDATORY) with columns: ${tableColumns}
+${exampleTable ? `\n**Example table format for this query type:**\n${exampleTable}` : ''}
+3. **Key Findings** (bulleted list of important observations from the table)
+4. **Clinical Significance** (what these findings mean clinically)
+5. **Notable Patterns** (commonalities or differences observed in the table)
+6. **Recommended Actions** (actionable items with regular bullet points: -). CRITICAL: Use the EXACT SAME format as Key Findings and Notable Patterns. Format: `- Action item` (NOT `- [ ] Action item`). DO NOT use checkbox markdown syntax.
+7. **Data Source** (at end: "Based on data entered on [date]" or "Based on available records")
+
+**CRITICAL RULES:**
+- ✅ Use markdown table syntax: | Column 1 | Column 2 | Column 3 |
+- ✅ Include header separator: |--------------|-----|-----------------|
+- ✅ Put each patient on a separate row
+- ✅ Include ALL relevant patients from the retrieved data
+- ❌ DO NOT use bullet points (*) to list patients
+- ❌ DO NOT use numbered lists (1., 2., 3.) to list patients
+- ❌ DO NOT write paragraphs describing patients individually
+- ❌ DO NOT say "Here are the patients:" and then list as text
+
+**YOUR RESPONSE MUST FOLLOW THIS STRUCTURE:**
+1. **Summary Statement** (1-2 sentences at top)
+2. **Comparison Table** (markdown table - copy the format from the example above)
+3. **Key Findings** (bulleted list)
+4. **Clinical Significance** (paragraph explaining what findings mean)
+5. **Notable Patterns** (bulleted list of patterns observed)
+6. **Recommended Actions** (bulleted list using dash: -). Format: `- Action item` (NOT `- [ ] Action item`). Same format as Key Findings section.
+7. **Data Source** (at end: "Based on data entered on [date]")
+
+**IF YOU DO NOT USE A TABLE, YOUR RESPONSE IS INCORRECT. FOLLOW THE EXAMPLE ABOVE EXACTLY WITH ALL SECTIONS.**
+`;
+})()}
 `;
 
     console.log('🤖 Generating AI response with RAG context...');
