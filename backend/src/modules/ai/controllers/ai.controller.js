@@ -5,7 +5,7 @@ const { generateAIResponse } = require('../services/openai.service');
  */
 async function generateAIResponseEndpoint(req, res) {
   try {
-    const { prompt, systemMessage } = req.body;
+    const { prompt, systemMessage, conversationId } = req.body;
 
     if (!prompt) {
       return res.status(400).json({ error: 'Prompt is required' });
@@ -13,7 +13,7 @@ async function generateAIResponseEndpoint(req, res) {
 
     console.log('🤖 Backend AI generating response for:', prompt.substring(0, 50) + '...');
     
-    const response = await generateAIResponse(prompt, systemMessage);
+    const response = await generateAIResponse(prompt, systemMessage, conversationId);
     
     res.json({ 
       response,

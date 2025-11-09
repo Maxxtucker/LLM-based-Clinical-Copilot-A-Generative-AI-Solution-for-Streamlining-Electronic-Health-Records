@@ -63,7 +63,7 @@ router.post("/prompt", async (req, res) => {
  */
 router.post("/generate", async (req, res) => {
   try {
-    const { prompt, systemMessage } = req.body; //reads user text input (the question inputted)
+    const { prompt, systemMessage, conversationId } = req.body; //reads user text input (the question inputted)
 
     if (!prompt || !prompt.trim()) {
       return res.status(400).json({ error: "Prompt is required." });
@@ -71,7 +71,7 @@ router.post("/generate", async (req, res) => {
 
     console.log('🤖 Backend AI generating response for:', prompt.substring(0, 50) + '...');
     
-    const text = await generateAIResponse(prompt, systemMessage);
+    const text = await generateAIResponse(prompt, systemMessage, conversationId);
 
     res.json({ 
       text,

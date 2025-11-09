@@ -15,6 +15,11 @@ export default function AIAssistant() {
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
+  const conversationIdRef = useRef(
+    (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : `conv-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+  );
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -96,7 +101,11 @@ export default function AIAssistant() {
 
       // Use RAG-enhanced AI to generate insights with vector search context
       console.log('🔍 Using RAG-enhanced AI with vector search for:', userMessage);
-      const aiResponse = await generateRAGPatientInsights(patients, userMessage);
+      const aiResponse = await generateRAGPatientInsights(
+        patients,
+        userMessage,
+        conversationIdRef.current
+      );
       console.log('✅ RAG-enhanced AI response received:', aiResponse?.substring(0, 100) + '...');
       
       if (!aiResponse || aiResponse.trim() === '') {

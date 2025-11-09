@@ -10,12 +10,17 @@ const API_BASE_URL = 'http://localhost:5001/api';
 /**
  * Call backend AI service to avoid CORS issues
  */
-async function callBackendAI(prompt, systemMessage) {
+async function callBackendAI(prompt, systemMessage, conversationId) {
   try {
+    const payload = { prompt, systemMessage };
+    if (conversationId) {
+      payload.conversationId = conversationId;
+    }
+
     const response = await fetch(`${API_BASE_URL}/ai/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, systemMessage }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -120,7 +125,7 @@ function findPatientByName(name, allPatients) {
 /**
  * Generate AI response with RAG context from vector search
  */
-export async function generateRAGResponse(userQuery, allPatients = []) {
+export async function generateRAGResponse(userQuery, allPatients = [], conversationId = null) {
   try {
     console.log('🔍 Performing vector search for:', userQuery);
     
@@ -752,7 +757,7 @@ ${exampleTable ? `\n**Example table format for this query type:**\n${exampleTabl
 `;
 
     console.log('🤖 Generating AI response with RAG context...');
-    const aiResponse = await callBackendAI(prompt, systemMessage);
+    const aiResponse = await callBackendAI(prompt, systemMessage, conversationId);
 
     return aiResponse;
   } catch (error) {
@@ -764,9 +769,9 @@ ${exampleTable ? `\n**Example table format for this query type:**\n${exampleTabl
 /**
  * Generate enhanced patient insights with RAG context
  */
-export async function generateRAGPatientInsights(allPatients, userQuery) {
+export async function generateRAGPatientInsights(allPatients, userQuery, conversationId = null) {
   try {
-    const ragResponse = await generateRAGResponse(userQuery, allPatients);
+    const ragResponse = await generateRAGResponse(userQuery, allPatients, conversationId);
 
 //     const databaseStats = `
 // **Patient Database Overview:**
@@ -781,7 +786,7 @@ export async function generateRAGPatientInsights(allPatients, userQuery) {
     console.error('RAG Patient Insights Error:', error);
     console.log('🔄 Falling back to backend AI service...');
     const fallbackPrompt = `Based on the patient data, provide insights for: "${userQuery}"`;
-    return await callBackendAI(fallbackPrompt, 'You are a medical AI assistant.');
+    return await callBackendAI(fallbackPrompt, 'You are a medical AI assistant.', conversationId);
   }
 }
 

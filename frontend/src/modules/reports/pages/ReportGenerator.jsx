@@ -24,8 +24,10 @@ import {
   ArcElement,
   PointElement,
   LineElement,
+  RadialLinearScale,
+  Filler,
 } from 'chart.js';
-import { Bar, Pie, Line } from 'react-chartjs-2';
+import { Bar, Pie, Line, Doughnut, PolarArea, Radar, Scatter, Bubble } from 'react-chartjs-2';
 
 ChartJS.register(
   CategoryScale,
@@ -36,7 +38,9 @@ ChartJS.register(
   Legend,
   ArcElement,
   PointElement,
-  LineElement
+  LineElement,
+  RadialLinearScale,
+  Filler
 );
 
 export default function ReportGenerator() {
@@ -55,11 +59,30 @@ export default function ReportGenerator() {
   
   // Enhanced report state
   const [visualizationData, setVisualizationData] = useState(null);
+  const [lastRelevantPatientCount, setLastRelevantPatientCount] = useState(0);
   // const [reportType, setReportType] = useState(""); // Removed unused variable
 
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
   const shouldAutoScroll = useRef(true);
+
+  const summaryData = visualizationData?.summary || {};
+  const summaryAgeGroups = summaryData?.ageGroups ? Object.entries(summaryData.ageGroups) : [];
+  const summaryGenderDistribution = summaryData?.genderDistribution ? Object.entries(summaryData.genderDistribution) : [];
+  const summaryTopConditions = Array.isArray(summaryData?.topConditions) ? summaryData.topConditions : [];
+  const summaryKeyFindings = Array.isArray(summaryData?.keyFindings) ? summaryData.keyFindings : [];
+  const topConditionsDisplay = summaryTopConditions.length > 0
+    ? summaryTopConditions
+    : summaryKeyFindings.map((finding, idx) => ({ condition: finding, count: null, id: idx }));
+  const totalPatientsDisplay = summaryData?.totalPatients ?? lastRelevantPatientCount ?? 0;
+  const maxAgeGroupCount = summaryAgeGroups.reduce((max, [, count]) => Math.max(max, Number(count) || 0), 0) || 1;
+  const normalizedTopConditions = topConditionsDisplay.map((item, idx) => {
+    if (typeof item === 'string') {
+      return { condition: item, count: null, id: idx };
+    }
+    return item;
+  });
+  const maxConditionCount = normalizedTopConditions.reduce((max, item) => Math.max(max, Number(item.count) || 0), 0) || 1;
 
   const scrollToBottom = () => {
     if (shouldAutoScroll.current && messagesEndRef.current) {
@@ -79,30 +102,114 @@ export default function ReportGenerator() {
     }
   }, [messages]);
 
-  // Function to create chart data from visualization data
-  const createChartData = (viz) => {
-    console.log('Creating chart data for:', viz.title, viz.data);
-    const labels = Object.keys(viz.data);
-    const data = Object.values(viz.data);
-    const colors = [
-      '#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe',
-      '#43e97b', '#38f9d7', '#ffecd2', '#fcb69f', '#a8edea', '#fed6e3'
-    ];
+  const defaultChartColors = [
+    '#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe',
+    '#43e97b', '#38f9d7', '#ffecd2', '#fcb69f', '#a8edea', '#fed6e3'
+  ];
 
-    const chartData = {
+  const resolveChartType = (viz) => {
+    const typeSource = (viz?.chartType || viz?.type || 'bar').toString().toLowerCase();
+    if (typeSource.includes('doughnut')) return 'doughnut';
+    if (typeSource.includes('polar')) return 'polarArea';
+    if (typeSource.includes('radar')) return 'radar';
+    if (typeSource.includes('scatter')) return 'scatter';
+    if (typeSource.includes('bubble')) return 'bubble';
+    if (typeSource.includes('line')) return 'line';
+    if (typeSource.includes('pie')) return 'pie';
+    return 'bar';
+  };
+
+  const createChartData = (viz = {}) => {
+    console.log('Creating chart data for:', viz.title, viz.data);
+
+    // If LLM already provided Chart.js datasets, respect them
+    if (Array.isArray(viz?.data?.labels) && Array.isArray(viz?.data?.datasets)) {
+      const chartData = {
+        labels: viz.data.labels,
+        datasets: viz.data.datasets.map((dataset, idx) => ({
+          borderWidth: dataset.borderWidth ?? 2,
+          borderColor: dataset.borderColor || '#fff',
+          backgroundColor: dataset.backgroundColor || defaultChartColors[idx % defaultChartColors.length],
+          ...dataset,
+        })),
+      };
+      console.log('Generated chart data (LLM provided):', chartData);
+      return chartData;
+    }
+
+    // Support structures like { labels: [], datasets: [] }
+    if (Array.isArray(viz?.labels) && Array.isArray(viz?.datasets)) {
+      const chartData = {
+        labels: viz.labels,
+        datasets: viz.datasets,
+      };
+      console.log('Generated chart data (labels/datasets pair):', chartData);
+      return chartData;
+    }
+
+    // Support array of { label, value }
+    if (Array.isArray(viz?.data) && viz.data.every(item => typeof item === 'object')) {
+      const labels = viz.data.map(item => item.label || item.name || '');
+      const values = viz.data.map(item => item.value ?? item.count ?? 0);
+      const chartData = {
+        labels,
+        datasets: [{
+          label: viz.title,
+          data: values,
+          backgroundColor: values.map((_, idx) => defaultChartColors[idx % defaultChartColors.length]),
+          borderColor: '#fff',
+          borderWidth: 2,
+        }],
+      };
+      console.log('Generated chart data (array map):', chartData);
+      return chartData;
+    }
+
+    const entries = Object.entries(viz?.data || {});
+    const labels = entries.map(([label]) => label);
+    const values = entries.map(([, value]) => value);
+
+    const fallbackData = {
       labels,
       datasets: [{
         label: viz.title,
-        data,
-        backgroundColor: colors.slice(0, labels.length),
+        data: values,
+        backgroundColor: values.map((_, idx) => defaultChartColors[idx % defaultChartColors.length]),
         borderColor: '#fff',
         borderWidth: 2,
-        hoverBackgroundColor: colors.slice(0, labels.length).map(color => color + '80'),
-      }]
+      }],
     };
     
-    console.log('Generated chart data:', chartData);
-    return chartData;
+    console.log('Generated chart data (fallback):', fallbackData);
+    return fallbackData;
+  };
+
+  const renderChart = (viz) => {
+    const type = resolveChartType(viz);
+    const data = createChartData(viz);
+    const mergedOptions = {
+      ...(type === 'pie' || type === 'doughnut' ? pieChartOptions : chartOptions),
+      ...(viz?.options || {}),
+    };
+
+    switch (type) {
+      case 'pie':
+        return <Pie data={data} options={mergedOptions} />;
+      case 'doughnut':
+        return <Doughnut data={data} options={mergedOptions} />;
+      case 'line':
+        return <Line data={data} options={mergedOptions} />;
+      case 'polarArea':
+        return <PolarArea data={data} options={mergedOptions} />;
+      case 'radar':
+        return <Radar data={data} options={mergedOptions} />;
+      case 'scatter':
+        return <Scatter data={data} options={mergedOptions} />;
+      case 'bubble':
+        return <Bubble data={data} options={mergedOptions} />;
+      default:
+        return <Bar data={data} options={mergedOptions} />;
+    }
   };
 
   // Chart options
@@ -267,6 +374,7 @@ export default function ReportGenerator() {
       const chatMessage = aiResponse.message || aiResponse;
       const reportContent = aiResponse.report || aiResponse;
       const relevantPatients = aiResponse.relevantPatients || patients; // fallback to all patients if not filtered
+      setLastRelevantPatientCount(relevantPatients.length);
 
       console.log(`📊 Using ${relevantPatients.length} patients for visualization (filtered from ${patients.length} total)`);
 
@@ -282,19 +390,13 @@ export default function ReportGenerator() {
         return;
       }
 
-      // Step 2: Build visualization data
-      let vizData;
-      
-      if (reportMode === 'deep') {
-        // Deep Mode: Use LLM-generated visualization data
-        console.log('🌊 DEEP MODE: Using LLM-generated visualization data');
-        vizData = aiResponse.visualizationData || null;
-        console.log('LLM-generated visualization data:', vizData);
+      // Step 2: Prefer LLM-driven visualization data regardless of mode
+      let vizData = aiResponse.visualizationData || null;
+      if (vizData) {
+        console.log('✅ Using LLM-generated visualization data');
       } else {
-        // Fast Mode: Use template-based visualization data
-        console.log('⚡ FAST MODE: Using template-based visualization data');
+        console.warn('⚠️ No visualization data returned by LLM - falling back to template generation');
         vizData = generateVisualizationData(relevantPatients, queryClassification);
-        console.log('Template-generated visualization data:', vizData);
       }
       
       setVisualizationData(vizData);
@@ -643,38 +745,40 @@ export default function ReportGenerator() {
                       
                       {/* Professional Charts Grid - A4 Format */}
                       <div className="grid grid-cols-1 gap-8 mb-6 px-8">
-                        {visualizationData.visualizations.map((viz, index) => (
-                          <div key={index} className="border border-gray-300 p-4">
-                            <div className="mb-4">
-                              <h3 className="text-lg font-bold text-black mb-2 uppercase tracking-wide">{viz.title}</h3>
-                              <p className="text-sm font-bold text-gray-700 mb-3">{viz.description}</p>
-                              <div className="flex gap-4 text-xs font-bold text-gray-600">
-                                <span><strong>Chart Type:</strong> {viz.chartType}</span>
-                                <span><strong>Data Points:</strong> {Object.keys(viz.data).length}</span>
+                        {visualizationData.visualizations.map((viz, index) => {
+                          const chartTypeLabel = viz.chartType || viz.type || 'Chart';
+                          const dataPointCount = Array.isArray(viz?.data?.labels)
+                            ? viz.data.labels.length
+                            : Object.keys(viz?.data || {}).length;
+                          return (
+                            <div key={index} className="border border-gray-300 p-4">
+                              <div className="mb-4">
+                                <h3 className="text-lg font-bold text-black mb-2 uppercase tracking-wide">{viz.title || `Visualization ${index + 1}`}</h3>
+                                {viz.description && (
+                                  <p className="text-sm font-bold text-gray-700 mb-3">{viz.description}</p>
+                                )}
+                                <div className="flex gap-4 text-xs font-bold text-gray-600">
+                                  <span><strong>Chart Type:</strong> {chartTypeLabel}</span>
+                                  <span><strong>Data Points:</strong> {dataPointCount}</span>
+                                </div>
+                              </div>
+                              
+                              {/* Professional Chart Container */}
+                              <div className="h-96 w-full border border-gray-200 bg-gray-50">
+                                {viz.data ? (
+                                  renderChart(viz)
+                                ) : (
+                                  <div className="h-full flex items-center justify-center">
+                                    <div className="text-center text-gray-500">
+                                      <div className="text-lg font-bold mb-2">📊 CHART DATA LOADING</div>
+                                      <div className="text-sm font-bold">Generating visualization for {viz.title || `Visualization ${index + 1}`}</div>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             </div>
-                            
-                            {/* Professional Chart Container */}
-                            <div className="h-96 w-full border border-gray-200 bg-gray-50">
-                              {viz.data && Object.keys(viz.data).length > 0 ? (
-                                viz.chartType === 'Pie Chart' ? (
-                                  <Pie data={createChartData(viz)} options={pieChartOptions} />
-                                ) : viz.chartType === 'Bar Chart' ? (
-                                  <Bar data={createChartData(viz)} options={chartOptions} />
-                                ) : (
-                                  <Line data={createChartData(viz)} options={chartOptions} />
-                                )
-                              ) : (
-                                <div className="h-full flex items-center justify-center">
-                                  <div className="text-center text-gray-500">
-                                    <div className="text-lg font-bold mb-2">📊 CHART DATA LOADING</div>
-                                    <div className="text-sm font-bold">Generating visualization for {viz.title}</div>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                       
                       {/* A4 Summary Statistics */}
@@ -682,19 +786,19 @@ export default function ReportGenerator() {
                         <h3 className="text-lg font-bold text-black mb-4 uppercase tracking-wide border-b border-gray-400 pb-2">SUMMARY STATISTICS</h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                           <div className="text-center p-3 border border-gray-300 bg-gray-50">
-                            <div className="text-2xl font-bold text-black">{visualizationData.summary.totalPatients}</div>
+                            <div className="text-2xl font-bold text-black">{totalPatientsDisplay}</div>
                             <div className="text-sm font-bold text-gray-700">TOTAL PATIENTS</div>
                           </div>
                           <div className="text-center p-3 border border-gray-300 bg-gray-50">
-                            <div className="text-2xl font-bold text-black">{visualizationData.summary.topConditions.length}</div>
+                            <div className="text-2xl font-bold text-black">{normalizedTopConditions.length}</div>
                             <div className="text-sm font-bold text-gray-700">TOP CONDITIONS</div>
                           </div>
                           <div className="text-center p-3 border border-gray-300 bg-gray-50">
-                            <div className="text-2xl font-bold text-black">{Object.keys(visualizationData.summary.ageGroups).length}</div>
+                            <div className="text-2xl font-bold text-black">{summaryAgeGroups.length}</div>
                             <div className="text-sm font-bold text-gray-700">AGE GROUPS</div>
                           </div>
                           <div className="text-center p-3 border border-gray-300 bg-gray-50">
-                            <div className="text-2xl font-bold text-black">{Object.keys(visualizationData.summary.genderDistribution).length}</div>
+                            <div className="text-2xl font-bold text-black">{summaryGenderDistribution.length}</div>
                             <div className="text-sm font-bold text-gray-700">GENDER CATEGORIES</div>
                           </div>
                         </div>
@@ -703,45 +807,56 @@ export default function ReportGenerator() {
                         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div className="border border-gray-300 p-4">
                             <h5 className="font-bold text-black mb-4 uppercase tracking-wide border-b border-gray-400 pb-1">AGE DISTRIBUTION</h5>
-                            <div className="space-y-2">
-                              {Object.entries(visualizationData.summary.ageGroups).map(([age, count]) => (
-                                <div key={age} className="flex items-center justify-between border border-gray-200 p-2 bg-gray-50">
-                                  <span className="font-bold text-black">{age}</span>
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-16 bg-gray-300 h-2">
-                                      <div 
-                                        className="bg-gray-600 h-2" 
-                                        style={{ width: `${(count / Math.max(...Object.values(visualizationData.summary.ageGroups))) * 100}%` }}
-                                      ></div>
-                                    </div>
-                                    <span className="text-sm font-bold text-black w-8 text-right">{count}</span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                          
-                          <div className="border border-gray-300 p-4">
-                            <h5 className="font-bold text-black mb-4 uppercase tracking-wide border-b border-gray-400 pb-1">TOP MEDICAL CONDITIONS</h5>
-                            <div className="space-y-2">
-                              {visualizationData.summary.topConditions.map((item, idx) => {
-                                const maxCount = visualizationData.summary.topConditions[0]?.count || 1;
-                                return (
-                                  <div key={idx} className="flex items-center justify-between border border-gray-200 p-2 bg-gray-50">
-                                    <span className="font-bold text-black capitalize">{item.condition}</span>
+                            {summaryAgeGroups.length > 0 ? (
+                              <div className="space-y-2">
+                                {summaryAgeGroups.map(([age, count]) => (
+                                  <div key={age} className="flex items-center justify-between border border-gray-200 p-2 bg-gray-50">
+                                    <span className="font-bold text-black">{age}</span>
                                     <div className="flex items-center gap-2">
                                       <div className="w-16 bg-gray-300 h-2">
                                         <div 
                                           className="bg-gray-600 h-2" 
-                                          style={{ width: `${(item.count / maxCount) * 100}%` }}
+                                          style={{ width: `${(Number(count) / maxAgeGroupCount) * 100}%` }}
                                         ></div>
                                       </div>
-                                      <span className="text-sm font-bold text-black w-8 text-right">{item.count}</span>
+                                      <span className="text-sm font-bold text-black w-8 text-right">{count}</span>
                                     </div>
                                   </div>
-                                );
-                              })}
-                            </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-gray-600">LLM did not return structured age buckets for this run.</p>
+                            )}
+                          </div>
+                          
+                          <div className="border border-gray-300 p-4">
+                            <h5 className="font-bold text-black mb-4 uppercase tracking-wide border-b border-gray-400 pb-1">TOP MEDICAL CONDITIONS</h5>
+                            {normalizedTopConditions.length > 0 ? (
+                              <div className="space-y-2">
+                                {normalizedTopConditions.map((item, idx) => (
+                                  <div key={item.condition || item.id || idx} className="flex items-center justify-between border border-gray-200 p-2 bg-gray-50">
+                                    <span className="font-bold text-black capitalize">{item.condition || item.label || `Finding ${idx + 1}`}</span>
+                                    <div className="flex items-center gap-2">
+                                      {item.count !== null && item.count !== undefined ? (
+                                        <>
+                                          <div className="w-16 bg-gray-300 h-2">
+                                            <div 
+                                              className="bg-gray-600 h-2" 
+                                              style={{ width: `${(Number(item.count) / maxConditionCount) * 100}%` }}
+                                            ></div>
+                                          </div>
+                                          <span className="text-sm font-bold text-black w-8 text-right">{item.count}</span>
+                                        </>
+                                      ) : (
+                                        <span className="text-sm text-gray-600">{item.condition || summaryKeyFindings[idx]}</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-gray-600">No condition-level breakdown provided. Review key findings in the report body.</p>
+                            )}
                           </div>
                         </div>
                       </div>

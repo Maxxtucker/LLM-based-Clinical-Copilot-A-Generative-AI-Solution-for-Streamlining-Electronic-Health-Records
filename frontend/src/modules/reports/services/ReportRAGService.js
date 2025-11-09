@@ -71,6 +71,84 @@ async function searchSimilarPatientsForReport(query, topK = 50) {
   }
 }
 
+function formatPatientContext(patients) {
+  if (!Array.isArray(patients)) return '';
+  return patients.map((p, idx) => {
+    return `**Patient ${idx + 1}: ${p.first_name || 'Unknown'} ${p.last_name || ''}**
+- Age: ${p.age || (p.date_of_birth ? new Date().getFullYear() - new Date(p.date_of_birth).getFullYear() : 'N/A')}
+- Gender: ${p.gender || 'N/A'}
+- Diagnosis: ${p.diagnosis || 'None'}
+- Chief Complaint: ${p.chief_complaint || 'None'}
+- Medical History: ${p.medical_history || 'None'}
+- Treatment Plan: ${p.treatment_plan || 'None'}
+- Current Medications: ${p.current_medications || 'None'}
+- Allergies: ${p.allergies || 'None'}`;
+  }).join('\n\n');
+}
+
+async function generateLLMVisualizationData(userQuery, patients, providedContext) {
+  if (!Array.isArray(patients) || patients.length === 0) {
+    return null;
+  }
+
+  const patientContext = providedContext || formatPatientContext(patients);
+  const vizSystemMessage = `You are a medical data visualization expert. Create compelling Chart.js-ready configurations using ANY chart type that best represents the data (bar, line, pie, doughnut, radar, polarArea, scatter, bubble, etc.). Return ONLY valid JSON.`;
+
+  const vizPrompt = `Query: "${userQuery}"
+
+Patients (${patients.length} total):
+
+${patientContext}
+
+Generate 2-3 relevant visualizations using the following JSON schema:
+{
+  "visualizations": [
+    {
+      "type": "chart.js chart type (e.g., bar, line, pie, doughnut, radar, polarArea, scatter)",
+      "title": "Human readable chart title",
+      "description": "One sentence about what the chart shows",
+      "data": {
+        "labels": ["Label 1", "Label 2", ...],
+        "datasets": [
+          {
+            "label": "Series name",
+            "data": [numeric or coordinate values],
+            "backgroundColor": ["#hex", ...],
+            "borderColor": ["#hex", ...],
+            "fill": true/false
+          }
+        ]
+      },
+      "options": { "Chart.js options overrides (optional)" }
+    }
+  ],
+  "summary": {
+    "totalPatients": number,
+    "keyFindings": ["Finding 1", "Finding 2"],
+    "metrics": {
+      "metricName": "value"
+    }
+  }
+}
+
+Do NOT invent patients. Use only the provided data.`;
+
+  try {
+    const vizResponse = await generateAIResponse(vizPrompt, vizSystemMessage);
+    const jsonMatch = vizResponse.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const visualizationData = JSON.parse(jsonMatch[0]);
+      console.log('✅ LLM visualization data generated:', visualizationData);
+      return visualizationData;
+    }
+    console.warn('⚠️ Unable to parse visualization JSON from LLM response');
+    return null;
+  } catch (vizError) {
+    console.error('❌ Visualization LLM Error:', vizError);
+    return null;
+  }
+}
+
 /**
  * Generate deep mode report by sending all patient data directly to LLM
  * Minimal restrictions - let the LLM decide what's relevant AND what visualizations to show
@@ -94,56 +172,9 @@ Analyze the data and generate a comprehensive report that addresses the request.
     
     console.log(`✅ DEEP MODE report generated successfully`);
     
-    // Step 2: Ask LLM to generate visualization data
+    // Step 2: Ask LLM to generate visualization data without constraints
     console.log(`📊 DEEP MODE: Asking LLM to generate visualization data...`);
-    const vizSystemMessage = `You are a data visualization expert. Analyze patient data and generate visualization configurations in JSON format.`;
-    
-    const vizPrompt = `Based on this query: "${userQuery}"
-
-And these ${patients.length} patients:
-
-${patientContext}
-
-Generate 2-3 relevant data visualizations in this EXACT JSON format:
-
-{
-  "visualizations": [
-    {
-      "type": "bar" or "pie" or "line",
-      "title": "Chart Title",
-      "data": {
-        "labels": ["Label1", "Label2", ...],
-        "datasets": [{
-          "label": "Dataset Name",
-          "data": [value1, value2, ...]
-        }]
-      }
-    }
-  ],
-  "summary": {
-    "totalPatients": ${patients.length},
-    "keyFindings": ["Finding 1", "Finding 2", "Finding 3"]
-  }
-}
-
-Choose visualizations that are MOST RELEVANT to the query. Respond with ONLY valid JSON, no other text.`;
-
-    let visualizationData = null;
-    try {
-      const vizResponse = await generateAIResponse(vizPrompt, vizSystemMessage);
-      
-      // Parse the JSON response
-      const jsonMatch = vizResponse.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        visualizationData = JSON.parse(jsonMatch[0]);
-        console.log(`✅ DEEP MODE: LLM-generated visualization data:`, visualizationData);
-      } else {
-        console.warn(`⚠️ DEEP MODE: Could not parse visualization JSON from LLM response`);
-      }
-    } catch (vizError) {
-      console.error(`❌ DEEP MODE: Error generating visualization data:`, vizError);
-      // Continue without visualizations
-    }
+    const visualizationData = await generateLLMVisualizationData(userQuery, patients, patientContext);
     
     return {report, visualizationData };
     
@@ -173,17 +204,7 @@ export async function generateComprehensiveReport(userQuery, allPatients, mode =
       const relevantPatients = allPatients;
       
       // Build comprehensive patient context with ALL details
-      const patientContext = relevantPatients.map((p, idx) => {
-        return `**Patient ${idx + 1}: ${p.first_name} ${p.last_name}**
-- Age: ${p.age || 'N/A'}
-- Gender: ${p.gender || 'N/A'}
-- Diagnosis: ${p.diagnosis || 'None'}
-- Chief Complaint: ${p.chief_complaint || 'None'}
-- Medical History: ${p.medical_history || 'None'}
-- Treatment Plan: ${p.treatment_plan || 'None'}
-- Current Medications: ${p.current_medications || 'None'}
-- Allergies: ${p.allergies || 'None'}`;
-      }).join('\n\n');
+      const patientContext = formatPatientContext(relevantPatients);
       
       // Generate report with minimal restrictions - let LLM decide what's relevant
       const { report, visualizationData } = await generateDeepModeReport(userQuery, relevantPatients, patientContext);
@@ -526,6 +547,13 @@ Generate a report where EVERY NUMBER and EVERY PATIENT NAME matches the actual p
     console.log('🤖 Generating comprehensive report with RAG context...');
     const report = await generateAIResponse(prompt, systemMessage);
 
+    let visualizationData = null;
+    try {
+      visualizationData = await generateLLMVisualizationData(userQuery, relevantPatients, ragContext);
+    } catch (vizError) {
+      console.error('⚠️ Fast mode visualization generation failed, falling back later:', vizError);
+    }
+
     // ✅ Only return success message in chat (not the report itself)
     if (report && report.trim().length > 0) {
       console.log('✅ Report generated successfully!');
@@ -538,6 +566,7 @@ Generate a report where EVERY NUMBER and EVERY PATIENT NAME matches the actual p
         message: `✅ **Report generated successfully!** You can view, edit it, and see the visualizations in the preview panel on the right.`,
         report, // still included for backend or preview use
         relevantPatients, // return the filtered patients for visualization
+        visualizationData,
       };
     } else {
       console.warn('⚠️ Empty report generated.');
@@ -635,28 +664,28 @@ export function generateVisualizationData(patients, reportType) {
   // Generate visualization suggestions
   visualizations.push({
     type: 'demographics',
+    chartType: 'Bar Chart',
     title: 'Patient Age Distribution',
     data: ageGroups,
-    chartType: 'Bar Chart',
     description: 'Distribution of patients across age groups'
   });
   
   visualizations.push({
     type: 'demographics',
+    chartType: 'Pie Chart',
     title: 'Gender Distribution',
     data: genderDistribution,
-    chartType: 'Pie Chart',
     description: 'Gender breakdown of patient population'
   });
   
   visualizations.push({
     type: 'clinical',
+    chartType: 'Bar Chart',
     title: 'Top Medical Conditions',
     data: Object.entries(conditionDistribution)
       .sort(([,a], [,b]) => b - a)
       .slice(0, 10)
       .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {}),
-    chartType: 'Bar Chart',
     description: 'Most common diagnoses in the patient population'
   });
   
@@ -678,6 +707,120 @@ export function generateVisualizationData(patients, reportType) {
  * Enhanced PDF export with interactive visualizations and modern styling
  */
 export function generateEnhancedPDFContent(report, visualizationData) {
+  const DEFAULT_COLORS = ['#667eea','#764ba2','#f093fb','#f5576c','#4facfe','#00f2fe','#43e97b','#38f9d7','#ffecd2','#fcb69f','#a8edea','#fed6e3'];
+
+  const resolveChartType = (viz) => {
+    const typeSource = (viz?.chartType || viz?.type || 'bar').toString().toLowerCase();
+    if (typeSource.includes('doughnut')) return 'doughnut';
+    if (typeSource.includes('polar')) return 'polarArea';
+    if (typeSource.includes('radar')) return 'radar';
+    if (typeSource.includes('scatter')) return 'scatter';
+    if (typeSource.includes('bubble')) return 'bubble';
+    if (typeSource.includes('line')) return 'line';
+    if (typeSource.includes('pie')) return 'pie';
+    return 'bar';
+  };
+
+  const normalizeChartData = (viz = {}) => {
+    if (Array.isArray(viz?.data?.labels) && Array.isArray(viz?.data?.datasets)) {
+      return {
+        labels: viz.data.labels,
+        datasets: viz.data.datasets.map((dataset, idx) => ({
+          borderWidth: dataset.borderWidth ?? 2,
+          borderColor: dataset.borderColor || '#fff',
+          backgroundColor: dataset.backgroundColor || DEFAULT_COLORS[idx % DEFAULT_COLORS.length],
+          ...dataset,
+        })),
+      };
+    }
+
+    if (Array.isArray(viz?.labels) && Array.isArray(viz?.datasets)) {
+      return { labels: viz.labels, datasets: viz.datasets };
+    }
+
+    if (Array.isArray(viz?.data) && viz.data.every(item => typeof item === 'object')) {
+      const labels = viz.data.map(item => item.label || item.name || '');
+      const values = viz.data.map(item => item.value ?? item.count ?? 0);
+      return {
+        labels,
+        datasets: [{
+          label: viz.title || 'Dataset',
+          data: values,
+          backgroundColor: values.map((_, idx) => DEFAULT_COLORS[idx % DEFAULT_COLORS.length]),
+          borderColor: '#fff',
+          borderWidth: 2,
+        }],
+      };
+    }
+
+    const entries = Object.entries(viz?.data || {});
+    return {
+      labels: entries.map(([label]) => label),
+      datasets: [{
+        label: viz.title || 'Dataset',
+        data: entries.map(([, value]) => value),
+        backgroundColor: entries.map((_, idx) => DEFAULT_COLORS[idx % DEFAULT_COLORS.length]),
+        borderColor: '#fff',
+        borderWidth: 2,
+      }],
+    };
+  };
+
+  const normalizedVisualizations = (visualizationData?.visualizations || []).map((viz, index) => ({
+    id: `chart${index}`,
+    title: viz?.title || `Visualization ${index + 1}`,
+    description: viz?.description || '',
+    type: resolveChartType(viz),
+    data: normalizeChartData(viz),
+    options: viz?.options || {},
+  }));
+
+  const summary = visualizationData?.summary || {};
+  const ageGroupKeys = summary?.ageGroups ? Object.keys(summary.ageGroups) : [];
+  const genderKeys = summary?.genderDistribution ? Object.keys(summary.genderDistribution) : [];
+  const keyFindingsList = Array.isArray(summary?.keyFindings) ? summary.keyFindings : [];
+  const topConditions = Array.isArray(summary?.topConditions) ? summary.topConditions : [];
+  const topConditionsCount = topConditions.length || keyFindingsList.length || 0;
+  const totalPatients = summary?.totalPatients ?? 0;
+  const topConditionsText = topConditions.length
+    ? topConditions.map(item => (typeof item === 'string' ? item : `${item.condition || item.label || 'Condition'}${item.count ? ` (${item.count})` : ''}`)).join(', ')
+    : keyFindingsList.join(', ');
+
+  const defaultChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { padding: 12, usePointStyle: true } } },
+    scales: { y: { beginAtZero: true } }
+  };
+
+  const chartsMarkup = normalizedVisualizations.length ? `
+    <div class="chart-grid">
+      ${normalizedVisualizations.map(viz => `
+        <div class="chart-wrapper">
+          <div class="chart-title">${viz.title}</div>
+          ${viz.description ? `<div class="chart-description">${viz.description}</div>` : ''}
+          <div class="chart-container"><canvas id="${viz.id}"></canvas></div>
+        </div>
+      `).join('')}
+    </div>
+  ` : '<p>No visualization data available</p>';
+
+  const chartScripts = normalizedVisualizations.map(viz => {
+    const options = { ...defaultChartOptions, ...(viz.options || {}) };
+    return `
+      (function(){
+        var el = document.getElementById('${viz.id}');
+        if(!el) return;
+        var ctx = el.getContext('2d');
+        new Chart(ctx, {
+          type: '${viz.type}',
+          data: ${JSON.stringify(viz.data)},
+          options: ${JSON.stringify(options)}
+        });
+      })();
+    `;
+  }).join('');
+
   const htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -942,19 +1085,19 @@ export function generateEnhancedPDFContent(report, visualizationData) {
         
         <div class="summary-grid">
           <div class="summary-card">
-            <h3>${visualizationData?.summary?.totalPatients || 0}</h3>
+            <h3>${totalPatients}</h3>
             <p>Total Patients Analyzed</p>
           </div>
           <div class="summary-card">
-            <h3>${Object.keys(visualizationData?.summary?.ageGroups || {}).length}</h3>
+            <h3>${ageGroupKeys.length}</h3>
             <p>Age Groups</p>
           </div>
           <div class="summary-card">
-            <h3>${Object.keys(visualizationData?.summary?.genderDistribution || {}).length}</h3>
+            <h3>${genderKeys.length}</h3>
             <p>Gender Categories</p>
           </div>
           <div class="summary-card">
-            <h3>${visualizationData?.summary?.topConditions?.length || 0}</h3>
+            <h3>${topConditionsCount}</h3>
             <p>Top Conditions</p>
           </div>
         </div>
@@ -962,23 +1105,13 @@ export function generateEnhancedPDFContent(report, visualizationData) {
         <div class="section">
           <h2>📊 Report Analysis</h2>
           <div class="highlight">
-            ${report.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/^# (.*$)/gm, '<h1>$1</h1>').replace(/^## (.*$)/gm, '<h2>$2</h2>').replace(/^### (.*$)/gm, '<h3>$3</h3>')}
+            ${report.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/^# (.*$)/gm, '<h1>$1</h1>').replace(/^## (.*$)/gm, '<h2>$1</h2>').replace(/^### (.*$)/gm, '<h3>$1</h3>')}
           </div>
         </div>
         
         <div class="section">
           <h2>📈 Interactive Data Visualizations</h2>
-          ${visualizationData?.visualizations?.length ? `
-            <div class="chart-grid">
-              ${visualizationData.visualizations.map((viz, index) => `
-                <div class="chart-wrapper">
-                  <div class="chart-title">${viz.title}</div>
-                  <div class="chart-description">${viz.description}</div>
-                  <div class="chart-container"><canvas id="chart${index}"></canvas></div>
-                </div>
-              `).join('')}
-            </div>
-          ` : '<p>No visualization data available</p>'}
+          ${chartsMarkup}
         </div>
         
         <div class="section">
@@ -994,22 +1127,22 @@ export function generateEnhancedPDFContent(report, visualizationData) {
             <tbody>
               <tr>
                 <td>Total Patients</td>
-                <td>${visualizationData?.summary?.totalPatients || 0}</td>
+                <td>${totalPatients}</td>
                 <td>Number of patients analyzed in this report</td>
               </tr>
               <tr>
                 <td>Age Distribution</td>
-                <td>${Object.keys(visualizationData?.summary?.ageGroups || {}).join(', ')}</td>
+                <td>${ageGroupKeys.join(', ') || 'N/A'}</td>
                 <td>Age groups represented in the data</td>
               </tr>
               <tr>
                 <td>Gender Distribution</td>
-                <td>${Object.keys(visualizationData?.summary?.genderDistribution || {}).join(', ')}</td>
+                <td>${genderKeys.join(', ') || 'N/A'}</td>
                 <td>Gender categories in the patient population</td>
               </tr>
               <tr>
                 <td>Top Conditions</td>
-                <td>${visualizationData?.summary?.topConditions?.join(', ') || 'N/A'}</td>
+                <td>${topConditionsText || 'N/A'}</td>
                 <td>Most common medical conditions</td>
               </tr>
             </tbody>
@@ -1030,32 +1163,7 @@ export function generateEnhancedPDFContent(report, visualizationData) {
           }
           function renderCharts(){
             if (!window.Chart) { setTimeout(renderCharts, 60); return; }
-            ${visualizationData?.visualizations?.map((viz, index) => `
-              (function(){
-                var el = document.getElementById('chart${index}');
-                if(!el) return;
-                var ctx = el.getContext('2d');
-                new Chart(ctx, {
-                  type: '${viz.chartType === 'Pie Chart' ? 'pie' : viz.chartType === 'Bar Chart' ? 'bar' : 'line'}',
-                  data: {
-                    labels: ${JSON.stringify(Object.keys(viz.data || {}))},
-                    datasets: [{
-                      label: '${viz.title}',
-                      data: ${JSON.stringify(Object.values(viz.data || {}))},
-                      backgroundColor: ['#667eea','#764ba2','#f093fb','#f5576c','#4facfe','#00f2fe','#43e97b','#38f9d7','#ffecd2','#fcb69f','#a8edea','#fed6e3'],
-                      borderColor: '#fff',
-                      borderWidth: 2
-                    }]
-                  },
-                  options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom', labels: { padding: 12, usePointStyle: true } } },
-                    scales: { y: { beginAtZero: true } }
-                  }
-                });
-              })();
-            `).join('') || ''}
+            ${chartScripts}
           }
           ready(renderCharts);
           // Ensure charts exist before print

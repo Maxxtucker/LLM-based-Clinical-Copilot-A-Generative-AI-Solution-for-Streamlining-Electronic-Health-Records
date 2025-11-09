@@ -27,9 +27,14 @@ async function postJSON(path, body) {
  * @param {string|null} systemMessage
  * @returns {Promise<string>}
  */
-export async function generateAIResponse(prompt, systemMessage = null) {
+export async function generateAIResponse(prompt, systemMessage = null, conversationId = null) {
   // Your backend route should accept { prompt, systemMessage } and return { text } (or similar)
-  const data = await postJSON("/api/ai/generate", { prompt, systemMessage });
+  const payload = { prompt, systemMessage };
+  if (conversationId) {
+    payload.conversationId = conversationId;
+  }
+
+  const data = await postJSON("/api/ai/generate", payload);
 
   // Be tolerant of different shapes (text, content, choices[0].message.content, etc.)
   return (
