@@ -31,15 +31,21 @@ const { authRouter } = require("./modules/auth/auth.routes");
 const { usersRouter } = require("./modules/auth/users.routes");
 
 /* -------------------------- CRON JOBS -------------------------- */
+
 const embeddingsScript = path.resolve(__dirname, "scripts/embedAllPatients.js");
 
-// ✅ Daily patient embeddings update (keep this)
-cron.schedule("0 0 * * *", () => {
-  console.log(`🌙 [CRON] Running daily patient embeddings update: ${new Date().toISOString()}`);
-  const proc = spawn("node", [embeddingsScript], { stdio: "inherit" });
-  proc.on("close", (code) => console.log(`✅ [CRON] Embeddings update exited with code ${code}`));
-});
-
+// Run daily at 12:00 AM SGT
+cron.schedule(
+  "0 16 * * *", // 16:00 UTC = 00:00 SGT
+  () => {
+    console.log(`🌙 [CRON] Running daily patient embeddings update: ${new Date().toISOString()}`);
+    const proc = spawn("node", [embeddingsScript], { stdio: "inherit" });
+    proc.on("close", (code) => console.log(`✅ [CRON] Embeddings update exited with code ${code}`));
+  },
+  {
+    timezone: "Asia/Singapore", // ensures it triggers at 12 AM SGT
+  }
+);
 /* -------------------------- SERVER START -------------------------- */
 (async function start() {
   try {

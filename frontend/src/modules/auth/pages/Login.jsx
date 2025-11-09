@@ -51,7 +51,11 @@ export default function Login({ setIsAuthenticated }) {
           <CardHeader className="space-y-1 pb-6 text-center">
             <div className="flex justify-center mb-6">
               <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg">
-                <Stethoscope className="w-9 h-9 text-white" />
+                    <img
+                      src="/mediquery-icon.png" // or "/mediquery-icon.svg"
+                      alt="MediQuery Logo"
+                      className="w-14 h-14 object-contain"
+                    />
               </div>
             </div>
 

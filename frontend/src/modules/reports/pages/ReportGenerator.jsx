@@ -567,16 +567,16 @@ export default function ReportGenerator() {
                   onChange={(e) => setEditedReport(e.target.value)}
                 />
               ) : (
-                <div className="space-y-6" style={{ width: '100%', overflowX: 'auto' }}>
+                <div className="space-y-6" style={{ width: '100%', overflowX: 'hidden' }}>
                   
                   {/* Report Content */}
                   {/* A4 Medical Report Format */}
                   <div id="report-a4" className="bg-white shadow-lg mx-auto" style={{ 
                     width: '100%',       // make width responsive
-                    maxWidth: '210mm',   // cap to A4 width
+                    maxWidth: '100%',                    
                     minHeight: '297mm',  // keep A4 height
                     fontFamily: 'Arial, sans-serif',
-                    fontSize: '12pt',
+                    fontSize: '11pt',
                     lineHeight: '1.4',
                     color: '#000',
                     boxSizing: 'border-box',
@@ -594,7 +594,7 @@ export default function ReportGenerator() {
                       <iframe
                         title="Report Preview (A4)"
                         srcDoc={generatedReport}
-                        style={{ width: '210mm', minHeight: '297mm', border: '1px solid #e5e7eb' }}
+                        style={{ width: '100%', minHeight: '297mm', border: '1px solid #e5e7eb' }}
                 />
               ) : (
                 <div
@@ -628,7 +628,8 @@ export default function ReportGenerator() {
                   {/* A4 Medical Report Charts Section */}
                   {visualizationData && !(typeof generatedReport === 'string' && (generatedReport.trim().startsWith('<!DOCTYPE html') || generatedReport.trim().startsWith('<html'))) && (
                     <div className="bg-white shadow-lg mt-4 mx-auto" style={{ 
-                      width: '210mm', 
+                      width: '100%', 
+                      maxWidth: '100%',
                       fontFamily: 'Arial, sans-serif',
                       fontSize: '12pt',
                       lineHeight: '1.4',
