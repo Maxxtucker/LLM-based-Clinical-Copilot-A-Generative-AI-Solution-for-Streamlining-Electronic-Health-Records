@@ -31,28 +31,13 @@ const { authRouter } = require("./modules/auth/auth.routes");
 const { usersRouter } = require("./modules/auth/users.routes");
 
 /* -------------------------- CRON JOBS -------------------------- */
-const migrationScriptVitals = path.resolve(__dirname, "scripts/patientMigration.js");
-const migrationScriptVisits = path.resolve(__dirname, "scripts/visitMigration.js");
 const embeddingsScript = path.resolve(__dirname, "scripts/embedAllPatients.js");
 
+// ✅ Daily patient embeddings update (keep this)
 cron.schedule("0 0 * * *", () => {
   console.log(`🌙 [CRON] Running daily patient embeddings update: ${new Date().toISOString()}`);
   const proc = spawn("node", [embeddingsScript], { stdio: "inherit" });
   proc.on("close", (code) => console.log(`✅ [CRON] Embeddings update exited with code ${code}`));
-});
-
-// hourly vitals migration
-cron.schedule("0 * * * *", () => {
-  console.log(`⏰ [CRON] Running hourly vitals migration: ${new Date().toISOString()}`);
-  const proc = spawn("node", [migrationScriptVitals], { stdio: "inherit" });
-  proc.on("close", (code) => console.log(`✅ [CRON] Vitals migration exited with code ${code}`));
-});
-
-// hourly visit migration (10 min after)
-cron.schedule("10 * * * *", () => {
-  console.log(`⏰ [CRON] Running hourly visit migration: ${new Date().toISOString()}`);
-  const proc = spawn("node", [migrationScriptVisits], { stdio: "inherit" });
-  proc.on("close", (code) => console.log(`✅ [CRON] Visit migration exited with code ${code}`));
 });
 
 /* -------------------------- SERVER START -------------------------- */
@@ -78,7 +63,10 @@ cron.schedule("10 * * * *", () => {
     app.use(compression());
 
     // --- CORS ---
-    const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || process.env.CLIENT_ORIGIN || "http://localhost:3000";
+    const FRONTEND_ORIGIN =
+      process.env.FRONTEND_ORIGIN ||
+      process.env.CLIENT_ORIGIN ||
+      "http://localhost:3000";
     console.log(`[CORS] Allowing origin: ${FRONTEND_ORIGIN}`);
     app.use(
       cors({
@@ -86,7 +74,6 @@ cron.schedule("10 * * * *", () => {
         credentials: true,
       })
     );
-    // Handle preflight for all routes (helpful when using credentials)
     app.options("*", cors({ origin: FRONTEND_ORIGIN, credentials: true }));
 
     // Parse
@@ -101,7 +88,7 @@ cron.schedule("10 * * * *", () => {
 
     /* -------------------------- ROUTE MOUNTING -------------------------- */
     app.get("/healthz", (_req, res) => res.json({ ok: true, db: connection?.name || null }));
-    app.get("/api/ping", (_req, res) => res.json({ ok: true })); // quick FE ping
+    app.get("/api/ping", (_req, res) => res.json({ ok: true }));
 
     // Auth & Users
     app.use("/api/auth", authRouter);
@@ -113,17 +100,13 @@ cron.schedule("10 * * * *", () => {
     app.use("/api/rag", ragRouter);
     app.use("/api/speech", speechRoutes);
 
-    // Checkups (vitals): mount BOTH nested and legacy
-    // - Nested: POST /api/patients/:patientId/checkups   (PatientForm uses this)
-    // - Legacy: POST /api/checkups  { patient_id, vitals }  (curl/tools/backfill)
+    // Checkups & Visits
     app.use("/api/patients/:patientId/checkups", checkupRouter);
     app.use("/api/checkups", checkupRouter);
-
-    // Visits: nested (and keep your legacy blocker at top-level)
     app.use("/api/patients/:patientId/visits", visitRouter);
     app.use("/api/visits", legacyVisitsBlocker);
 
-    // Reporting + PDFs
+    // Reports & PDFs
     app.use("/api/reports", reportRouter);
     app.use("/reports", reportRenderRouter);
     app.use("/", pdfRouter);
@@ -140,7 +123,7 @@ cron.schedule("10 * * * *", () => {
     });
 
     /* -------------------------- START SERVER -------------------------- */
-    const port = process.env.PORT || 5001; // default to 5001 for clarity
+    const port = process.env.PORT || 5001;
     const server = app.listen(port, () => {
       console.log(`🚀 API running on http://localhost:${port}`);
     });
@@ -148,7 +131,9 @@ cron.schedule("10 * * * *", () => {
     for (const signal of ["SIGINT", "SIGTERM"]) {
       process.on(signal, async () => {
         console.log(`\n🛑 Received ${signal}, shutting down…`);
-        try { await connection.close(); } catch {}
+        try {
+          await connection.close();
+        } catch {}
         server.close(() => process.exit(0));
       });
     }
