@@ -21,6 +21,7 @@ import {
   SidebarMenu, SidebarMenuItem, SidebarMenuButton,
 } from "@/components/ui/sidebar";
 import "./App.css";
+import MediQueryLogo from "@/shared/logo_MediQuery AI.png";
 
 function SidebarFooterContent({ onLogoutClick }) {
   return (
@@ -181,7 +182,13 @@ function App() {
               <div className="flex min-h-screen bg-gray-50">
                 <Sidebar>
                   <SidebarHeader>
-                    <h2 className="text-xl font-bold text-blue-600">MediQuery AI</h2>
+                    <div className="flex items-center">
+                      <img
+                        src={MediQueryLogo}
+                        alt="MediQuery AI"
+                        className="h-14 w-auto"
+                      />
+                    </div>
                   </SidebarHeader>
                   <SidebarContent>
                     <SidebarMenu>
