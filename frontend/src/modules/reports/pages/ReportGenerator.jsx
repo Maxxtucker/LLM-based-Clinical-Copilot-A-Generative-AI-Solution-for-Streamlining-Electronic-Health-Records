@@ -58,13 +58,25 @@ export default function ReportGenerator() {
   // const [reportType, setReportType] = useState(""); // Removed unused variable
 
   const messagesEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
+  const shouldAutoScroll = useRef(true);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (shouldAutoScroll.current && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
   };
 
+  // Only auto-scroll when user sends a message, not when AI responds
   useEffect(() => {
-    scrollToBottom();
+    // Only scroll if the last message is from the user
+    if (messages.length > 0 && messages[messages.length - 1]?.isUser) {
+      shouldAutoScroll.current = true;
+      scrollToBottom();
+    } else {
+      // Don't auto-scroll when AI responds
+      shouldAutoScroll.current = false;
+    }
   }, [messages]);
 
   // Function to create chart data from visualization data
@@ -174,8 +186,15 @@ export default function ReportGenerator() {
   };
 
   const handleSendMessage = async (userMessage) => {
+    // Enable auto-scroll when user sends a message
+    shouldAutoScroll.current = true;
     setMessages(prev => [...prev, { text: userMessage, isUser: true }]);
     setIsLoading(true);
+    
+    // Scroll to bottom after user message is added
+    setTimeout(() => {
+      scrollToBottom();
+    }, 100);
 
     try {
       const apiResponse = await fetch('/api/patients?status=active&limit=200');
@@ -254,6 +273,8 @@ export default function ReportGenerator() {
       // ✅ If no patients found (report is null), just show the error message
       if (!reportContent || relevantPatients.length === 0) {
         console.warn('⚠️ No report generated - no matching patients found');
+        // Disable auto-scroll when AI responds
+        shouldAutoScroll.current = false;
         setMessages(prev => [...prev, { text: chatMessage, isUser: false }]);
         setGeneratedReport(null);
         setEditedReport(null);
@@ -281,18 +302,24 @@ export default function ReportGenerator() {
       // Step 3: Ask LLM to render full HTML with embedded charts
       try {
         const htmlReport = await generateHTMLReportWithCharts(reportContent, vizData);
+        // Disable auto-scroll when AI responds
+        shouldAutoScroll.current = false;
         setMessages(prev => [...prev, { text: chatMessage, isUser: false }]);
         setGeneratedReport(htmlReport); // now HTML
         setEditedReport(htmlReport);
       } catch (e) {
         console.error('Failed to create HTML report via LLM, falling back to markdown rendering:', e);
-      setMessages(prev => [...prev, { text: chatMessage, isUser: false }]);
-      setGeneratedReport(reportContent);
-      setEditedReport(reportContent);
+        // Disable auto-scroll when AI responds
+        shouldAutoScroll.current = false;
+        setMessages(prev => [...prev, { text: chatMessage, isUser: false }]);
+        setGeneratedReport(reportContent);
+        setEditedReport(reportContent);
       }
 
     } catch (error) {
       console.error('Error getting AI response:', error);
+      // Disable auto-scroll when AI responds
+      shouldAutoScroll.current = false;
       setMessages(prev => [...prev, { 
         text: "I encountered an error while processing your request. Please try again.", 
         isUser: false 
@@ -389,13 +416,13 @@ export default function ReportGenerator() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#fafafa] to-[#FEF5F5]">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-[#fafafa] to-[#FEF5F5] overflow-hidden">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="bg-white border-b border-neutral-200 p-6 shadow-sm"
+        className="flex-shrink-0 bg-white border-b border-neutral-200 p-6 shadow-sm"
       >
         <div className="max-w-5xl mx-auto flex items-center gap-3">
           <div className="w-12 h-12 bg-gradient-to-br from-red-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
@@ -465,10 +492,14 @@ export default function ReportGenerator() {
       </motion.div>
 
       {/* Main Split View */}
-      <div className="flex-1 flex max-w-[1800px] mx-auto w-full gap-6 p-6">
+      <div className="flex-1 flex max-w-[1800px] mx-auto w-full gap-6 p-6 overflow-hidden" style={{ height: 'calc(100vh - 120px)' }}>
         {/* Left Side - Chat */}
         <div className="w-1/2 flex flex-col h-full overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-6 pr-2 space-y-4">
+          <div 
+            ref={chatContainerRef}
+            className="flex-1 overflow-y-auto p-6 pr-2 space-y-4"
+            style={{ minHeight: 0, maxHeight: '100%' }}
+          >
             {messages.length === 1 && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }}>
                 <ReportPrompts onPromptSelect={handleSendMessage} isLoading={isLoading} />
@@ -499,15 +530,15 @@ export default function ReportGenerator() {
 
             <div ref={messagesEndRef} />
           </div>
-          <div className="border-t border-neutral-200">
+          <div className="flex-shrink-0 border-t border-neutral-200 bg-white">
             <ReportInput onSendMessage={handleSendMessage} isLoading={isLoading} />
           </div>
         </div>
 
 
         {/* Right Side - Report Preview */}
-        <div className="w-1/2 flex flex-col bg-white rounded-xl shadow-lg border border-neutral-200 overflow-hidden">
-          <div className="p-6 flex items-center justify-between border-b border-neutral-200">
+        <div className="w-1/2 flex flex-col bg-white rounded-xl shadow-lg border border-neutral-200 overflow-hidden h-full">
+          <div className="flex-shrink-0 p-6 flex items-center justify-between border-b border-neutral-200">
             <h2 className="text-lg font-bold text-neutral-900"> Report Preview</h2>
             <div className="flex gap-2">
               {!isEditing && <button onClick={handleEdit}><Edit3 /></button>}
@@ -520,7 +551,7 @@ export default function ReportGenerator() {
               <button onClick={exportToPDF}><Download /></button>
             </div>
           </div>
-            <div className="p-6 flex-1 overflow-auto" style={{ maxHeight: 'calc(100vh - 80px)' }}>
+            <div className="p-6 flex-1 overflow-y-auto overflow-x-hidden" style={{ minHeight: 0 }}>
               {!generatedReport ? (
                 <div className="h-full flex flex-col items-center justify-center text-center text-neutral-400">
                   <FileText className="w-16 h-16 mb-4 opacity-50" />

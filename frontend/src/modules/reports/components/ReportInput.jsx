@@ -22,7 +22,7 @@ export default function ChatInput({ onSendMessage, isLoading }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="border-t border-neutral-200 bg-white p-4">
+    <form onSubmit={handleSubmit} className="bg-white p-4">
       <div className="flex gap-3">
         <Textarea
           value={message}
