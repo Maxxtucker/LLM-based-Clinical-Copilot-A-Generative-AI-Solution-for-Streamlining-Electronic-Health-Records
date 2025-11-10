@@ -138,6 +138,13 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
    return inRange(formData.vital_signs.temperature, 35.0, 42.0) ? null : `Temperature (${formData.vital_signs.temperature}°C) is abnormal. Please verify.`;
  };
 
+ // Address warning: recommend entering a full address with an example format
+ const validateAddress = (addr) => {
+   if (!addr || String(addr).trim().length === 0) {
+     return 'Please provide a full address. Example: "xx Road, Singapore, 123456"';
+   }
+   return null;
+ };
 
  // Live warnings (computed on render)
  const mrnWarning  = validateMRN(formData.medical_record_number);
@@ -150,6 +157,7 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
  const bpWarning = validateBloodPressure();
  const hrWarning = validateHeartRate();
  const tempWarning = validateTemperature();
+ const addressWarning = validateAddress(formData.address);
 
 
  const hasErrors =
@@ -630,13 +638,17 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
 
              <div>
                <Label htmlFor="address" className="text-sm font-medium text-neutral-700">Address</Label>
-               <Input
-                 id="address"
-                 value={formData.address}
-                 onChange={(e) => handleChange('address', e.target.value)}
-                 className="mt-1"
-                 disabled={!hasSearched}
-               />
+              <Input
+                id="address"
+                value={formData.address}
+                onChange={(e) => handleChange('address', e.target.value)}
+                className={`mt-1 ${hasSearched && addressWarning ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                placeholder="xx Road, Singapore, 123456"
+                disabled={!hasSearched}
+              />
+              {hasSearched && addressWarning && (
+                <p className="text-xs text-red-600 mt-1">⚠️ {addressWarning}</p>
+              )}
              </div>
 
 
