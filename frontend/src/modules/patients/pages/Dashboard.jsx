@@ -14,6 +14,26 @@ export default function Dashboard() {
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
+  // current user role for role-based UI
+  const [role, setRole] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    async function loadMe() {
+      try {
+        const res = await fetch(`${process.env.REACT_APP_API_BASE_URL || ""}/api/users/me`, { credentials: "include" });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
+        const u = json.user || json;
+        const roles = Array.isArray(u.roles) ? u.roles : [];
+        const r = u.role || (roles.includes("doctor") ? "doctor" : roles.includes("nurse") ? "nurse" : roles[0] || "user");
+        if (!cancelled) setRole(r);
+      } catch {
+        if (!cancelled) setRole(null);
+      }
+    }
+    loadMe();
+    return () => { cancelled = true; };
+  }, []);
 
   // server-reported totals (from backend pagination response)
   const [totalFromServer, setTotalFromServer] = useState(0);
@@ -211,6 +231,7 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex items-center gap-4">
+            {/* role-aware: fetch current user role to show New Patient only for nurses */}
             {/* Toggle: View All Patients */}
             <label
               htmlFor="toggleAllPatients"
@@ -240,13 +261,15 @@ export default function Dashboard() {
               </span>
             </label>
 
-            {/* Add Patient */}
-            <Link to="/patients">
-              <Button className="bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all duration-200 px-6 py-3 flex items-center">
-                <Plus className="w-5 h-5 mr-2" />
-                New Patient
-              </Button>
-            </Link>
+            {/* Add Patient (nurse only) */}
+            {role === "nurse" && (
+              <Link to="/patients">
+                <Button className="bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all duration-200 px-6 py-3 flex items-center">
+                  <Plus className="w-5 h-5 mr-2" />
+                  New Patient
+                </Button>
+              </Link>
+            )}
           </div>
         </motion.div>
 

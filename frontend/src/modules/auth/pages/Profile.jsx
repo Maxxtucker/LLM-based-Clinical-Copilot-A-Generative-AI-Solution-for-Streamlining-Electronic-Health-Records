@@ -16,7 +16,6 @@ import {
   Save, 
   X, 
   Key,
-  Bell,
   ShieldCheck,
   Eye,
   EyeOff
@@ -181,7 +180,7 @@ export default function Profile() {
           className="mb-8"
         >
           <h1 className="text-3xl font-bold text-neutral-900 mb-2">Profile Settings</h1>
-          <p className="text-neutral-600">Manage your account information and preferences</p>
+          <p className="text-neutral-600">Manage your account information</p>
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -466,31 +465,6 @@ export default function Profile() {
               </CardContent>
             </Card>
 
-            {/* Preferences */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Bell className="w-5 h-5" />
-                  Preferences
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Email Notifications</p>
-                    <p className="text-sm text-neutral-600">Receive updates about patient care</p>
-                  </div>
-                  <input type="checkbox" defaultChecked className="w-4 h-4 text-blue-600" />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">SMS Notifications</p>
-                    <p className="text-sm text-neutral-600">Receive urgent alerts via SMS</p>
-                  </div>
-                  <input type="checkbox" className="w-4 h-4 text-blue-600" />
-                </div>
-              </CardContent>
-            </Card>
           </motion.div>
         </div>
       </div>

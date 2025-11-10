@@ -51,6 +51,27 @@ function App() {
   );
   const [isSavingPatient, setIsSavingPatient] = useState(false);
 
+  // derive current user role for role-based navigation and route guarding
+  const [role, setRole] = useState(null);
+  React.useEffect(() => {
+    let cancelled = false;
+    async function loadMe() {
+      try {
+        const res = await fetch(`${process.env.REACT_APP_API_BASE_URL || ""}/api/users/me`, { credentials: "include" });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
+        const u = json.user || json;
+        const roles = Array.isArray(u.roles) ? u.roles : [];
+        const r = u.role || (roles.includes("doctor") ? "doctor" : roles.includes("nurse") ? "nurse" : roles[0] || "user");
+        if (!cancelled) setRole(r);
+      } catch {
+        if (!cancelled) setRole(null);
+      }
+    }
+    loadMe();
+    return () => { cancelled = true; };
+  }, []);
+
   const handleLogoutClick = () => setShowLogoutConfirm(true);
   const handleLogoutConfirm = async () => {
     setShowLogoutConfirm(false);
@@ -197,11 +218,13 @@ function App() {
                           <Link to="/dashboard"><Home className="mr-2 h-4 w-4" />Dashboard</Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild>
-                          <Link to="/patients"><User className="mr-2 h-4 w-4" />Patients</Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
+                      {role === "nurse" && (
+                        <SidebarMenuItem>
+                          <SidebarMenuButton asChild>
+                            <Link to="/patients"><User className="mr-2 h-4 w-4" />Patients</Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      )}
                       <SidebarMenuItem>
                         <SidebarMenuButton asChild>
                           <Link to="/ai"><Brain className="mr-2 h-4 w-4" />AI Assistant</Link>
@@ -224,12 +247,16 @@ function App() {
                     <Route
                       path="/patients"
                       element={
-                        <section className="p-6 mb-6">
-                          <h2 className="text-xl font-bold text-neutral-800 mb-4">
-                            Add / Update Patient <i>(Nurse)</i>
-                          </h2>
+                        role === "nurse" ? (
+                          <section className="p-6 mb-6">
+                            <h2 className="text-xl font-bold text-neutral-800 mb-4">
+                              Add / Update Patient <i>(Nurse)</i>
+                            </h2>
                           <PatientForm onSubmit={handlePatientSubmit} isLoading={isSavingPatient} />
                         </section>
+                        ) : (
+                          <Navigate to="/dashboard" replace />
+                        )
                       }
                     />
                     <Route path="/ai" element={<AIAssistant />} />

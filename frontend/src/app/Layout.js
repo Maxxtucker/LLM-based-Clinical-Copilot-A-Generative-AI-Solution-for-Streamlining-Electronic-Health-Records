@@ -36,12 +36,40 @@ export default function Layout({ children, currentPageName }) {
 
 // Sidebar Component
 function AppSidebar({ currentPageName }) {
-  const navItems = [
+  const [role, setRole] = React.useState(null);
+  // derive role similar to Profile page
+  const deriveRole = (u) => {
+    if (!u) return "user";
+    if (u.role) return u.role;
+    const roles = Array.isArray(u.roles) ? u.roles : [];
+    if (roles.includes("doctor")) return "doctor";
+    if (roles.includes("nurse")) return "nurse";
+    return roles[0] || "user";
+  };
+  React.useEffect(() => {
+    let cancelled = false;
+    async function loadMe() {
+      try {
+        const res = await fetch(`${process.env.REACT_APP_API_BASE_URL || ""}/api/users/me`, { credentials: "include" });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
+        const u = json.user || json;
+        if (!cancelled) setRole(deriveRole(u));
+      } catch {
+        if (!cancelled) setRole(null); // unknown → hide nurse-only items
+      }
+    }
+    loadMe();
+    return () => { cancelled = true; };
+  }, []);
+
+  const baseNav = [
     { name: "Dashboard", icon: Home, page: "Dashboard" },
-    { name: "New Patient", icon: PlusCircle, page: "NewPatient" },
     { name: "AI Assistant", icon: Bot, page: "AIAssistant" },
     { name: "Reports", icon: FileText, page: "Reports" },
   ];
+  const nurseOnly = { name: "New Patient", icon: PlusCircle, page: "NewPatient" };
+  const navItems = role === "nurse" ? [baseNav[0], nurseOnly, ...baseNav.slice(1)] : baseNav;
 
   return (
     <Sidebar className="border-r bg-white">

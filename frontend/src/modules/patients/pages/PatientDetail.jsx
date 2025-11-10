@@ -86,12 +86,36 @@ export default function PatientDetail() {
   const [visitToDelete, setVisitToDelete] = useState(null);
   const [showDeleteVisitConfirm, setShowDeleteVisitConfirm] = useState(false);
 
+  // current user role (for permissions)
+  const [role, setRole] = useState(null);
+  const isDoctor = role === "doctor";
+
   // History states
   const [checkupHistory, setCheckupHistory] = useState([]); // vitals
   const [visitHistory, setVisitHistory] = useState([]);     // visits
 
   const urlParams = new URLSearchParams(window.location.search);
   const patientId = urlParams.get("id");
+
+  // load current user role
+  useEffect(() => {
+    let cancelled = false;
+    async function loadMe() {
+      try {
+        const res = await fetch(`${process.env.REACT_APP_API_BASE_URL || ""}/api/users/me`, { credentials: "include" });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
+        const u = json.user || json;
+        const roles = Array.isArray(u.roles) ? u.roles : [];
+        const r = u.role || (roles.includes("doctor") ? "doctor" : roles.includes("nurse") ? "nurse" : roles[0] || "user");
+        if (!cancelled) setRole(r);
+      } catch {
+        if (!cancelled) setRole(null);
+      }
+    }
+    loadMe();
+    return () => { cancelled = true; };
+  }, []);
 
   const loadPatient = useCallback(async () => {
     setIsLoading(true);
@@ -565,19 +589,21 @@ export default function PatientDetail() {
                     Medical Information
                   </CardTitle>
                   <div className="absolute top-4 right-4">
-                    <VoiceRecordingButton
-                      patientId={patient._id}
-                      onProcessingComplete={handleConversationExtracted}
-                      onError={(error) => console.error("Voice processing error:", error)}
-                      size="sm"
-                      variant="outline"
-                    />
+                    {isDoctor && (
+                      <VoiceRecordingButton
+                        patientId={patient._id}
+                        onProcessingComplete={handleConversationExtracted}
+                        onError={(error) => console.error("Voice processing error:", error)}
+                        size="sm"
+                        variant="outline"
+                      />
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6 text-sm">
                   <div>
                     <h4 className="font-semibold text-neutral-700 mb-2">Chief Complaint</h4>
-                    {isEditing ? (
+                    {isEditing && isDoctor ? (
                       <Textarea
                         value={editedFields.chief_complaint ?? patient.chief_complaint ?? ""}
                         onChange={(e) => handleEditField("chief_complaint", e.target.value)}
@@ -592,7 +618,7 @@ export default function PatientDetail() {
 
                   <div>
                     <h4 className="font-semibold text-neutral-700 mb-2">Medical History</h4>
-                    {isEditing ? (
+                    {isEditing && isDoctor ? (
                       <Textarea
                         value={editedFields.medical_history ?? patient.medical_history ?? ""}
                         onChange={(e) => handleEditField("medical_history", e.target.value)}
@@ -608,7 +634,7 @@ export default function PatientDetail() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <h4 className="font-semibold text-neutral-700 mb-2">Current Medications</h4>
-                      {isEditing ? (
+                      {isEditing && isDoctor ? (
                         <Textarea
                           value={editedFields.current_medications ?? patient.current_medications ?? ""}
                           onChange={(e) => handleEditField("current_medications", e.target.value)}
@@ -622,7 +648,7 @@ export default function PatientDetail() {
                     </div>
                     <div>
                       <h4 className="font-semibold text-neutral-700 mb-2">Allergies</h4>
-                      {isEditing ? (
+                      {isEditing && isDoctor ? (
                         <Textarea
                           value={editedFields.allergies ?? patient.allergies ?? ""}
                           onChange={(e) => handleEditField("allergies", e.target.value)}
@@ -638,7 +664,7 @@ export default function PatientDetail() {
 
                   <div>
                     <h4 className="font-semibold text-neutral-700 mb-2">Current Symptoms</h4>
-                    {isEditing ? (
+                    {isEditing && isDoctor ? (
                       <Textarea
                         value={editedFields.symptoms ?? patient.symptoms ?? ""}
                         onChange={(e) => handleEditField("symptoms", e.target.value)}
@@ -654,7 +680,7 @@ export default function PatientDetail() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <h4 className="font-semibold text-neutral-700 mb-2">Diagnosis</h4>
-                      {isEditing ? (
+                      {isEditing && isDoctor ? (
                         <Textarea
                           value={editedFields.diagnosis ?? patient.diagnosis ?? ""}
                           onChange={(e) => handleEditField("diagnosis", e.target.value)}
@@ -668,7 +694,7 @@ export default function PatientDetail() {
                     </div>
                     <div>
                       <h4 className="font-semibold text-neutral-700 mb-2">Treatment Plan</h4>
-                      {isEditing ? (
+                      {isEditing && isDoctor ? (
                         <Textarea
                           value={editedFields.treatment_plan ?? patient.treatment_plan ?? ""}
                           onChange={(e) => handleEditField("treatment_plan", e.target.value)}
