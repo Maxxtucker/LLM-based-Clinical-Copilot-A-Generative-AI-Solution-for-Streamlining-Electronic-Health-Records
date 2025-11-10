@@ -9,9 +9,13 @@ const { aggregatePatientData } = require("../modules/rag/services/patientDataAgg
     await connectToDB(process.env.MONGO_URI);
     console.log("✅ Connected to MongoDB.");
 
-    // Optional: Delete all existing embeddings first
-    const deleted = await PatientEmbedding.deleteMany({});
-    console.log(`🗑️ Deleted ${deleted.deletedCount} existing patient embeddings.`);
+    // Optional: Delete all existing embeddings first (only when explicitly requested)
+    if (String(process.env.RESET_EMBEDDINGS).toLowerCase() === "true") {
+      const deleted = await PatientEmbedding.deleteMany({});
+      console.log(`🗑️ Deleted ${deleted.deletedCount} existing patient embeddings.`);
+    } else {
+      console.log("ℹ️ RESET_EMBEDDINGS not set; existing embeddings will be updated in place.");
+    }
 
     // Fetch only active patients
     const patients = await Patient.find({ status: "active" });

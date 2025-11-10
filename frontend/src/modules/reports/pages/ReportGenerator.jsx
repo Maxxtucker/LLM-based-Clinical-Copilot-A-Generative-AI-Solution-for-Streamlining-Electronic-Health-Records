@@ -454,20 +454,7 @@ export default function ReportGenerator() {
     // Priority: if report is full HTML from LLM, use it verbatim (with minimal A4 CSS). Otherwise build our own HTML.
     let htmlContent = isFullHtml
       ? injectA4Css(reportContent)
-      : (visualizationData
-          ? generateEnhancedPDFContent(reportContent, visualizationData)
-          : `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Medical Report - Clinical Copilot</title>
-                <style>@page{size:A4;margin:20mm;} body{font-family:Arial, sans-serif;font-size:11pt;line-height:1.5;margin:0;padding:20mm;color:#000;background:#fff;} h1{font-size:18pt;border-bottom:2px solid #333;padding-bottom:5px;} h2{font-size:16pt;border-bottom:1px solid #666;padding-bottom:3px;} h3{font-size:14pt;} strong{font-weight:bold;}</style>
-              </head><body>
-                <h1>COMPREHENSIVE MEDICAL REPORT</h1>
-                ${reportContent
-      .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-      .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-      .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-      .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>')
-      .replace(/\*(.*)\*/gim, '<em>$1</em>')
-                  .replace(/\n/gim, '<br>')}
-              </body></html>`);
+      : generateEnhancedPDFContent(reportContent, visualizationData);
 
     // Ensure a floating print button and a safe print hook exist for any HTML (LLM or our own)
     const injectPrintUI = (html) => {
