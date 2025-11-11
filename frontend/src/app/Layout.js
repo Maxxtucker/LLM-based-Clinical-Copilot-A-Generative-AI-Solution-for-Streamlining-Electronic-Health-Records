@@ -37,14 +37,14 @@ export default function Layout({ children, currentPageName }) {
 // Sidebar Component
 function AppSidebar({ currentPageName }) {
   const [role, setRole] = React.useState(null);
-  // derive role similar to Profile page
+  // derive role similar to Profile page (normalize to lowercase/trim)
   const deriveRole = (u) => {
     if (!u) return "user";
-    if (u.role) return u.role;
-    const roles = Array.isArray(u.roles) ? u.roles : [];
+    if (u.role) return String(u.role).toLowerCase().trim();
+    const roles = (Array.isArray(u.roles) ? u.roles : []).map(r => String(r).toLowerCase().trim());
     if (roles.includes("doctor")) return "doctor";
     if (roles.includes("nurse")) return "nurse";
-    return roles[0] || "user";
+    return (roles[0] || "user").toLowerCase().trim();
   };
   React.useEffect(() => {
     let cancelled = false;

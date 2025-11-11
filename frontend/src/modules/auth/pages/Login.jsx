@@ -7,8 +7,8 @@ import { Stethoscope, Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
-// Pass `setIsAuthenticated` down from App.js
-export default function Login({ setIsAuthenticated }) {
+// Pass `setIsAuthenticated` (and optionally setRole) down from App.js
+export default function Login({ setIsAuthenticated, setRole }) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,6 +30,13 @@ export default function Login({ setIsAuthenticated }) {
         setError(data?.error || "Login failed");
         return;
       }
+      // Derive primary role and persist for UI gating (normalize to lowercase)
+      const rolesRaw = Array.isArray(data?.user?.roles) ? data.user.roles : [];
+      const roles = rolesRaw.map(r => String(r).toLowerCase().trim());
+      const derived = data?.user?.role ? String(data.user.role).toLowerCase().trim() : (roles.includes("doctor") ? "doctor" : roles.includes("nurse") ? "nurse" : (roles[0] || "user"));
+      const role = (derived || "user").toLowerCase().trim();
+      localStorage.setItem("userRole", role);
+      if (typeof setRole === "function") setRole(role);
       localStorage.setItem("isAuthenticated", "true");
       setIsAuthenticated(true);
       navigate("/dashboard");
@@ -112,7 +119,7 @@ export default function Login({ setIsAuthenticated }) {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between">
+              <div className="flex items-center">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -120,12 +127,6 @@ export default function Login({ setIsAuthenticated }) {
                   />
                   <span className="text-sm text-neutral-600">Remember me</span>
                 </label>
-                <button
-                  type="button"
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  Forgot password?
-                </button>
               </div>
 
               <Button

@@ -84,7 +84,13 @@ router.post('/login', async (req, res) => {
 
 // POST /api/auth/logout
 router.post('/logout', (req, res) => {
-  res.clearCookie('token', { path: '/', sameSite: 'lax' });
+  const isProd = process.env.NODE_ENV === 'production';
+  res.clearCookie('token', {
+    path: '/',
+    sameSite: isProd ? 'none' : 'lax',
+    secure: isProd,
+    httpOnly: true,
+  });
   res.json({ ok: true });
 });
 

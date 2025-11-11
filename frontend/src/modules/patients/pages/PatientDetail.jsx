@@ -106,8 +106,9 @@ export default function PatientDetail() {
         const json = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
         const u = json.user || json;
-        const roles = Array.isArray(u.roles) ? u.roles : [];
-        const r = u.role || (roles.includes("doctor") ? "doctor" : roles.includes("nurse") ? "nurse" : roles[0] || "user");
+        const roles = (Array.isArray(u.roles) ? u.roles : []).map(r => String(r).toLowerCase().trim());
+        const derived = u.role ? String(u.role).toLowerCase().trim() : (roles.includes("doctor") ? "doctor" : roles.includes("nurse") ? "nurse" : (roles[0] || "user"));
+        const r = (derived || "user").toLowerCase().trim();
         if (!cancelled) setRole(r);
       } catch {
         if (!cancelled) setRole(null);

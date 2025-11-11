@@ -16,14 +16,11 @@ import {
   Save, 
   X, 
   Key,
-  ShieldCheck,
-  Eye,
-  EyeOff
+  ShieldCheck
 } from "lucide-react";
 
 export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -41,11 +38,11 @@ export default function Profile() {
 
   function deriveRole(u) {
     if (!u) return "user";
-    if (u.role) return u.role;
-    const roles = Array.isArray(u.roles) ? u.roles : [];
+    if (u.role) return String(u.role).toLowerCase().trim();
+    const roles = (Array.isArray(u.roles) ? u.roles : []).map(r => String(r).toLowerCase().trim());
     if (roles.includes("doctor")) return "doctor";
     if (roles.includes("nurse")) return "nurse";
-    return roles[0] || "user";
+    return (roles[0] || "user").toLowerCase().trim();
   }
 
   useEffect(() => {
@@ -352,25 +349,6 @@ export default function Profile() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      value="••••••••••••"
-                      readOnly
-                      className="pr-11"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
 
                 {!showChangePassword && (
                   <Button variant="outline" size="sm" onClick={() => { setShowChangePassword(true); setCpError(""); setCpSuccess(""); }}>

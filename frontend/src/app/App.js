@@ -52,7 +52,10 @@ function App() {
   const [isSavingPatient, setIsSavingPatient] = useState(false);
 
   // derive current user role for role-based navigation and route guarding
-  const [role, setRole] = useState(null);
+  const [role, setRole] = useState(() => {
+    const v = localStorage.getItem("userRole");
+    return v ? String(v).toLowerCase().trim() : null;
+  });
   React.useEffect(() => {
     let cancelled = false;
     async function loadMe() {
@@ -61,16 +64,24 @@ function App() {
         const json = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
         const u = json.user || json;
-        const roles = Array.isArray(u.roles) ? u.roles : [];
-        const r = u.role || (roles.includes("doctor") ? "doctor" : roles.includes("nurse") ? "nurse" : roles[0] || "user");
-        if (!cancelled) setRole(r);
+        const roles = (Array.isArray(u.roles) ? u.roles : []).map(r => String(r).toLowerCase().trim());
+        const derived = u.role ? String(u.role).toLowerCase().trim() : (roles.includes("doctor") ? "doctor" : roles.includes("nurse") ? "nurse" : (roles[0] || "user"));
+        const r = (derived || "user").toLowerCase().trim();
+        if (!cancelled) {
+          setRole(r);
+          try { localStorage.setItem("userRole", r); } catch {}
+        }
       } catch {
         if (!cancelled) setRole(null);
       }
     }
-    loadMe();
+    if (isAuthenticated) {
+      loadMe();
+    } else {
+      setRole(null);
+    }
     return () => { cancelled = true; };
-  }, []);
+  }, [isAuthenticated]);
 
   const handleLogoutClick = () => setShowLogoutConfirm(true);
   const handleLogoutConfirm = async () => {
@@ -83,7 +94,9 @@ function App() {
     } catch (e) {
       console.warn("Logout request failed (continuing)", e);
     }
+    try { localStorage.removeItem("userRole"); } catch {}
     localStorage.removeItem("isAuthenticated");
+    setRole(null);
     setIsAuthenticated(false);
     try { navigate("/", { replace: true }); } catch { window.location.href = "/"; }
   };
@@ -194,7 +207,7 @@ function App() {
 
   return (
     <Routes>
-      <Route path="/" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
+      <Route path="/" element={<Login setIsAuthenticated={setIsAuthenticated} setRole={setRole} />} />
       <Route
         path="/*"
         element={
