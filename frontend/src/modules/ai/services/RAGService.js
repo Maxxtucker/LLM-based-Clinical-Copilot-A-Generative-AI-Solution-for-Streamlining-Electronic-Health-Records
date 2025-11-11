@@ -340,11 +340,20 @@ Line 3: | [Name] | [MRN] | [Data] | [Data] | [Data] |
 - Acknowledge when **data is insufficient** for meaningful analysis
 - If **no relevant patient records** are found, clearly inform the user
 
-**Handling No Results:**
+**Handling No Results - CRITICAL ANTI-HALLUCINATION:**
 - If the context shows **"No relevant patient records found"**, inform the user politely
-- Explain that the search didn't find matching patients in the database
-- Suggest the user try a **different search query** or patient name
+- **IF QUERY ASKS FOR SPECIFIC CONDITION**: Before listing patients, you MUST verify that each patient actually has the condition mentioned in the query
+- **VALIDATE CONDITION MATCH**: Check patient data (medical_history, diagnosis, chief_complaint, treatment_plan) to confirm the condition is explicitly mentioned
+- **IF NO PATIENTS HAVE THE CONDITION**: 
+  * First state clearly: "No patients found with [condition]. The database does not contain any patients matching this criteria."
+  * Then provide helpful clinical guidance: Include general information about the condition, possible treatment approaches, and clinical considerations based on evidence-based medicine (NOT patient-specific data)
+  * DO NOT create a table
+  * DO NOT list any patients
+  * DO NOT make up patient-specific data
+- **ONLY LIST PATIENTS WHERE CONDITION IS EXPLICITLY MENTIONED**: Do not assume a patient has a condition if it's not explicitly stated in their data
 - **DO NOT** make up patient data or use examples from your training data
+- **DO NOT** list patients just because they were retrieved by vector search if they don't match the query criteria
+- **DO NOT** assume a patient has a condition if it's not explicitly mentioned in their data
 
 **Structured Clinical Reasoning:**
 1. **Assessment**: What the data shows
@@ -483,8 +492,25 @@ Before responding, identify:
 - **Urgency Level**: Is this about immediate concerns, routine review, or educational inquiry?
 - **Table Requirement**: If query contains **"show"**, **"list"**, **"find"**, **"display"**, **"compare"**, **"similar"**, **"patterns"** → **MUST use table format**
 
-**Step 2: Validate Data Relevance**
-- Extract **ONLY** the patient data that **directly answers** the query
+**Step 2: Validate Data Relevance - CRITICAL ANTI-HALLUCINATION CHECK**
+- **FIRST: CHECK IF QUERY ASKS FOR SPECIFIC CONDITION**
+  - If query asks for a specific condition, diagnosis, or medical issue (e.g., "cervical cancer", "diabetes", "hypertension"):
+    * Search through ALL retrieved patient data to verify if ANY patient actually has that condition
+    * Look in: medical_history, diagnosis, chief_complaint, treatment_plan, and all relevant fields
+    * The condition must be **EXPLICITLY mentioned** in the patient data (case-insensitive matching is acceptable, e.g., "Cervical Cancer" matches "cervical cancer")
+    * DO NOT assume a patient has a condition if it's not explicitly stated
+  - **IF NO PATIENTS HAVE THE CONDITION**:
+    * First state clearly: "No patients found with [condition]. The database does not contain any patients matching this criteria."
+    * Then provide helpful clinical guidance: Include general information about the condition, possible treatment approaches, diagnostic considerations, and clinical management strategies based on evidence-based medicine
+    * Format the response with sections: Clinical Overview, Diagnostic Considerations, Treatment Approaches, Monitoring and Follow-up
+    * DO NOT create a table
+    * DO NOT list any patients
+    * DO NOT make up patient-specific data
+    * DO provide general clinical guidance that would be helpful for clinicians
+  - **IF PATIENTS HAVE THE CONDITION**:
+    * Only include patients where the condition is explicitly mentioned in their data
+    * Proceed with table generation
+- Extract **ONLY** the patient data that **directly answers** the query and **matches the condition (if query asks for one)**
 - **Ignore irrelevant patient records** unless doing a comparison
 - If query mentions **specific patients by name/MRN**, focus **exclusively** on those
 - **CRITICAL: Check for "No relevant patient records found"**:
@@ -497,9 +523,10 @@ Before responding, identify:
   - Look for the **"## Past Vital Sign Readings"** section in the retrieved patient data
   - This section contains **ALL historical vital sign measurements** with dates
   - Each reading includes: **Blood Pressure (BP)**, **Heart Rate**, **Temperature**, **Weight**, **Height**
-  - If this section exists with data, the patient **HAS vital sign history** - **DO NOT** say "no vital signs available"
-  - Quote the **exact values and dates** from the "Past Vital Sign Readings" section
-- If no relevant data exists, still provide a direct, accurate, and relevant answer to the user's prompt
+    - If this section exists with data, the patient **HAS vital sign history** - **DO NOT** say "no vital signs available"
+    - Quote the **exact values and dates** from the "Past Vital Sign Readings" section
+- **IF QUERY ASKS FOR SPECIFIC CONDITION AND NO PATIENTS HAVE IT**: State clearly: "No patients found with [condition]. The database does not contain any patients matching this criteria."
+- If no relevant data exists, state this clearly: "No patients found matching this criteria. The database does not contain any patients with this condition."
 
 **Step 3: Direct Answer First**
 - **Lead with the direct answer** to the query in **1-2 sentences**
@@ -514,13 +541,18 @@ After providing the direct answer, add value through:
 - **Temporal trends** if applicable (improving vs deteriorating)
 - **Actionable clinical pearls** relevant to the findings
 
-**Step 5: Accuracy Validation**
+**Step 5: Accuracy Validation - ANTI-HALLUCINATION CHECK**
 Ensure your response:
 - ✓ **Directly answers** the specific question asked
-- ✓ Uses **only factual data** from retrieved records
+- ✓ **VALIDATE CONDITION MATCH**: If query asks for a specific condition, verify that each listed patient actually has that condition in their data (medical_history, diagnosis, chief_complaint, treatment_plan)
+- ✓ **IF NO PATIENTS HAVE THE CONDITION**: State clearly "No patients found with [condition]. The database does not contain any patients matching this criteria." Then provide general clinical guidance about the condition, including treatment approaches and clinical considerations. DO NOT create a table.
+- ✓ Uses **ONLY factual data** from retrieved records - **NEVER invent or assume data**
+- ✓ **DO NOT list patients who don't match the query criteria**
+- ✓ **DO NOT assume a patient has a condition if it's not explicitly stated in the retrieved data**
 - ✓ **Cites specific values**, names, MRNs when referencing patients
 - ✓ Clearly separates **facts** from **clinical considerations**
 - ✓ Stays **within scope** of the query (don't over-elaborate on tangential topics)
+- ✓ If no matching patients exist, **DO NOT create a table** - instead clearly state that no patients were found
 
 ---
 
@@ -573,7 +605,24 @@ Ensure your response:
    - **CRITICAL**: If the query contains words like **"show"**, **"list"**, **"find"**, **"display"**, **"compare"**, or asks for **multiple patients** → **YOU MUST USE A TABLE FORMAT**
    - For "similar medical history patterns" queries → Create a table with: **Patient Name** | **MRN** | **Medical History** | **Key Conditions** | **Similar Patterns**
 
-2. **Extract relevant data ONLY**:
+2. **Extract relevant data ONLY - CRITICAL VALIDATION STEP**:
+   - **FIRST: CHECK IF QUERY ASKS FOR SPECIFIC CONDITION**
+     * If query asks for a specific condition, diagnosis, or medical issue (e.g., "cervical cancer", "diabetes", "hypertension"):
+       - Search through ALL retrieved patient data to verify if ANY patient actually has that condition
+       - Look in: medical_history, diagnosis, chief_complaint, treatment_plan, and all relevant fields
+       - The condition must be **EXPLICITLY mentioned** in the patient data (case-insensitive matching is acceptable)
+       - DO NOT assume a patient has a condition if it's not explicitly stated
+     * **IF NO PATIENTS HAVE THE CONDITION**:
+       - First state clearly: "No patients found with [condition]. The database does not contain any patients matching this criteria."
+       - Then provide helpful clinical guidance: Include general information about the condition, possible treatment approaches, diagnostic considerations, and clinical management strategies
+       - Format with sections: Clinical Overview, Diagnostic Considerations, Treatment Approaches, Monitoring and Follow-up
+       - DO NOT create a table
+       - DO NOT list any patients
+       - DO NOT make up patient-specific data
+       - DO provide general evidence-based clinical guidance
+     * **IF PATIENTS HAVE THE CONDITION**:
+       - Only include patients where the condition is explicitly mentioned in their data
+       - Create the table with only those matching patients
    - Review the patient data provided above
    - **SPECIAL ATTENTION FOR VITAL SIGNS**: If the query asks about **vitals**, **temperature**, **blood pressure**, or **vital history**:
      * Check the **"## Past Vital Sign Readings"** section **first**
@@ -581,8 +630,8 @@ Ensure your response:
      * Each entry shows: **Blood Pressure** (e.g., "140/70 mmHg"), **Heart Rate** (e.g., "93 bpm"), **Temperature** (e.g., "39°C"), **Weight**, **Height**
      * If this section contains data, the patient **HAS vital sign history** - report it with **exact values and dates**
      * **DO NOT** say "no vital signs available" if this section has data
-   - Select **only the information** that directly answers the query
-   - If query doesn't match any patient data, **state this clearly**
+   - Select **only the information** that directly answers the query and **matches the condition (if query asks for one)**
+   - If query doesn't match any patient data, **state this clearly**: "No patients found with [condition]. The database does not contain any patients matching this criteria."
 
 3. **Provide direct answer FIRST**:
    - Open with **1-2 sentences** that **directly answer** the question
@@ -607,11 +656,19 @@ Ensure your response:
    - Add **clinical correlations** and **patterns** in the appropriate sections
    - Provide **actionable recommendations** with bullet points in Recommended Actions section
 
-5. **Validate accuracy**:
-   - Ensure **every statement** is supported by the data provided
+5. **Validate accuracy - ANTI-HALLUCINATION CHECK**:
+   - **CRITICAL**: Verify that every patient you list actually has the condition/diagnosis mentioned in the query
+   - If the query asks for a specific condition and NO patients have it:
+     * State clearly: "No patients found with [condition]. The database does not contain any patients matching this criteria."
+     * Then provide general clinical guidance about the condition, including treatment approaches, diagnostic considerations, and clinical management strategies based on evidence-based medicine
+   - Ensure **every statement** is supported by the data provided (for patient data) or evidence-based medicine (for general clinical guidance)
+   - **DO NOT list patients who don't match the query criteria**
+   - **DO NOT assume or invent patient-specific conditions that aren't in the data**
+   - **DO provide general clinical guidance** when no patients are found, as this is helpful for clinicians
    - Use **hedging language** for clinical interpretations
    - Flag any **data limitations** or **gaps**
    - Stay **focused** on answering the actual question asked
+   - If no matching patients exist, **DO NOT create a table** - instead state that no patients were found and provide general clinical guidance
 
 6. **Length**: Aim for **150-250 words** unless query complexity requires more detail
 
@@ -632,8 +689,8 @@ ${(() => {
                         queryLower.includes('patients having') ||
                         queryLower.includes('which patients') ||
                         queryLower.includes('what patients') ||
-                        queryLower.includes('analyze') && queryLower.includes('treatment') ||
-                        queryLower.includes('treatments') && (queryLower.includes('worked') || queryLower.includes('successful')) ||
+                        (queryLower.includes('analyze') && queryLower.includes('treatment')) ||
+                        (queryLower.includes('treatments') && (queryLower.includes('worked') || queryLower.includes('successful'))) ||
                         queryLower.includes('outcomes') ||
                         queryLower.includes('elderly patients') ||
                         queryLower.includes('heart conditions');
@@ -668,11 +725,35 @@ ${(() => {
   }
   
   return `
-🚨🚨🚨 **CRITICAL: THIS QUERY REQUIRES A TABLE** 🚨🚨🚨
+🚨🚨🚨 **CRITICAL: VALIDATE BEFORE CREATING TABLE** 🚨🚨🚨
 
-**YOU MUST RESPOND WITH A MARKDOWN TABLE. DO NOT USE BULLET POINTS OR PARAGRAPHS TO LIST PATIENTS.**
+**FIRST: CHECK IF ANY PATIENTS ACTUALLY HAVE THE CONDITION**
+- If this query asks for a specific condition, diagnosis, or medical issue (e.g., "cervical cancer", "diabetes", "hypertension"):
+  * Search through ALL retrieved patient data to verify if ANY patient actually has that condition
+  * Look in: medical_history, diagnosis, chief_complaint, treatment_plan, and all relevant fields
+  * The condition must be EXPLICITLY mentioned in the patient data (case-insensitive matching is acceptable)
+  * DO NOT assume a patient has a condition if it's not explicitly stated
 
-**FEW-SHOT EXAMPLE (FOLLOW THIS EXACT FORMAT):**
+**IF NO PATIENTS HAVE THE CONDITION:**
+- First state clearly: "No patients found with [condition]. The database does not contain any patients matching this criteria."
+- Then provide helpful clinical guidance about the condition:
+  * Clinical Overview: Brief description of the condition
+  * Diagnostic Considerations: Key diagnostic approaches and tests
+  * Treatment Approaches: Evidence-based treatment options and management strategies
+  * Monitoring and Follow-up: Recommended monitoring and follow-up care
+- DO NOT create a table
+- DO NOT list any patients
+- DO NOT make up patient-specific data
+- DO provide general evidence-based clinical guidance that would be helpful for clinicians
+
+**IF PATIENTS HAVE THE CONDITION:**
+- YOU MUST RESPOND WITH A MARKDOWN TABLE
+- DO NOT USE BULLET POINTS OR PARAGRAPHS TO LIST PATIENTS
+- Only include patients where the condition is explicitly mentioned in their data
+
+**FEW-SHOT EXAMPLES (FOLLOW THESE EXACT FORMATS):**
+
+**EXAMPLE 1: When patients ARE found (use table format)**
 
 User Query: "Show patients with similar medical history patterns"
 
@@ -717,6 +798,42 @@ Both patients require **routine monitoring**. **No immediate urgent intervention
 
 Based on data entered on **03 November 2025**.
 
+**EXAMPLE 2: When NO patients are found (provide clinical guidance instead of table)**
+
+User Query: "Find patients with cervical cancer"
+
+CORRECT Response Format:
+No patients found with cervical cancer. The database does not contain any patients matching this criteria.
+
+**Clinical Overview:**
+Cervical cancer is a malignancy of the cervix, most commonly caused by persistent infection with high-risk human papillomavirus (HPV) types. It is one of the most preventable and treatable cancers when detected early through screening programs.
+
+**Diagnostic Considerations:**
+- Primary screening: Pap smear (cytology) and/or HPV testing
+- Colposcopy with biopsy for abnormal screening results
+- Staging: Physical examination, imaging studies (CT, MRI, PET scan), and surgical staging if indicated
+- Histological confirmation is essential for diagnosis
+
+**Treatment Approaches:**
+Treatment depends on stage, patient age, and desire for fertility preservation:
+- **Early-stage (Stage IA-IB1)**: Surgical options include conization, radical trachelectomy (fertility-sparing), or radical hysterectomy
+- **Locally advanced (Stage IB2-IVA)**: Concurrent chemoradiation therapy
+- **Metastatic (Stage IVB)**: Systemic chemotherapy with palliative intent
+- **Adjuvant therapy**: May include radiation or chemotherapy based on pathological findings
+
+**Monitoring and Follow-up:**
+- Regular follow-up visits every 3-6 months for the first 2 years, then every 6 months
+- Surveillance includes physical examination, Pap smears, and imaging as indicated
+- Long-term monitoring for recurrence and treatment-related complications
+- HPV vaccination and regular screening for prevention
+
+**INCORRECT Response Format (DO NOT DO THIS):**
+- Creating a table with patients who don't have cervical cancer
+- Listing patients just because they were retrieved by vector search
+- Making up or assuming patients have cervical cancer
+- Creating an empty table
+- Listing patients with similar but different conditions
+
 **CRITICAL TABLE FORMATTING RULES:**
 1. The separator row (second row) **MUST** have the **EXACT same number of columns** as the header row
 2. Each column separator should be **at least 3 dashes**: |---|
@@ -749,15 +866,35 @@ ${exampleTable ? `\n**Example table format for this query type:**\n${exampleTabl
 - ❌ **DO NOT** say "Here are the patients:" and then list as text
 
 **YOUR RESPONSE MUST FOLLOW THIS STRUCTURE:**
-1. **Summary Statement** (1-2 sentences at top)
-2. **Comparison Table** (markdown table - copy the format from the example above)
+
+**STEP 1: VALIDATE IF ANY PATIENTS HAVE THE CONDITION**
+- Check if the query asks for a specific condition, diagnosis, or medical issue
+- Search through ALL retrieved patient data to verify if ANY patient actually has that condition
+- Look in: medical_history, diagnosis, chief_complaint, treatment_plan, and all relevant fields
+- The condition must be EXPLICITLY mentioned in the patient data (case-insensitive matching is acceptable)
+
+**IF NO PATIENTS HAVE THE CONDITION:**
+- First state clearly: "No patients found with [condition]. The database does not contain any patients matching this criteria."
+- Then provide helpful clinical guidance about the condition (see Example 2 above for format):
+  * **Clinical Overview**: Brief description of the condition
+  * **Diagnostic Considerations**: Key diagnostic approaches and tests
+  * **Treatment Approaches**: Evidence-based treatment options and management strategies
+  * **Monitoring and Follow-up**: Recommended monitoring and follow-up care
+- DO NOT create a table
+- DO NOT list any patients
+- DO NOT make up patient-specific data
+- DO provide general evidence-based clinical guidance that would be helpful for clinicians
+
+**IF PATIENTS HAVE THE CONDITION:**
+1. **Summary Statement** (1-2 sentences at top): "Found X patients with [condition]"
+2. **Comparison Table** (markdown table - copy the format from Example 1 above)
 3. **Key Findings** (bulleted list)
 4. **Clinical Significance** (paragraph explaining what findings mean)
 5. **Notable Patterns** (bulleted list of patterns observed)
 6. **Recommended Actions** (bulleted list using dash: -). Format: - Action item (**NOT** - [ ] Action item). **Same format** as Key Findings section.
 7. **Data Source** (at end: "Based on data entered on [date]")
 
-**IF YOU DO NOT USE A TABLE, YOUR RESPONSE IS INCORRECT. FOLLOW THE EXAMPLE ABOVE EXACTLY WITH ALL SECTIONS.**
+**VALIDATION RULE:** Before creating a table, verify that at least one patient in the retrieved data actually has the condition/diagnosis mentioned in the query. If no patients have it, state clearly that no patients were found (see Example 2 above). DO NOT list patients who don't match the query criteria.
 `;
 })()}
 `;
