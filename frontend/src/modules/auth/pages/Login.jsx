@@ -85,7 +85,7 @@ export default function Login({ setIsAuthenticated, setRole }) {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="doctor@hospital.com or nurse@hospital.com"
+                    placeholder="sarahdr@gmail.com or sinay@gmail.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-11 h-12 border-neutral-300 focus:border-blue-500"

@@ -191,6 +191,8 @@ export default function PatientDetail() {
       }
       refreshHistory(patient._id);
       refreshVisits(patient._id);
+      setIsEditing(true);
+
     } catch (error) {
       console.error("Error refreshing after extraction:", error);
     }
