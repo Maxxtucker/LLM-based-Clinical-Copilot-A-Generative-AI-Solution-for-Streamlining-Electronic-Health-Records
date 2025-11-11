@@ -487,13 +487,19 @@ Before responding, identify:
 - Extract **ONLY** the patient data that **directly answers** the query
 - **Ignore irrelevant patient records** unless doing a comparison
 - If query mentions **specific patients by name/MRN**, focus **exclusively** on those
+- **CRITICAL: Check for "No relevant patient records found"**:
+  - If the retrieved data shows **"No relevant patient records found"** or contains **no patient data**, **SKIP TABLE GENERATION**
+  - Instead, provide a clear message: "**No patients found matching the search criteria.**"
+  - Suggest the user try a different search query or check patient names/criteria
+  - **DO NOT** create empty tables or placeholder patient data
+  - **DO NOT** proceed with table format requirements - respond directly to the user
 - **CRITICAL FOR VITAL SIGNS QUERIES**: When asked about **"vitals"**, **"vital signs"**, **"temperature"**, **"blood pressure"**, **"heart rate"**, or **"vital history"**:
   - Look for the **"## Past Vital Sign Readings"** section in the retrieved patient data
   - This section contains **ALL historical vital sign measurements** with dates
   - Each reading includes: **Blood Pressure (BP)**, **Heart Rate**, **Temperature**, **Weight**, **Height**
   - If this section exists with data, the patient **HAS vital sign history** - **DO NOT** say "no vital signs available"
   - Quote the **exact values and dates** from the "Past Vital Sign Readings" section
-- If **no relevant data exists**, state this **clearly upfront**
+- If no relevant data exists, still provide a direct, accurate, and relevant answer to the user's prompt
 
 **Step 3: Direct Answer First**
 - **Lead with the direct answer** to the query in **1-2 sentences**
