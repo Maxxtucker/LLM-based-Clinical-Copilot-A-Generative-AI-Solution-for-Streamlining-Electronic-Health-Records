@@ -1,0 +1,46 @@
+name: Daily Patient Embeddings Update
+
+on:
+  schedule:
+    # Runs at 12:00 AM SGT (16:00 UTC) every day
+    - cron: '0 16 * * *'
+  # Allow manual trigger from GitHub UI
+  workflow_dispatch:
+
+jobs:
+  embed-patients:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Step 1: Checkout your repository code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # Step 4: Run the embeddings script
+      - name: Run patient embeddings update
+        run: node src/scripts/embedAllPatients.js
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          RESET_EMBEDDINGS: ${{ secrets.RESET_EMBEDDINGS || 'false' }}
+          NODE_ENV: production
+
+      # Step 5: Notify on success
+      - name: Success notification
+        if: success()
+        run: echo "✅ Patient embeddings updated successfully"
+
+      # Step 6: Notify on failure
+      - name: Failure notification
+        if: failure()
+        run: echo "❌ Patient embeddings update failed"
