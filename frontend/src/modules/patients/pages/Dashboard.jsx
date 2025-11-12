@@ -98,6 +98,7 @@ export default function Dashboard() {
             chief_complaint: "Frequent headaches for the past 2 weeks",
             ai_summary: true,
             createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
             visits: [],
           },
           {
@@ -112,6 +113,7 @@ export default function Dashboard() {
             chief_complaint: "Chest pain when exercising",
             ai_summary: false,
             createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
             visits: [],
           },
         ];
@@ -175,32 +177,49 @@ export default function Dashboard() {
 
     if (showAllPatients) return matchesSearch;
 
-    // Only check visit dates - filter based on actual visit dates only
-    // Use visit_date field specifically (not createdAt) for accurate filtering
-    const visitDates = (patient.visits || [])
-      .map(visit => visit.visit_date)
-      .filter(Boolean) // Only include visits that have a visit_date
-      .map(d => {
+    // Check multiple date sources: visit_date, updatedAt, and createdAt
+    const datesToCheck = [];
+    
+    // Add visit dates from visits array
+    (patient.visits || []).forEach(visit => {
+      if (visit.visit_date) {
         try {
-          return new Date(d);
+          datesToCheck.push(new Date(visit.visit_date));
         } catch {
-          return null;
+          // Invalid date, skip
         }
-      })
-      .filter(Boolean); // Remove any invalid dates
-
-    // If patient has no visits, don't show them when filtering by date
-    if (visitDates.length === 0) {
-      return false; // Don't show patients without visits when date filtering is active
+      }
+    });
+    
+    // Add updatedAt date
+    if (patient.updatedAt) {
+      try {
+        datesToCheck.push(new Date(patient.updatedAt));
+      } catch {
+        // Invalid date, skip
+      }
+    }
+    
+    // Add createdAt date as fallback
+    if (patient.createdAt) {
+      try {
+        datesToCheck.push(new Date(patient.createdAt));
+      } catch {
+        // Invalid date, skip
+      }
     }
 
-    // Check if ANY visit date matches the selected date
-    // This allows patients with visits on multiple days to appear when filtering for any of those days
-    const hasMatchingVisitDate = visitDates.some(date => 
+    // If no valid dates found, don't show the patient when date filtering is active
+    if (datesToCheck.length === 0) {
+      return false;
+    }
+
+    // Check if ANY date matches the selected date
+    const hasMatchingDate = datesToCheck.some(date => 
       isSameDay(date, selectedDate)
     );
 
-    return matchesSearch && hasMatchingVisitDate;
+    return matchesSearch && hasMatchingDate;
   });
 
   // Show backend total when "View All Patients" is ON (matches search across entire DB).
