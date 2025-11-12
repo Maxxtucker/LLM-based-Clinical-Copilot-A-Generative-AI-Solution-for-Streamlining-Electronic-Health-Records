@@ -22,17 +22,23 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
+          cache-dependency-path: 'backend/package-lock.json'
 
-      # Step 3: Install dependencies
+      # Step 3: Install dependencies in backend folder
       - name: Install dependencies
-        run: npm install
+        run: |
+          cd backend
+          npm install
 
       # Step 4: Run the embeddings script
       - name: Run patient embeddings update
-        run: node src/scripts/embedAllPatients.js
+        run: |
+          cd backend
+          node src/scripts/embedAllPatients.js
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
-          RESET_EMBEDDINGS: ${{ secrets.RESET_EMBEDDINGS || 'false' }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          RESET_EMBEDDINGS: 'false'
           NODE_ENV: production
 
       # Step 5: Notify on success
