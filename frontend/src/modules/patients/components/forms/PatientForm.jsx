@@ -106,7 +106,7 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
    return EMAIL_REGEX.test(email) ? null : "Invalid email format. Please enter a valid email address.";
  };
  const validatePhone = (phone) => {
-   if (!phone) return null;
+   if (!phone) return "Phone is required.";
    return SG_PHONE_REGEX.test(phone) ? null : "Invalid Singapore number (e.g. +6591234567 or 91234567).";
  };
  const validateDOB = (dob) => {
@@ -114,37 +114,44 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
    return inPastSane(dob) ? null : "Date must be in the past (and not before 1905).";
  };
  const validateGender = (g) => {
-   if (!g) return null; // optional in your UI
+   if (!g) return "Gender is required."; 
    return GENDERS.has(String(g).toLowerCase()) ? null : "Select: Male, female, or other.";
  };
  const validateHeight = () => {
-   if (!formData.vital_signs.height) return null;
+   if (!formData.vital_signs.height) return "Height is required.";
    return inRange(formData.vital_signs.height, 100, 250) ? null : `Height (${formData.vital_signs.height} cm) seems unusual. Please verify.`;
  };
  const validateWeight = () => {
-   if (!formData.vital_signs.weight) return null;
+   if (!formData.vital_signs.weight) return "Weight is required.";
    return inRange(formData.vital_signs.weight, 20, 200) ? null : `Weight (${formData.vital_signs.weight} kg) seems unusual. Please verify.`;
  };
  const validateBloodPressure = () => {
-   if (!formData.vital_signs.blood_pressure) return null;
+   if (!formData.vital_signs.blood_pressure) return "Blood pressure is required.";
    return bpLooksOk(formData.vital_signs.blood_pressure) ? null : `Blood pressure (${formData.vital_signs.blood_pressure}) seems unusual. Please verify.`;
  };
  const validateHeartRate = () => {
-   if (!formData.vital_signs.heart_rate) return null;
+   if (!formData.vital_signs.heart_rate) return "Heart rate is required.";
    return inRange(formData.vital_signs.heart_rate, 50, 120) ? null : `Heart Rate (${formData.vital_signs.heart_rate} bpm) is abnormal. Please verify.`;
  };
  const validateTemperature = () => {
-   if (!formData.vital_signs.temperature) return null;
+   if (!formData.vital_signs.temperature) return "Temperature is required.";
    return inRange(formData.vital_signs.temperature, 35.0, 42.0) ? null : `Temperature (${formData.vital_signs.temperature}°C) is abnormal. Please verify.`;
  };
 
  // Address warning: recommend entering a full address with an example format
  const validateAddress = (addr) => {
-   if (!addr || String(addr).trim().length === 0) {
-     return 'Please provide a full address. Example: "xx Road, Singapore, 123456"';
-   }
-   return null;
- };
+  const a = (addr ?? "").trim();
+  if (!a) {
+    return 'Please provide a full address. Example: "10 Kent Ridge Crescent, Singapore 119260"';
+  }
+
+  const SG_ADDR_REGEX = /Singapore\s*\d{6}/i;
+  if (!SG_ADDR_REGEX.test(a)) {
+    return 'Address must include "Singapore" followed by a 6-digit postal code (e.g., "Singapore 119260").';
+  }
+
+  return null;
+};
 
  // Live warnings (computed on render)
  const mrnWarning  = validateMRN(formData.medical_record_number);
@@ -170,7 +177,8 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
    !!weightWarning ||
    !!bpWarning ||
    !!hrWarning ||
-   !!tempWarning;
+   !!tempWarning ||
+   !!addressWarning;
 
 
  // Small helper to add red border if a field has a warning
@@ -341,10 +349,6 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
    }
    if (hasErrors) {
      alert("Please fix the highlighted fields before saving.");
-     return;
-   }
-   if (!formData.first_name || !formData.last_name) {
-     alert("First and last name are required.");
      return;
    }
 
@@ -597,6 +601,7 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                  onChange={(e) => handleChange('phone', e.target.value)}
                  className={`mt-1 ${hasSearched && phoneWarning ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                  disabled={!hasSearched}
+                 required
                />
                {hasSearched && phoneWarning && (
                  <p className="text-xs text-red-600 mt-1">⚠️ {phoneWarning}</p>
@@ -613,6 +618,7 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                  className={`mt-1 ${hasSearched && heightWarning ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                  placeholder="165 cm"
                  disabled={!hasSearched}
+                 required
                />
                {hasSearched && heightWarning && (
                  <p className="text-xs text-red-600 mt-1">⚠️ {heightWarning}</p>
@@ -629,6 +635,7 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                  className={`mt-1 ${hasSearched && weightWarning ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                  placeholder="60 kg"
                  disabled={!hasSearched}
+                 required
                />
                {hasSearched && weightWarning && (
                  <p className="text-xs text-red-600 mt-1">⚠️ {weightWarning}</p>
@@ -645,6 +652,7 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                 className={`mt-1 ${hasSearched && addressWarning ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                 placeholder="xx Road, Singapore, 123456"
                 disabled={!hasSearched}
+                required
               />
               {hasSearched && addressWarning && (
                 <p className="text-xs text-red-600 mt-1">⚠️ {addressWarning}</p>
@@ -695,6 +703,7 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                  className={`mt-1 ${hasSearched && bpWarning ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                  placeholder="120/80"
                  disabled={!hasSearched}
+                 required
                />
                {hasSearched && bpWarning && (
                  <p className="text-xs text-red-600 mt-1">⚠️ {bpWarning}</p>
@@ -709,6 +718,7 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                  className={`mt-1 ${hasSearched && hrWarning ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                  placeholder="72 bpm"
                  disabled={!hasSearched}
+                 required
                />
                {hasSearched && hrWarning && (
                  <p className="text-xs text-red-600 mt-1">⚠️ {hrWarning}</p>
@@ -723,6 +733,7 @@ export default function PatientForm({ onSubmit, isLoading, initialData = {} }) {
                  className={`mt-1 ${hasSearched && tempWarning ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                  placeholder="36.8 °C"
                  disabled={!hasSearched}
+                 required
                />
                {hasSearched && tempWarning && (
                  <p className="text-xs text-red-600 mt-1">⚠️ {tempWarning}</p>
