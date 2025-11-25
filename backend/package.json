@@ -13,6 +13,7 @@
     "migrate:apply": "node src/scripts/patientMigration.js"
   },
   "dependencies": {
+    "@cfworker/json-schema": "^4.1.1",
     "@huggingface/inference": "^4.13.0",
     "@langchain/openai": "^1.0.0",
     "axios": "^1.13.1",
@@ -36,7 +37,7 @@
     "node-cron": "^4.2.1",
     "nodemon": "^3.0.1",
     "openai": "^4.20.1",
-    "puppeteer": "^24.26.1"
+    "puppeteer": "19.7.2"
   },
   "keywords": [
     "clinical",

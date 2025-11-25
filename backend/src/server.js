@@ -130,8 +130,8 @@ cron.schedule(
 
     /* -------------------------- START SERVER -------------------------- */
     const port = process.env.PORT || 5001;
-    const server = app.listen(port, () => {
-      console.log(`🚀 API running on http://localhost:${port}`);
+    const server = app.listen(port, '0.0.0.0', () => {
+      console.log(`🚀 API running on http://0.0.0.0:${port}`);
     });
 
     for (const signal of ["SIGINT", "SIGTERM"]) {
